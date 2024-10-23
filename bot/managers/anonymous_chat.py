@@ -1,6 +1,7 @@
 from telebot import TeleBot
 from telebot.apihelper import ApiTelegramException
 from telebot.types import Message
+
 from bot.utils.database import active_chats_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
@@ -9,6 +10,7 @@ from bot.utils.language import get_response
 class ChatHandler:
     def __init__(self, bot: TeleBot):
         self.bot = bot
+
     def anonymous_chat(self, msg: Message):
         user_chat = self._get_user_chat(msg.from_user.id)
 
@@ -25,14 +27,18 @@ class ChatHandler:
         """Handle the case where the user is replying to a message."""
         recipient_id = user_chat['reply_target_user_id']
         original_message_id = user_chat['reply_target_message_id']
-
-        self.bot.send_message(
-            recipient_id,
-            get_response('texting.replying.recipient', msg.text),
-            reply_to_message_id=original_message_id,
-            parse_mode='Markdown'
-        )
-
+        # Announce the bot has been blocked by the user and reset replying state
+        try:
+            self.bot.send_message(
+                recipient_id,
+                get_response('texting.replying.recipient', msg.text),
+                reply_to_message_id=original_message_id,
+                parse_mode='Markdown'
+            )
+        except ApiTelegramException:
+            self.bot.send_message(msg.from_user.id, get_response('errors.bot_blocked'))
+            self._reset_replying_state(msg.from_user.id)
+            return
         # Notify the sender that their reply was sent
         self.bot.send_message(
             msg.chat.id,
