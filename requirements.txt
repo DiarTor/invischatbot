@@ -1,0 +1,9 @@
+certifi==2024.8.30
+charset-normalizer==3.4.0
+dnspython==2.7.0
+idna==3.10
+pymongo==4.10.1
+pyTelegramBotAPI==4.23.0
+python-decouple==3.8
+requests==2.32.3
+urllib3==2.2.3
