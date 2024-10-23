@@ -1,41 +1,50 @@
 from telebot import TeleBot
 from telebot.apihelper import ApiTelegramException
 from telebot.types import Message
-
 from bot.utils.database import active_chats_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 
 
-def anonymous_chat(msg: Message, bot: TeleBot):
-    user_chat = active_chats_collection.find_one({"user_id": msg.from_user.id})
+class ChatHandler:
+    def __init__(self, bot: TeleBot):
+        self.bot = bot
+    def anonymous_chat(self, msg: Message):
+        user_chat = self._get_user_chat(msg.from_user.id)
 
-    if user_chat and user_chat.get("replying"):
-        # User is in reply mode
+        if user_chat and user_chat.get("replying"):
+            self._handle_reply(msg, user_chat)
+        else:
+            self._handle_forward(msg)
+
+    def _get_user_chat(self, user_id: int):
+        """Retrieve the user's chat session."""
+        return active_chats_collection.find_one({"user_id": user_id})
+
+    def _handle_reply(self, msg: Message, user_chat):
+        """Handle the case where the user is replying to a message."""
         recipient_id = user_chat['reply_target_user_id']
         original_message_id = user_chat['reply_target_message_id']
 
-        # Send the reply text to the recipient in the context of their chat
-        bot.send_message(
+        self.bot.send_message(
             recipient_id,
-            f"پاسخ جدیدی از کاربر دریافت شد: {msg.text}",
+            get_response('texting.replying.recipient', msg.text),
             reply_to_message_id=original_message_id,
             parse_mode='Markdown'
         )
 
         # Notify the sender that their reply was sent
-        bot.send_message(
+        self.bot.send_message(
             msg.chat.id,
-            "پاسخ شما ارسال شد!",
+            get_response('texting.replying.sent'),
             parse_mode='Markdown'
         )
 
         # Reset the replying state
-        active_chats_collection.update_one(
-            {"user_id": msg.from_user.id},
-            {"$unset": {"replying": "", "reply_target_message_id": "", "reply_target_user_id": ""}}  # Clear reply state
-        )
-    else:
+        self._reset_replying_state(msg.from_user.id)
+
+    def _handle_forward(self, msg: Message):
+        """Handle forwarding of a message to the recipient."""
         active_chat = active_chats_collection.find_one(
             {"user_id": msg.from_user.id, "chats.open": True, 'replying': False},
             {"chats.$": 1}  # Only return the open chat
@@ -43,33 +52,47 @@ def anonymous_chat(msg: Message, bot: TeleBot):
 
         if active_chat and 'chats' in active_chat:
             recipient_id = active_chat['chats'][0]['target_user_id']
-            try:
-                # Forward the message to the recipient anonymously
-                bot.send_message(
-                    recipient_id,
-                    get_response('recipient', msg.text),
-                    reply_markup=KeyboardMarkupGenerator().recipient_buttons(msg.from_user.id, msg.id),
-                    parse_mode='Markdown'
-                )
-            except ApiTelegramException:
-                bot.send_message(msg.chat.id, get_response('errors.bot_blocked'))
-                active_chats_collection.update_one(
-                    {"user_id": msg.from_user.id, "chats.target_user_id": recipient_id, "chats.open": True},
-                    {"$set": {"chats.$.open": False}}
-                )
-                return
+            self._forward_message(msg, recipient_id)
+        else:
+            # Notify the sender that they are not currently in an anonymous chat
+            self.bot.send_message(
+                msg.chat.id,
+                get_response('errors.no_active_chat'),
+                parse_mode='Markdown'
+            )
+
+    def _forward_message(self, msg: Message, recipient_id: int):
+        """Forward the message to the recipient."""
+        try:
+            self.bot.send_message(
+                recipient_id,
+                get_response('texting.sending.recipient', msg.text),
+                reply_markup=KeyboardMarkupGenerator().recipient_buttons(msg.from_user.id, msg.id),
+                parse_mode='Markdown'
+            )
 
             # Notify the sender that their message was successfully sent
-            bot.send_message(msg.chat.id, get_response('sent'), parse_mode='Markdown')
+            self.bot.send_message(msg.chat.id, get_response('texting.sending.sent'), parse_mode='Markdown')
+
             # Close the active chat
             active_chats_collection.update_one(
                 {"user_id": msg.from_user.id, "chats.target_user_id": recipient_id, "chats.open": True},
                 {"$set": {"chats.$.open": False}}
             )
-        else:
-            # Notify the sender that they are not currently in an anonymous chat
-            bot.send_message(
-                msg.chat.id,
-                get_response('errors.no_active_chat'),
-                parse_mode='Markdown'
-            )
+        except ApiTelegramException:
+            self._handle_bot_blocked(msg, recipient_id)
+
+    def _handle_bot_blocked(self, msg: Message, recipient_id: int):
+        """Handle the case where the bot is blocked by the recipient."""
+        self.bot.send_message(msg.chat.id, get_response('errors.bot_blocked'))
+        active_chats_collection.update_one(
+            {"user_id": msg.from_user.id, "chats.target_user_id": recipient_id, "chats.open": True},
+            {"$set": {"chats.$.open": False}}
+        )
+
+    def _reset_replying_state(self, user_id: int):
+        """Reset the replying state for the user."""
+        active_chats_collection.update_one(
+            {"user_id": user_id},
+            {"$unset": {"replying": "", "reply_target_message_id": "", "reply_target_user_id": ""}}  # Clear reply state
+        )
