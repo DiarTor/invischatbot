@@ -14,9 +14,14 @@ class StartBot:
     def start(self, msg: Message):
         try:
             target_user_id = self._get_target_user_id(msg)
+            user_id = msg.from_user.id
+
+            # If the user provided a chat (target_user_id), manage the chat session
             if target_user_id is not None:
                 self._manage_chats(msg, target_user_id)
             else:
+                # No chat provided, just store user info and send welcome message
+                self._store_user_data(user_id, nickname=msg.from_user.first_name)
                 self._send_welcome_message(msg)
 
         except (ValueError, IndexError):
@@ -28,6 +33,36 @@ class StartBot:
             msg.chat.id,
             get_response('greeting.link', link),
             parse_mode='Markdown'
+        )
+
+    def set_nickname(self, msg: Message):
+        """Set a Nickname when the user sends /nickname command."""
+        current_nickname = active_chats_collection.find_one({'user_id': msg.from_user.id})['nickname']
+        self.bot.send_message(msg.chat.id, get_response('nickname.ask_nickname', current_nickname), parse_mode='Markdown')
+        self.bot.register_next_step_handler(msg, self._save_nickname)
+
+    def _save_nickname(self, msg: Message):
+        """Save the user's nickname after they provide it."""
+        nickname = msg.text
+        user_id = msg.from_user.id
+
+        # Store the user with their nickname
+        self._store_user_data(user_id, nickname=nickname)
+
+        self.bot.send_message(msg.chat.id, get_response('nickname.nickname_was_set', nickname), parse_mode='Markdown')
+
+    def _store_user_data(self, user_id: int, nickname: str = None):
+        """Store user data in the database."""
+        user_data = {
+            "user_id": user_id,
+            "nickname": nickname,
+            "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        # Insert or update the user document
+        active_chats_collection.update_one(
+            {"user_id": user_id},
+            {"$set": user_data},
+            upsert=True  # Insert if it doesn't exist, update otherwise
         )
 
     def _get_target_user_id(self, msg: Message):
@@ -79,7 +114,8 @@ class StartBot:
                 }
             }
         )
-        self.bot.send_message(user_id, get_response('texting.sending.send'), parse_mode='Markdown')
+        target_user_nickname = active_chats_collection.find_one({'user_id': target_user_id})['nickname']
+        self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname), parse_mode='Markdown')
 
     def _create_new_chat(self, user_id: int, target_user_id: int):
         """Create a new chat session with the target user."""
@@ -97,11 +133,14 @@ class StartBot:
             },
             upsert=True  # Insert if it doesn't exist, update otherwise
         )
-        self.bot.send_message(user_id, get_response('texting.sending.send'), parse_mode='Markdown')
+        target_user_nickname = active_chats_collection.find_one({'user_id': target_user_id})['nickname']
+        self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
+                              parse_mode='Markdown')
 
     def _send_welcome_message(self, msg: Message):
         """Send a welcome message to the user."""
-        self.bot.send_message(msg.chat.id, get_response('greeting.welcome', msg.from_user.first_name), parse_mode='Markdown')
+        self.bot.send_message(msg.chat.id, get_response('greeting.welcome', msg.from_user.first_name),
+                              parse_mode='Markdown')
 
     def _send_error_message(self, msg: Message, error_key: str):
         """Send an error message to the user."""

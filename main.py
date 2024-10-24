@@ -15,6 +15,7 @@ callback_handler = CallbackHandler(bot)
 # Register handlers
 bot.register_message_handler(start_bot.start, commands=['start'])
 bot.register_message_handler(start_bot.link, commands=['link'])
+bot.register_message_handler(start_bot.set_nickname, commands=['nickname'])
 bot.register_message_handler(chat_handler.anonymous_chat, content_types=['text'])
 bot.register_callback_query_handler(callback_handler.handle_callback, func=lambda call: True)
 
