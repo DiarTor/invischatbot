@@ -20,7 +20,7 @@ class StartBot:
 
             # If the user provided a chat (target_user_id), manage the chat session
             if target_user_id is not None:
-                if self._is_target_user_in_database(target_user_id):
+                if self._is_user_in_database(target_user_id):
                     self._manage_chats(msg, target_user_id)
                 else:
                     self.bot.send_message(user_id, get_response('errors.no_user_found'))
@@ -57,8 +57,7 @@ class StartBot:
 
         self.bot.send_message(msg.chat.id, get_response('nickname.nickname_was_set', nickname), parse_mode='Markdown')
 
-    @staticmethod
-    def _store_user_data(user_id: int, nickname: str = None):
+    def _store_user_data(self, user_id: int, nickname: str = None):
         """Store user data in the database."""
         user_data = {
             "id": uuid.uuid4().int >> 100,
@@ -66,12 +65,10 @@ class StartBot:
             "nickname": nickname,
             "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
-        # Insert or update the user document
-        users_collection.update_one(
-            {"user_id": user_id},
-            {"$set": user_data},
-            upsert=True  # Insert if it doesn't exist, update otherwise
-        )
+        if not self._is_user_in_database(user_id):
+            users_collection.insert_one(user_data)
+        elif self._is_user_in_database(user_id) and nickname is not None:
+            users_collection.update_one({"user_id": user_id}, {"$set": {"nickname": nickname}})
 
     @staticmethod
     def _get_target_user_id(msg: Message):
@@ -158,9 +155,10 @@ class StartBot:
         """Send an error message to the user."""
         self.bot.send_message(msg.chat.id, get_response(error_key), parse_mode='Markdown')
 
-    def _is_target_user_in_database(self, target_user_id: int):
+    @staticmethod
+    def _is_user_in_database(user_id: int):
         """Check if the target user ID is in the database (Target user started the bot)."""
-        return users_collection.find_one({'user_id': target_user_id})
+        return users_collection.find_one({'user_id': user_id})
 
     @staticmethod
     def _generate_link(user_id: int) -> str:
