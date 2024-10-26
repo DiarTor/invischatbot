@@ -1,7 +1,7 @@
 from telebot import TeleBot
 from telebot.types import CallbackQuery
 
-from bot.utils.database import active_chats_collection
+from bot.utils.database import users_collection
 from bot.utils.language import get_response
 
 
@@ -30,9 +30,10 @@ class CallbackHandler:
             parse_mode='Markdown'
         )
 
-    def _set_replying_state(self, user_id: int, message_id: str, sender_id: str):
+    @staticmethod
+    def _set_replying_state(user_id: int, message_id: str, sender_id: str):
         """Set the replying state in the database."""
-        active_chats_collection.update_one(
+        users_collection.update_one(
             {"user_id": user_id},
             {
                 "$set": {

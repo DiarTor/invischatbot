@@ -1,9 +1,11 @@
+import uuid
+
 from decouple import config
 from jdatetime import datetime
 from telebot import TeleBot
 from telebot.types import Message
 
-from bot.utils.database import active_chats_collection
+from bot.utils.database import users_collection
 from bot.utils.language import get_response
 
 
@@ -18,7 +20,10 @@ class StartBot:
 
             # If the user provided a chat (target_user_id), manage the chat session
             if target_user_id is not None:
-                self._manage_chats(msg, target_user_id)
+                if self._is_target_user_in_database(target_user_id):
+                    self._manage_chats(msg, target_user_id)
+                else:
+                    self.bot.send_message(user_id, get_response('errors.no_user_found'))
             else:
                 # No chat provided, just store user info and send welcome message
                 self._store_user_data(user_id, nickname=msg.from_user.first_name)
@@ -37,8 +42,9 @@ class StartBot:
 
     def set_nickname(self, msg: Message):
         """Set a Nickname when the user sends /nickname command."""
-        current_nickname = active_chats_collection.find_one({'user_id': msg.from_user.id})['nickname']
-        self.bot.send_message(msg.chat.id, get_response('nickname.ask_nickname', current_nickname), parse_mode='Markdown')
+        current_nickname = users_collection.find_one({'user_id': msg.from_user.id})['nickname']
+        self.bot.send_message(msg.chat.id, get_response('nickname.ask_nickname', current_nickname),
+                              parse_mode='Markdown')
         self.bot.register_next_step_handler(msg, self._save_nickname)
 
     def _save_nickname(self, msg: Message):
@@ -51,21 +57,24 @@ class StartBot:
 
         self.bot.send_message(msg.chat.id, get_response('nickname.nickname_was_set', nickname), parse_mode='Markdown')
 
-    def _store_user_data(self, user_id: int, nickname: str = None):
+    @staticmethod
+    def _store_user_data(user_id: int, nickname: str = None):
         """Store user data in the database."""
         user_data = {
+            "id": uuid.uuid4().int >> 100,
             "user_id": user_id,
             "nickname": nickname,
             "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
         # Insert or update the user document
-        active_chats_collection.update_one(
+        users_collection.update_one(
             {"user_id": user_id},
             {"$set": user_data},
             upsert=True  # Insert if it doesn't exist, update otherwise
         )
 
-    def _get_target_user_id(self, msg: Message):
+    @staticmethod
+    def _get_target_user_id(msg: Message):
         """Extract the target user ID from the message."""
         parts = msg.text.split()[1:]
         return int(parts[0]) if parts else None
@@ -78,7 +87,7 @@ class StartBot:
         self._close_existing_chats(user_id)
 
         # Check if a chat with the target user already exists
-        existing_chat_with_target = active_chats_collection.find_one(
+        existing_chat_with_target = users_collection.find_one(
             {
                 "user_id": user_id,
                 "chats.target_user_id": target_user_id
@@ -90,21 +99,22 @@ class StartBot:
         else:
             self._create_new_chat(user_id, target_user_id)
 
-    def _close_existing_chats(self, user_id: int):
+    @staticmethod
+    def _close_existing_chats(user_id: int):
         """Close all open chats for the user."""
-        active_chats_collection.update_many(
+        users_collection.update_many(
             {"user_id": user_id, "chats.open": True},
             {"$set": {"chats.$[].open": False}}  # Close all open chats
         )
         # Set replying to False for the user
-        active_chats_collection.update_one(
+        users_collection.update_one(
             {"user_id": user_id},
             {"$set": {"replying": False}}  # Set replying state to False
         )
 
     def _reopen_chat(self, user_id: int, target_user_id: int):
         """Reopen an existing chat with the target user."""
-        active_chats_collection.update_one(
+        users_collection.update_one(
             {"user_id": user_id, "chats.target_user_id": target_user_id},
             {
                 "$set": {
@@ -114,12 +124,13 @@ class StartBot:
                 }
             }
         )
-        target_user_nickname = active_chats_collection.find_one({'user_id': target_user_id})['nickname']
-        self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname), parse_mode='Markdown')
+        target_user_nickname = users_collection.find_one({'user_id': target_user_id})['nickname']
+        self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
+                              parse_mode='Markdown')
 
     def _create_new_chat(self, user_id: int, target_user_id: int):
         """Create a new chat session with the target user."""
-        active_chats_collection.update_one(
+        users_collection.update_one(
             {"user_id": user_id},
             {
                 "$push": {
@@ -133,7 +144,8 @@ class StartBot:
             },
             upsert=True  # Insert if it doesn't exist, update otherwise
         )
-        target_user_nickname = active_chats_collection.find_one({'user_id': target_user_id})['nickname']
+
+        target_user_nickname = users_collection.find_one({'user_id': target_user_id})['nickname']
         self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
                               parse_mode='Markdown')
 
@@ -146,6 +158,11 @@ class StartBot:
         """Send an error message to the user."""
         self.bot.send_message(msg.chat.id, get_response(error_key), parse_mode='Markdown')
 
-    def _generate_link(self, user_id: int) -> str:
+    def _is_target_user_in_database(self, target_user_id: int):
+        """Check if the target user ID is in the database (Target user started the bot)."""
+        return users_collection.find_one({'user_id': target_user_id})
+
+    @staticmethod
+    def _generate_link(user_id: int) -> str:
         """Generate a link to the bot for the user."""
         return f"https://t.me/{config('BOT_USERNAME', cast=str)}?start={user_id}"

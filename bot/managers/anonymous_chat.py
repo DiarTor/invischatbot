@@ -2,7 +2,7 @@ from telebot import TeleBot
 from telebot.apihelper import ApiTelegramException
 from telebot.types import Message
 
-from bot.utils.database import active_chats_collection
+from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 
@@ -19,15 +19,15 @@ class ChatHandler:
         else:
             self._handle_forward(msg)
 
-    def _get_user_chat(self, user_id: int):
+    @staticmethod
+    def _get_user_chat(user_id: int):
         """Retrieve the user's chat session."""
-        return active_chats_collection.find_one({"user_id": user_id})
+        return users_collection.find_one({"user_id": user_id})
 
     def _handle_reply(self, msg: Message, user_chat):
         """Handle the case where the user is replying to a message."""
         recipient_id = user_chat['reply_target_user_id']
         original_message_id = user_chat['reply_target_message_id']
-        print(msg.from_user.id, msg.id)
         try:
             self.bot.send_message(
                 recipient_id,
@@ -39,8 +39,7 @@ class ChatHandler:
                     msg.id
                 ),
             )
-        except ApiTelegramException as e:
-            print(e)
+        except ApiTelegramException:
             self.bot.send_message(msg.from_user.id, get_response('errors.bot_blocked'))
             self._reset_replying_state(msg.from_user.id)
             return
@@ -57,7 +56,7 @@ class ChatHandler:
 
     def _handle_forward(self, msg: Message):
         """Handle forwarding of a message to the recipient."""
-        active_chat = active_chats_collection.find_one(
+        active_chat = users_collection.find_one(
             {"user_id": msg.from_user.id, "chats.open": True, 'replying': False},
             {"chats.$": 1}  # Only return the open chat
         )
@@ -87,7 +86,7 @@ class ChatHandler:
             self.bot.send_message(msg.chat.id, get_response('texting.sending.sent'), parse_mode='Markdown')
 
             # Close the active chat
-            active_chats_collection.update_one(
+            users_collection.update_one(
                 {"user_id": msg.from_user.id, "chats.target_user_id": recipient_id, "chats.open": True},
                 {"$set": {"chats.$.open": False}}
             )
@@ -97,14 +96,15 @@ class ChatHandler:
     def _handle_bot_blocked(self, msg: Message, recipient_id: int):
         """Handle the case where the bot is blocked by the recipient."""
         self.bot.send_message(msg.chat.id, get_response('errors.bot_blocked'))
-        active_chats_collection.update_one(
+        users_collection.update_one(
             {"user_id": msg.from_user.id, "chats.target_user_id": recipient_id, "chats.open": True},
             {"$set": {"chats.$.open": False}}
         )
 
-    def _reset_replying_state(self, user_id: int):
+    @staticmethod
+    def _reset_replying_state(user_id: int):
         """Reset the replying state for the user."""
-        active_chats_collection.update_one(
+        users_collection.update_one(
             {"user_id": user_id},
             {"$unset": {"replying": "", "reply_target_message_id": "", "reply_target_user_id": ""}}  # Clear reply state
         )
