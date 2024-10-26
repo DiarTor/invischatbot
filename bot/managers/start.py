@@ -40,23 +40,6 @@ class StartBot:
             parse_mode='Markdown'
         )
 
-    def set_nickname(self, msg: Message):
-        """Set a Nickname when the user sends /nickname command."""
-        current_nickname = users_collection.find_one({'user_id': msg.from_user.id})['nickname']
-        self.bot.send_message(msg.chat.id, get_response('nickname.ask_nickname', current_nickname),
-                              parse_mode='Markdown')
-        self.bot.register_next_step_handler(msg, self._save_nickname)
-
-    def _save_nickname(self, msg: Message):
-        """Save the user's nickname after they provide it."""
-        nickname = msg.text
-        user_id = msg.from_user.id
-
-        # Store the user with their nickname
-        self._store_user_data(user_id, nickname=nickname)
-
-        self.bot.send_message(msg.chat.id, get_response('nickname.nickname_was_set', nickname), parse_mode='Markdown')
-
     def _store_user_data(self, user_id: int, nickname: str = None):
         """Store user data in the database."""
         user_data = {
@@ -67,8 +50,6 @@ class StartBot:
         }
         if not self._is_user_in_database(user_id):
             users_collection.insert_one(user_data)
-        elif self._is_user_in_database(user_id) and nickname is not None:
-            users_collection.update_one({"user_id": user_id}, {"$set": {"nickname": nickname}})
 
     @staticmethod
     def _get_target_user_id(msg: Message):
