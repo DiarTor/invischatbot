@@ -43,7 +43,7 @@ class CallbackHandler:
                     "replying": True,
                     "reply_target_message_id": message_id,
                     "reply_target_user_id": int(sender_id),
-                }
+                },
             }
         )
 

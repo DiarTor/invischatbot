@@ -13,15 +13,31 @@ class ChatHandler:
 
     def anonymous_chat(self, msg: Message):
         user_chat = self._get_user_chat(msg.from_user.id)
-        target_user_id = user_chat['chats'][0].get('target_user_id') if user_chat and user_chat['chats'] else None
-        if user_chat and target_user_id and not self._is_user_blocked(msg.from_user.id, target_user_id):
-            if user_chat.get("replying"):
-                self._handle_reply(msg, user_chat)
+
+        # Check if there is an active chat or reply target
+        target_user_id = (
+            user_chat['chats'][0].get('target_user_id')
+            if user_chat and 'chats' in user_chat and user_chat['chats']
+            else user_chat.get('reply_target_user_id')
+            if user_chat and 'reply_target_user_id' in user_chat
+            else None
+        )
+
+        # Only proceed if there is a valid target_user_id
+        if user_chat and target_user_id:
+            # Check if the target user has blocked the sender or vice versa
+            if not self._is_user_blocked(msg.from_user.id, target_user_id):
+                if user_chat.get("replying"):
+                    self._handle_reply(msg, user_chat)
+                else:
+                    self._handle_forward(msg)
             else:
-                self._handle_forward(msg)
+                # If blocked, notify the sender they can't message the recipient
+                self._reset_replying_state(msg.from_user.id)
+                self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'), parse_mode='Markdown')
         else:
-            # Notify the user they can't message the recipient
-            self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'), parse_mode='Markdown')
+            # Notify the user they are not in an active chat
+            self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'), parse_mode='Markdown')
 
     @staticmethod
     def _get_user_chat(user_id: int):
@@ -45,8 +61,8 @@ class ChatHandler:
                 ),
             )
         except ApiTelegramException:
-            self.bot.send_message(msg.from_user.id, get_response('errors.bot_blocked'))
             self._reset_replying_state(msg.from_user.id)
+            self.bot.send_message(msg.from_user.id, get_response('errors.bot_blocked'))
             return
 
         # Notify the sender that their reply was sent
@@ -111,7 +127,7 @@ class ChatHandler:
         """Reset the replying state for the user."""
         users_collection.update_one(
             {"user_id": user_id},
-            {"$set": {"replying": "", "reply_target_message_id": "", "reply_target_user_id": ""}}  # Clear reply state
+            {"$set": {"replying": False, "reply_target_message_id": "", "reply_target_user_id": ""}}  # Clear reply state
         )
     @staticmethod
     def _is_user_blocked(sender_id: int, recipient_id: int) -> bool:

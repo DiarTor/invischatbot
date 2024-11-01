@@ -5,6 +5,7 @@ from jdatetime import datetime
 from telebot import TeleBot
 from telebot.types import Message
 
+from bot.managers.anonymous_chat import ChatHandler
 from bot.utils.database import users_collection
 from bot.utils.language import get_response
 
@@ -15,17 +16,22 @@ class StartBot:
 
     def start(self, msg: Message):
         try:
-            target_user_id = self._get_target_user_id(msg)
             user_id = msg.from_user.id
+            target_user_id = self._get_target_user_id(msg)
             self._store_user_data(user_id, nickname=msg.from_user.first_name)
-            # If the user provided a chat (target_user_id), manage the chat session
-            if target_user_id is not None:
-                if self._is_user_in_database(target_user_id):
-                    self._manage_chats(msg, target_user_id)
+
+            # Retrieve user and target user info in a single query
+            user_data = users_collection.find_one({"user_id": user_id})
+
+            if target_user_id:
+                target_user_data = users_collection.find_one({"user_id": target_user_id})
+                if target_user_data:
+                    self._manage_chats(msg, user_data, target_user_data)
                 else:
                     self.bot.send_message(user_id, get_response('errors.no_user_found'))
             else:
-                # No chat provided, just store user info and send welcome message
+                # No target ID, close existing chats and reset replying state
+                self._close_existing_chats(user_id)
                 self._send_welcome_message(msg)
 
         except (ValueError, IndexError):
@@ -46,6 +52,7 @@ class StartBot:
             "user_id": user_id,
             "nickname": nickname,
             "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "chats": []
         }
         if not self._is_user_in_database(user_id):
             users_collection.insert_one(user_data)
@@ -56,57 +63,42 @@ class StartBot:
         parts = msg.text.split()[1:]
         return int(parts[0]) if parts else None
 
-    def _manage_chats(self, msg: Message, target_user_id: int):
-        """Manage chat sessions for the user."""
-        user_id = msg.from_user.id
+    def _manage_chats(self, msg: Message, user_data, target_user_data):
+        user_id = user_data['user_id']
+        target_user_id = target_user_data['user_id']
 
-        # Close existing open chats
-        self._close_existing_chats(user_id)
+        # Close existing chats only if they are not with the target user
+        if not any(chat['target_user_id'] == target_user_id and chat['open'] for chat in user_data.get('chats', [])):
+            self._close_existing_chats(user_id)
 
-        # Check if a chat with the target user already exists
-        existing_chat_with_target = users_collection.find_one(
-            {
-                "user_id": user_id,
-                "chats.target_user_id": target_user_id
-            }
-        )
-
-        if existing_chat_with_target:
-            self._reopen_chat(user_id, target_user_id)
+        # Check if there's already an open chat with the target user
+        if any(chat['target_user_id'] == target_user_id for chat in user_data.get('chats', [])):
+            self._reopen_chat(user_id, target_user_id, target_user_data['nickname'])
         else:
-            self._create_new_chat(user_id, target_user_id)
+            self._create_new_chat(user_id, target_user_id, target_user_data['nickname'])
 
     @staticmethod
     def _close_existing_chats(user_id: int):
-        """Close all open chats for the user."""
-        users_collection.update_many(
-            {"user_id": user_id, "chats.open": True},
-            {"$set": {"chats.$[].open": False}}  # Close all open chats
-        )
-        # Set replying to False for the user
         users_collection.update_one(
             {"user_id": user_id},
-            {"$set": {"replying": False}}  # Set replying state to False
+            {"$set": {"replying": False, "reply_target_message_id": "", "reply_target_user_id": "",
+                      "chats.$[].open": False}}  # Close all open chats, reset replying
         )
 
-    def _reopen_chat(self, user_id: int, target_user_id: int):
-        """Reopen an existing chat with the target user."""
+    def _reopen_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
         users_collection.update_one(
             {"user_id": user_id, "chats.target_user_id": target_user_id},
             {
                 "$set": {
                     "chats.$.open": True,
                     "chats.$.chat_started_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "replying": False  # Set replying state to False
                 }
             }
         )
-        target_user_nickname = users_collection.find_one({'user_id': target_user_id})['nickname']
         self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
                               parse_mode='Markdown')
 
-    def _create_new_chat(self, user_id: int, target_user_id: int):
-        """Create a new chat session with the target user."""
+    def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
         users_collection.update_one(
             {"user_id": user_id},
             {
@@ -116,13 +108,10 @@ class StartBot:
                         "chat_started_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "open": True
                     }
-                },
-                "$set": {"replying": False}  # Set replying state to False
+                }
             },
-            upsert=True  # Insert if it doesn't exist, update otherwise
+            upsert=True
         )
-
-        target_user_nickname = users_collection.find_one({'user_id': target_user_id})['nickname']
         self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
                               parse_mode='Markdown')
 
