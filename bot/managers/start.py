@@ -17,7 +17,7 @@ class StartBot:
         try:
             target_user_id = self._get_target_user_id(msg)
             user_id = msg.from_user.id
-
+            self._store_user_data(user_id, nickname=msg.from_user.first_name)
             # If the user provided a chat (target_user_id), manage the chat session
             if target_user_id is not None:
                 if self._is_user_in_database(target_user_id):
@@ -26,7 +26,6 @@ class StartBot:
                     self.bot.send_message(user_id, get_response('errors.no_user_found'))
             else:
                 # No chat provided, just store user info and send welcome message
-                self._store_user_data(user_id, nickname=msg.from_user.first_name)
                 self._send_welcome_message(msg)
 
         except (ValueError, IndexError):

@@ -111,7 +111,7 @@ class ChatHandler:
         """Reset the replying state for the user."""
         users_collection.update_one(
             {"user_id": user_id},
-            {"$unset": {"replying": "", "reply_target_message_id": "", "reply_target_user_id": ""}}  # Clear reply state
+            {"$set": {"replying": "", "reply_target_message_id": "", "reply_target_user_id": ""}}  # Clear reply state
         )
     @staticmethod
     def _is_user_blocked(sender_id: int, recipient_id: int) -> bool:
