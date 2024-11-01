@@ -34,6 +34,12 @@ class KeyboardMarkupGenerator:
             markup.row(row)
         return markup
 
-    def recipient_buttons(self, sender_id, message_id):
-        buttons = [InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}')]
+    def recipient_buttons(self, sender_id, message_id=None, message_text=None):
+        buttons = [InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
+                   InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_text}-{message_id}'), ]
+        return self._create_inline_keyboard(buttons)
+
+    def block_confirmation_buttons(self, sender_id, message_text=None, message_id=None):
+        buttons = [InlineKeyboardButton('بله 👍', callback_data=f'block_confirm-{sender_id}-{message_id}'),
+                   InlineKeyboardButton('خیر 👎', callback_data=f'block_cancel-{sender_id}-{message_text}-{message_id}')]
         return self._create_inline_keyboard(buttons)

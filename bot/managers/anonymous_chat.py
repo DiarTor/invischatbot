@@ -13,11 +13,15 @@ class ChatHandler:
 
     def anonymous_chat(self, msg: Message):
         user_chat = self._get_user_chat(msg.from_user.id)
-
-        if user_chat and user_chat.get("replying"):
-            self._handle_reply(msg, user_chat)
+        target_user_id = user_chat['chats'][0].get('target_user_id') if user_chat and user_chat['chats'] else None
+        if user_chat and target_user_id and not self._is_user_blocked(msg.from_user.id, target_user_id):
+            if user_chat.get("replying"):
+                self._handle_reply(msg, user_chat)
+            else:
+                self._handle_forward(msg)
         else:
-            self._handle_forward(msg)
+            # Notify the user they can't message the recipient
+            self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'), parse_mode='Markdown')
 
     @staticmethod
     def _get_user_chat(user_id: int):
@@ -36,7 +40,8 @@ class ChatHandler:
                 parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().recipient_buttons(
                     msg.from_user.id,
-                    msg.id
+                    msg.id,
+                    msg.text,
                 ),
             )
         except ApiTelegramException:
@@ -78,7 +83,7 @@ class ChatHandler:
             self.bot.send_message(
                 recipient_id,
                 get_response('texting.sending.recipient', msg.text),
-                reply_markup=KeyboardMarkupGenerator().recipient_buttons(msg.from_user.id, msg.id),
+                reply_markup=KeyboardMarkupGenerator().recipient_buttons(msg.from_user.id, msg.id, msg.text),
                 parse_mode='Markdown'
             )
 
@@ -108,3 +113,8 @@ class ChatHandler:
             {"user_id": user_id},
             {"$unset": {"replying": "", "reply_target_message_id": "", "reply_target_user_id": ""}}  # Clear reply state
         )
+    @staticmethod
+    def _is_user_blocked(sender_id: int, recipient_id: int) -> bool:
+        """Check if the recipient has blocked the sender."""
+        recipient_data = users_collection.find_one({"user_id": recipient_id}, {"blocked_users": 1})
+        return sender_id in recipient_data.get('blocked_users', [])

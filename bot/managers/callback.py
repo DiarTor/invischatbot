@@ -1,7 +1,9 @@
 from telebot import TeleBot
 from telebot.types import CallbackQuery
 
+from bot.managers.block_user import BlockUserManager
 from bot.utils.database import users_collection
+from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 
 
@@ -13,7 +15,8 @@ class CallbackHandler:
         """Main method to handle callbacks from the user."""
         if callback.data.startswith('reply'):
             self._process_reply_callback(callback)
-
+        elif callback.data.startswith('block'):
+            self._process_block_callback(callback)
         self.bot.answer_callback_query(callback.id)
 
     def _process_reply_callback(self, callback: CallbackQuery):
@@ -43,3 +46,20 @@ class CallbackHandler:
                 }
             }
         )
+
+    def _process_block_callback(self, callback: CallbackQuery):
+        keyboard = KeyboardMarkupGenerator()
+        if 'block' in callback.data.split('-'):
+            action, sender_id, message_text, message_id = callback.data.split('-')
+            self.bot.edit_message_text(get_response('blocking.block?'), chat_id=callback.message.chat.id,
+                                       message_id=int(callback.message.id),
+                                       parse_mode='Markdown',
+                                       reply_markup=keyboard.block_confirmation_buttons(sender_id, message_text,
+                                                                                        message_id))
+        elif 'block_confirm' in callback.data.split('-'):
+            action, sender_id, message_id = callback.data.split('-')
+            BlockUserManager(self.bot).block_user(callback.message.chat.id, int(sender_id), int(callback.message.id))
+        elif 'block_cancel' in callback.data.split('-'):
+            action, sender_id, message_text, message_id = callback.data.split('-')
+            BlockUserManager(self.bot).cancel_block(callback.message.chat.id, message_text, message_id, sender_id,
+                                                    int(callback.message.id))
