@@ -15,14 +15,15 @@ class ChatHandler:
         user_chat = self._get_user_chat(msg.from_user.id)
 
         # Check if there is an active chat or reply target
-        target_user_id = (
-            user_chat['chats'][0].get('target_user_id')
-            if user_chat and 'chats' in user_chat and user_chat['chats']
-            else user_chat.get('reply_target_user_id')
-            if user_chat and 'reply_target_user_id' in user_chat
-            else None
-        )
+        target_user_id = None
 
+        if user_chat and 'chats' in user_chat:
+            # Search for a chat where 'open' is True
+            open_chat = next((chat for chat in user_chat['chats'] if chat.get('open')), None)
+            if open_chat:
+                target_user_id = open_chat.get('target_user_id')
+            elif 'reply_target_user_id' in user_chat:
+                target_user_id = user_chat.get('reply_target_user_id')
         # Only proceed if there is a valid target_user_id
         if user_chat and target_user_id:
             # Check if the target user has blocked the sender or vice versa
@@ -129,8 +130,14 @@ class ChatHandler:
             {"user_id": user_id},
             {"$set": {"replying": False, "reply_target_message_id": "", "reply_target_user_id": ""}}  # Clear reply state
         )
+
     @staticmethod
     def _is_user_blocked(sender_id: int, recipient_id: int) -> bool:
         """Check if the recipient has blocked the sender."""
-        recipient_data = users_collection.find_one({"user_id": recipient_id}, {"blocked_users": 1})
-        return sender_id in recipient_data.get('blocked_users', [])
+        recipient_data = users_collection.find_one({"user_id": recipient_id})
+        # Return False if no data is found or if blocked_users field is missing
+        if not recipient_data or 'blocked_users' not in recipient_data:
+            return False
+
+        # Check if sender_id is in the recipient's blocked_users list
+        return sender_id in recipient_data['blocked_users']
