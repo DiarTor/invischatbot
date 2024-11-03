@@ -21,4 +21,5 @@ bot.register_message_handler(chat_handler.anonymous_chat, content_types=['text']
 bot.register_callback_query_handler(callback_handler.handle_callback, func=lambda call: True)
 
 if __name__ == '__main__':
-    bot.infinity_polling()
+    bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
