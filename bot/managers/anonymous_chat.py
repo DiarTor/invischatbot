@@ -134,10 +134,11 @@ class ChatHandler:
     @staticmethod
     def _is_user_blocked(sender_id: int, recipient_id: int) -> bool:
         """Check if the recipient has blocked the sender."""
+        sender_id = users_collection.find_one({"user_id": sender_id}).get("id")
         recipient_data = users_collection.find_one({"user_id": recipient_id})
-        # Return False if no data is found or if blocked_users field is missing
-        if not recipient_data or 'blocked_users' not in recipient_data:
+        # Return False if no data is found or if blocklist field is missing
+        if not recipient_data or 'blocklist' not in recipient_data:
             return False
 
         # Check if sender_id is in the recipient's blocked_users list
-        return sender_id in recipient_data['blocked_users']
+        return sender_id in recipient_data['blocklist']

@@ -1,5 +1,4 @@
 import telebot
-from telebot import TeleBot
 
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
@@ -11,15 +10,21 @@ class BlockUserManager:
         self.bot = bot
 
     def block_list(self, msg: telebot.types.Message):
-        self.bot.send_message(chat_id=msg.chat.id,text=get_response("blocking.blocklist"), parse_mode='Markdown')
+        keyboard = KeyboardMarkupGenerator()
+        blocklist = users_collection.find_one({'user_id': msg.from_user.id}).get('blocklist', None)
+        if not isinstance(blocklist, list):
+            blocklist = [blocklist]
+        self.bot.send_message(chat_id=msg.chat.id, text=get_response("blocking.blocklist"), parse_mode='Markdown',
+                              reply_markup=keyboard.blocklist_buttons(msg.from_user.id, blocklist))
 
     def block_user(self, blocker_id: int, blocked_id: int, bot_message_id):
+        blocked_id = users_collection.find_one({'user_id': blocked_id}).get('id', None)
         users_collection.update_one(
             {"user_id": blocker_id},
-            {"$addToSet": {"blocked_users": blocked_id}}, upsert=True  # Add blocked_id to blocked_users list
+            {"$addToSet": {"blocklist": blocked_id}}, upsert=True
         )
         self.bot.edit_message_text(
-            text=get_response('blocking.block_confirm', users_collection.find_one({"user_id": blocker_id})['id']),
+            text=get_response('blocking.block_confirm', blocked_id),
             chat_id=blocker_id,
             message_id=bot_message_id,
             parse_mode='Markdown',

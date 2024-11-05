@@ -31,7 +31,7 @@ class KeyboardMarkupGenerator:
 
         markup = InlineKeyboardMarkup()
         for row in buttons:
-            markup.row(row)
+            markup.row(*row)
         return markup
 
     def recipient_buttons(self, sender_id, message_id=None, message_text=None):
@@ -42,4 +42,11 @@ class KeyboardMarkupGenerator:
     def block_confirmation_buttons(self, sender_id, message_text=None, message_id=None):
         buttons = [InlineKeyboardButton('بله 👍', callback_data=f'block_confirm-{sender_id}-{message_id}'),
                    InlineKeyboardButton('خیر 👎', callback_data=f'block_cancel-{sender_id}-{message_text}-{message_id}')]
+        return self._create_inline_keyboard(buttons)
+
+    def blocklist_buttons(self, blocker_id: int, blocked_list: list):
+        buttons = [
+            [InlineKeyboardButton(text=str(blocked_id), callback_data=f'unblock-{blocked_id}-{blocker_id}'),]
+            for blocked_id in blocked_list
+        ]
         return self._create_inline_keyboard(buttons)
