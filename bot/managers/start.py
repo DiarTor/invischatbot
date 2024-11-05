@@ -48,7 +48,7 @@ class StartBot:
     def _store_user_data(self, user_id: int, nickname: str = None):
         """Store user data in the database."""
         user_data = {
-            "id": uuid.uuid4().int >> 98,
+            "id": uuid.uuid4().int >> 99,
             "user_id": user_id,
             "nickname": nickname,
             "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
