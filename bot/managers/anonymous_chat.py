@@ -54,7 +54,7 @@ class ChatHandler:
         try:
             await self.bot.send_message(
                 recipient_id,
-                get_response('texting.replying.recipient', msg.text),
+                get_response('texting.replying.recipient', msg.text, user_chat['id']),
                 reply_to_message_id=original_message_id,
                 parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().recipient_buttons(
@@ -98,10 +98,11 @@ class ChatHandler:
 
     async def _forward_message(self, msg: Message, recipient_id: int):
         """Forward the message to the recipient."""
+        user_bot_id = users_collection.find_one({"user_id": msg.from_user.id})['id']
         try:
             await self.bot.send_message(
                 recipient_id,
-                get_response('texting.sending.recipient', msg.text),
+                get_response('texting.sending.recipient', msg.text, user_bot_id),
                 reply_markup=KeyboardMarkupGenerator().recipient_buttons(msg.from_user.id, msg.id, msg.text),
                 parse_mode='Markdown'
             )
