@@ -76,7 +76,7 @@ class StartBot:
         if any(chat['target_user_id'] == target_user_id for chat in user_data.get('chats', [])):
             await self._reopen_chat(user_id, target_user_id, target_user_data['nickname'])
         else:
-            self._create_new_chat(user_id, target_user_id, target_user_data['nickname'])
+            await self._create_new_chat(user_id, target_user_id, target_user_data['nickname'])
 
     @staticmethod
     def _close_existing_chats(user_id: int):
