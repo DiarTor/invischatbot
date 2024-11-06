@@ -99,7 +99,7 @@ class StartBot:
         await self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
                               parse_mode='Markdown')
 
-    def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
+    async def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
         users_collection.update_one(
             {"user_id": user_id},
             {
@@ -113,7 +113,7 @@ class StartBot:
             },
             upsert=True
         )
-        self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
+        await self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
                               parse_mode='Markdown')
 
     async def _send_welcome_message(self, msg: Message):
