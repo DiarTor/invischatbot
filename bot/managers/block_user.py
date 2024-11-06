@@ -1,4 +1,5 @@
 import telebot
+from telebot.async_telebot import AsyncTeleBot
 
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
@@ -6,7 +7,7 @@ from bot.utils.language import get_response
 
 
 class BlockUserManager:
-    def __init__(self, bot):
+    def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
 
     def block_list(self, msg: telebot.types.Message):

@@ -1,4 +1,4 @@
-from telebot import TeleBot
+from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery
 
 from bot.managers.block_user import BlockUserManager
@@ -8,7 +8,7 @@ from bot.utils.language import get_response
 
 
 class CallbackHandler:
-    def __init__(self, bot: TeleBot):
+    def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
 
     def handle_callback(self, callback: CallbackQuery):

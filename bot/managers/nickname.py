@@ -6,7 +6,7 @@ from bot.utils.language import get_response
 
 
 class NicknameManager:
-    def __init__(self, bot: TeleBot):
+    def __init__(self, bot):
         self.bot = bot
 
     def set_nickname(self, msg: Message):

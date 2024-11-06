@@ -1,5 +1,5 @@
-from telebot import TeleBot
 from telebot.apihelper import ApiTelegramException
+from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.utils.database import users_collection
@@ -8,7 +8,7 @@ from bot.utils.language import get_response
 
 
 class ChatHandler:
-    def __init__(self, bot: TeleBot):
+    def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
 
     def anonymous_chat(self, msg: Message):
@@ -128,7 +128,8 @@ class ChatHandler:
         """Reset the replying state for the user."""
         users_collection.update_one(
             {"user_id": user_id},
-            {"$set": {"replying": False, "reply_target_message_id": "", "reply_target_user_id": ""}}  # Clear reply state
+            {"$set": {"replying": False, "reply_target_message_id": "", "reply_target_user_id": ""}}
+            # Clear reply state
         )
 
     @staticmethod

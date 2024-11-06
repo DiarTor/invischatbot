@@ -2,19 +2,18 @@ import uuid
 
 from decouple import config
 from jdatetime import datetime
-from telebot import TeleBot
+from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.managers.anonymous_chat import ChatHandler
 from bot.utils.database import users_collection
 from bot.utils.language import get_response
 
 
 class StartBot:
-    def __init__(self, bot: TeleBot):
+    def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
 
-    def start(self, msg: Message):
+    async def start(self, msg: Message):
         try:
             user_id = msg.from_user.id
             target_user_id = self._get_target_user_id(msg)
@@ -26,13 +25,13 @@ class StartBot:
             if target_user_id:
                 target_user_data = users_collection.find_one({"user_id": target_user_id})
                 if target_user_data:
-                    self._manage_chats(msg, user_data, target_user_data)
+                    await self._manage_chats(user_data, target_user_data)
                 else:
-                    self.bot.send_message(user_id, get_response('errors.no_user_found'))
+                    await self.bot.send_message(user_id, get_response('errors.no_user_found'))
             else:
                 # No target ID, close existing chats and reset replying state
                 self._close_existing_chats(user_id)
-                self._send_welcome_message(msg)
+                await self._send_welcome_message(msg)
 
         except (ValueError, IndexError):
             self._send_error_message(msg, 'errors.wrong_id')
@@ -64,7 +63,7 @@ class StartBot:
         parts = msg.text.split()[1:]
         return int(parts[0]) if parts else None
 
-    def _manage_chats(self, msg: Message, user_data, target_user_data):
+    async def _manage_chats(self, user_data, target_user_data):
         user_id = user_data['user_id']
         target_user_id = target_user_data['user_id']
 
@@ -116,9 +115,9 @@ class StartBot:
         self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
                               parse_mode='Markdown')
 
-    def _send_welcome_message(self, msg: Message):
+    async def _send_welcome_message(self, msg: Message):
         """Send a welcome message to the user."""
-        self.bot.send_message(msg.chat.id, get_response('greeting.welcome', msg.from_user.first_name),
+        await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', msg.from_user.first_name),
                               parse_mode='Markdown')
 
     def _send_error_message(self, msg: Message, error_key: str):
