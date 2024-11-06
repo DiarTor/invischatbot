@@ -33,7 +33,8 @@ class BlockUserManager:
         )
 
     async def cancel_block(self, chat_id, message_text, message_id, sender_id, bot_message_id: int):
-        await self.bot.edit_message_text(text=get_response('texting.sending.recipient', message_text), chat_id=chat_id,
+        user_bot_id = users_collection.find_one({'user_id': int(sender_id)})['id']
+        await self.bot.edit_message_text(text=get_response('texting.sending.recipient', message_text, user_bot_id), chat_id=chat_id,
                                    message_id=bot_message_id,
                                    reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_id, message_id,
                                                                                             message_text),
