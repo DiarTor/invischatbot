@@ -36,9 +36,9 @@ class StartBot:
         except (ValueError, IndexError):
             self._send_error_message(msg, 'errors.wrong_id')
 
-    def link(self, msg: Message):
+    async def link(self, msg: Message):
         link = self._generate_link(msg.from_user.id)
-        self.bot.send_message(
+        await self.bot.send_message(
             msg.chat.id,
             get_response('greeting.link', link),
             parse_mode='Markdown'
@@ -50,6 +50,7 @@ class StartBot:
             "id": uuid.uuid4().int >> 99,
             "user_id": user_id,
             "nickname": nickname,
+            "awaiting_nickname":False,
             "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "chats": [],
             "blocklist": []
@@ -73,7 +74,7 @@ class StartBot:
 
         # Check if there's already an open chat with the target user
         if any(chat['target_user_id'] == target_user_id for chat in user_data.get('chats', [])):
-            self._reopen_chat(user_id, target_user_id, target_user_data['nickname'])
+            await self._reopen_chat(user_id, target_user_id, target_user_data['nickname'])
         else:
             self._create_new_chat(user_id, target_user_id, target_user_data['nickname'])
 
@@ -85,7 +86,7 @@ class StartBot:
                       "chats.$[].open": False}}  # Close all open chats, reset replying
         )
 
-    def _reopen_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
+    async def _reopen_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
         users_collection.update_one(
             {"user_id": user_id, "chats.target_user_id": target_user_id},
             {
@@ -95,7 +96,7 @@ class StartBot:
                 }
             }
         )
-        self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
+        await self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
                               parse_mode='Markdown')
 
     def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
