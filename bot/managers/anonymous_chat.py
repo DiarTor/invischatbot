@@ -31,7 +31,8 @@ class ChatHandler:
         # Only proceed if there is a valid target_user_id
         if user_chat and target_user_id:
             # Check if the target user has blocked the sender or vice versa
-            if not self._is_user_blocked(msg.from_user.id, target_user_id):
+            target_user_id = users_collection.find_one({'user_id': target_user_id}).get('id')
+            if not self._is_user_blocked(user_chat['id'], target_user_id):
                 if user_chat.get("replying"):
                     await self._handle_reply(msg, user_chat)
                 else:
@@ -134,11 +135,8 @@ class ChatHandler:
     @staticmethod
     def _is_user_blocked(sender_id: int, recipient_id: int) -> bool:
         """Check if the recipient has blocked the sender."""
-        sender_id = users_collection.find_one({"user_id": sender_id}).get("id")
-        recipient_data = users_collection.find_one({"user_id": recipient_id})
-        # Return False if no data is found or if blocklist field is missing
-        if not recipient_data or 'blocklist' not in recipient_data:
-            return False
+        sender_data = users_collection.find_one({"id": sender_id})
+        recipient_data = users_collection.find_one({"id": recipient_id})
 
         # Check if sender_id is in the recipient's blocked_users list
-        return sender_id in recipient_data['blocklist']
+        return sender_data['id'] in recipient_data['blocklist'] or recipient_data['id'] in sender_data['blocklist']
