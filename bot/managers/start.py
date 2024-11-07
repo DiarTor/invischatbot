@@ -23,7 +23,7 @@ class StartBot:
             user_data = users_collection.find_one({"user_id": user_id})
 
             if target_user_id:
-                target_user_data = users_collection.find_one({"user_id": target_user_id})
+                target_user_data = users_collection.find_one({"id": target_user_id})
                 if target_user_data:
                     await self._manage_chats(user_data, target_user_data)
                 else:
@@ -37,7 +37,8 @@ class StartBot:
             self._send_error_message(msg, 'errors.wrong_id')
 
     async def link(self, msg: Message):
-        link = self._generate_link(msg.from_user.id)
+        user_bot_id = users_collection.find_one({"user_id": msg.from_user.id})['id']
+        link = self._generate_link(user_bot_id)
         await self.bot.send_message(
             msg.chat.id,
             get_response('greeting.link', link),
@@ -46,16 +47,16 @@ class StartBot:
 
     def _store_user_data(self, user_id: int, nickname: str = None):
         """Store user data in the database."""
-        user_data = {
-            "id": uuid.uuid4().int >> 99,
-            "user_id": user_id,
-            "nickname": nickname,
-            "awaiting_nickname":False,
-            "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "chats": [],
-            "blocklist": []
-        }
         if not self._is_user_in_database(user_id):
+            user_data = {
+                "id": uuid.uuid4().int >> 99,
+                "user_id": user_id,
+                "nickname": nickname,
+                "awaiting_nickname": False,
+                "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "chats": [],
+                "blocklist": []
+            }
             users_collection.insert_one(user_data)
 
     @staticmethod

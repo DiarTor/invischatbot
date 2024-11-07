@@ -2,10 +2,12 @@ from telebot.apihelper import ApiTelegramException
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
+from bot.managers.nickname import NicknameManager
+from bot.utils.chats import reset_replying_state, close_existing_chats
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.managers.nickname import NicknameManager
+
 
 class ChatHandler:
     def __init__(self, bot: AsyncTeleBot):
@@ -36,8 +38,10 @@ class ChatHandler:
                     await self._handle_forward(msg)
             else:
                 # If blocked, notify the sender they can't message the recipient
-                self._reset_replying_state(msg.from_user.id)
-                await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'), parse_mode='Markdown')
+                close_existing_chats(msg.from_user.id)
+                reset_replying_state(msg.from_user.id)
+                await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
+                                            parse_mode='Markdown')
         else:
             # Notify the user they are not in an active chat
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'), parse_mode='Markdown')
@@ -49,8 +53,9 @@ class ChatHandler:
 
     async def _handle_reply(self, msg: Message, user_chat):
         """Handle the case where the user is replying to a message."""
-        recipient_id = user_chat['reply_target_user_id']
+        recipient_bot_id = user_chat['reply_target_user_id']
         original_message_id = user_chat['reply_target_message_id']
+        recipient_id = users_collection.find_one({"id": recipient_bot_id})['user_id']
         try:
             await self.bot.send_message(
                 recipient_id,
@@ -58,13 +63,13 @@ class ChatHandler:
                 reply_to_message_id=original_message_id,
                 parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().recipient_buttons(
-                    msg.from_user.id,
+                    user_chat['id'],
                     msg.id,
                     msg.text,
                 ),
             )
         except ApiTelegramException:
-            self._reset_replying_state(msg.from_user.id)
+            reset_replying_state(msg.from_user.id)
             await self.bot.send_message(msg.from_user.id, get_response('errors.bot_blocked'))
             return
 
@@ -76,7 +81,7 @@ class ChatHandler:
         )
 
         # Reset the replying state
-        self._reset_replying_state(msg.from_user.id)
+        reset_replying_state(msg.from_user.id)
 
     async def _handle_forward(self, msg: Message):
         """Handle forwarding of a message to the recipient."""
@@ -103,7 +108,7 @@ class ChatHandler:
             await self.bot.send_message(
                 recipient_id,
                 get_response('texting.sending.recipient', msg.text, user_bot_id),
-                reply_markup=KeyboardMarkupGenerator().recipient_buttons(msg.from_user.id, msg.id, msg.text),
+                reply_markup=KeyboardMarkupGenerator().recipient_buttons(user_bot_id, msg.id, msg.text),
                 parse_mode='Markdown'
             )
 
@@ -124,15 +129,6 @@ class ChatHandler:
         users_collection.update_one(
             {"user_id": msg.from_user.id, "chats.target_user_id": recipient_id, "chats.open": True},
             {"$set": {"chats.$.open": False}}
-        )
-
-    @staticmethod
-    def _reset_replying_state(user_id: int):
-        """Reset the replying state for the user."""
-        users_collection.update_one(
-            {"user_id": user_id},
-            {"$set": {"replying": False, "reply_target_message_id": "", "reply_target_user_id": ""}}
-            # Clear reply state
         )
 
     @staticmethod
