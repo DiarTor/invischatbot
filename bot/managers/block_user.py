@@ -40,14 +40,14 @@ class BlockUserManager:
                                    parse_mode='Markdown')
 
     async def unblock_user(self, blocker_id, blocked_id, bot_message_id):
-        users_collection.update_one({'id': int(blocker_id)}, {'$pull': {'blocklist': int(blocked_id)}})
-        chat_id = users_collection.find_one({'id': int(blocker_id)}).get('user_id', None)
+        users_collection.update_one({'id': str(blocker_id)}, {'$pull': {'blocklist': str(blocked_id)}})
+        chat_id = users_collection.find_one({'id': str(blocker_id)}).get('user_id', None)
         await self.bot.edit_message_text(text=get_response('blocking.unblock_confirm', blocked_id), chat_id=chat_id,
                                    message_id=bot_message_id,
                                    parse_mode='Markdown')
 
     async def cancel_unblock_user(self, blocker_id, message_id, bot_message_id):
-        user = users_collection.find_one({'id': int(blocker_id)})
+        user = users_collection.find_one({'id': str(blocker_id)})
         blocklist = user.get('blocklist', None)
         chat_id = user.get('user_id', None)
         await self.bot.edit_message_text(text=get_response('blocking.blocklist'), chat_id=chat_id,

@@ -5,6 +5,7 @@ from jdatetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
+from bot.utils.chats import close_existing_chats
 from bot.utils.database import users_collection
 from bot.utils.language import get_response
 
@@ -30,11 +31,11 @@ class StartBot:
                     await self.bot.send_message(user_id, get_response('errors.no_user_found'))
             else:
                 # No target ID, close existing chats and reset replying state
-                self._close_existing_chats(user_id)
+                close_existing_chats(user_id)
                 await self._send_welcome_message(msg)
 
         except (ValueError, IndexError):
-            self._send_error_message(msg, 'errors.wrong_id')
+            await self._send_error_message(msg, 'errors.wrong_id')
 
     async def link(self, msg: Message):
         user_bot_id = users_collection.find_one({"user_id": msg.from_user.id})['id']
@@ -49,7 +50,7 @@ class StartBot:
         """Store user data in the database."""
         if not self._is_user_in_database(user_id):
             user_data = {
-                "id": uuid.uuid4().int >> 99,
+                "id": f"{str(uuid.uuid4())[:5]}{str(uuid.uuid4().int)[-5:]}",
                 "user_id": user_id,
                 "nickname": nickname,
                 "awaiting_nickname": False,
@@ -63,7 +64,7 @@ class StartBot:
     def _get_target_user_id(msg: Message):
         """Extract the target user ID from the message."""
         parts = msg.text.split()[1:]
-        return int(parts[0]) if parts else None
+        return str(parts[0]) if parts else None
 
     async def _manage_chats(self, user_data, target_user_data):
         user_id = user_data['user_id']
@@ -71,7 +72,7 @@ class StartBot:
 
         # Close existing chats only if they are not with the target user
         if not any(chat['target_user_id'] == target_user_id and chat['open'] for chat in user_data.get('chats', [])):
-            self._close_existing_chats(user_id)
+            close_existing_chats(user_id)
 
         # Check if there's already an open chat with the target user
         if any(chat['target_user_id'] == target_user_id for chat in user_data.get('chats', [])):
@@ -79,13 +80,6 @@ class StartBot:
         else:
             await self._create_new_chat(user_id, target_user_id, target_user_data['nickname'])
 
-    @staticmethod
-    def _close_existing_chats(user_id: int):
-        users_collection.update_one(
-            {"user_id": user_id},
-            {"$set": {"replying": False, "reply_target_message_id": "", "reply_target_user_id": "",
-                      "chats.$[].open": False}}  # Close all open chats, reset replying
-        )
 
     async def _reopen_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
         users_collection.update_one(
@@ -122,9 +116,9 @@ class StartBot:
         await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', msg.from_user.first_name),
                               parse_mode='Markdown')
 
-    def _send_error_message(self, msg: Message, error_key: str):
+    async def _send_error_message(self, msg: Message, error_key: str):
         """Send an error message to the user."""
-        self.bot.send_message(msg.chat.id, get_response(error_key), parse_mode='Markdown')
+        await self.bot.send_message(msg.chat.id, get_response(error_key), parse_mode='Markdown')
 
     @staticmethod
     def _is_user_in_database(user_id: int):

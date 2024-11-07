@@ -57,7 +57,7 @@ class KeyboardMarkupGenerator:
                    InlineKeyboardButton('خیر 👎', callback_data=f'block_cancel-{sender_id}-{message_text}-{message_id}')]
         return self._create_inline_keyboard(buttons)
 
-    def blocklist_buttons(self, blocker_id: int, blocked_list: list, message_id=None):
+    def blocklist_buttons(self, blocker_id: str, blocked_list: list, message_id=None):
         buttons = [
             [InlineKeyboardButton(text=str(blocked_id),
                                   callback_data=f'unblock-{blocker_id}-{blocked_id}-{message_id}'), ]
@@ -65,7 +65,7 @@ class KeyboardMarkupGenerator:
         ]
         return self._create_list_inline_keyboard(buttons)
 
-    def unblock_confirmation_buttons(self, blocker_id: int, blocked_id: int, message_id=None):
+    def unblock_confirmation_buttons(self, blocker_id: str, blocked_id: str, message_id=None):
         buttons = [
             InlineKeyboardButton('بله 👍', callback_data=f'unblock_confirm-{blocker_id}-{blocked_id}-{message_id}'),
             InlineKeyboardButton('خیر 👎', callback_data=f'unblock_cancel-{blocker_id}-{message_id}')]

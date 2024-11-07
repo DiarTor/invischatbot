@@ -44,7 +44,7 @@ class CallbackHandler:
                 "$set": {
                     "replying": True,
                     "reply_target_message_id": message_id,
-                    "reply_target_user_id": int(sender_id),
+                    "reply_target_user_id": str(sender_id),
                 },
             }
         )
@@ -60,7 +60,7 @@ class CallbackHandler:
                                                                                         message_id))
         elif 'block_confirm' in callback.data.split('-'):
             action, sender_id, message_id = callback.data.split('-')
-            await BlockUserManager(self.bot).block_user(callback.message.chat.id, int(sender_id), int(callback.message.id))
+            await BlockUserManager(self.bot).block_user(callback.message.chat.id, str(sender_id), int(callback.message.id))
         elif 'block_cancel' in callback.data.split('-'):
             action, sender_id, message_text, message_id = callback.data.split('-')
             await BlockUserManager(self.bot).cancel_block(callback.message.chat.id, message_text, message_id, sender_id,
@@ -74,14 +74,14 @@ class CallbackHandler:
                                              chat_id=callback.message.chat.id,
                                              message_id=int(callback.message.id),
                                              parse_mode='Markdown',
-                                             reply_markup=keyboard.unblock_confirmation_buttons(int(blocker_id),
-                                                                                                int(blocked_id),
+                                             reply_markup=keyboard.unblock_confirmation_buttons(str(blocker_id),
+                                                                                                str(blocked_id),
                                                                                                 message_id))
         elif 'unblock_confirm' in callback.data.split('-'):
             action, blocker_id, blocked_id, message_id = callback.data.split('-')
             blocker_bot_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-            await BlockUserManager(self.bot).unblock_user(blocker_bot_id, int(blocked_id), int(callback.message.id))
+            await BlockUserManager(self.bot).unblock_user(blocker_bot_id, str(blocked_id), int(callback.message.id))
         elif 'unblock_cancel' in callback.data.split('-'):
             action, blocker_id, message_id = callback.data.split('-')
             blocker_bot_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-            await BlockUserManager(self.bot).cancel_unblock_user(blocker_bot_id, int(blocker_id), callback.message.id)
+            await BlockUserManager(self.bot).cancel_unblock_user(blocker_bot_id, str(blocker_id), callback.message.id)
