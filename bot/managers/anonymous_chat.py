@@ -15,35 +15,42 @@ class ChatHandler:
 
     async def anonymous_chat(self, msg: Message):
         user_chat = self._get_user_chat(msg.from_user.id)
+        open_chat = next((chat for chat in user_chat['chats'] if chat.get('open')), None)
+        # Check if the user is awaiting a nickname
+        if user_chat.get('awaiting_nickname'):
+            # Determine if the user is in an active chat or replying
+            if open_chat or user_chat.get('reply_target_user_id'):
+                # If they are in an active chat or replying, reset awaiting_nickname to False
+                users_collection.update_one(
+                    {"user_id": msg.from_user.id},
+                    {"$set": {"awaiting_nickname": False}}
+                )
+            else:
+                # If no active chat, proceed with saving the nickname
+                await NicknameManager(self.bot).save_nickname(msg)
+                return
 
-        # Check if there is an active chat or reply target
+        # Proceed with normal chat handling
         target_user_id = None
-        if user_chat.get('awaiting_nickname', None):
-            await NicknameManager(self.bot).save_nickname(msg)
-            return
         if user_chat and 'chats' in user_chat:
-            # Search for a chat where 'open' is True
-            open_chat = next((chat for chat in user_chat['chats'] if chat.get('open')), None)
             if open_chat:
                 target_user_id = open_chat.get('target_user_id')
             elif 'reply_target_user_id' in user_chat:
                 target_user_id = user_chat.get('reply_target_user_id')
-        # Only proceed if there is a valid target_user_id
+
+        # Continue if there is a valid target_user_id
         if user_chat and target_user_id:
-            # Check if the target user has blocked the sender or vice versa
             if not self._is_user_blocked(user_chat.get('id'), target_user_id):
                 if user_chat.get("replying"):
                     await self._handle_reply(msg, user_chat)
                 else:
                     await self._handle_forward(msg)
             else:
-                # If blocked, notify the sender they can't message the recipient
                 close_existing_chats(msg.from_user.id)
                 reset_replying_state(msg.from_user.id)
                 await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
                                             parse_mode='Markdown')
         else:
-            # Notify the user they are not in an active chat
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'), parse_mode='Markdown')
 
     @staticmethod
@@ -146,4 +153,3 @@ class ChatHandler:
                 and (sender_data['id'] in recipient_data.get('blocklist', []) or
                      recipient_data['id'] in sender_data.get('blocklist', []))
         )
-
