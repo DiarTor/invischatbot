@@ -1,7 +1,7 @@
 import uuid
 
 from decouple import config
-from jdatetime import datetime
+from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
@@ -54,7 +54,7 @@ class StartBot:
                 "user_id": user_id,
                 "nickname": nickname,
                 "awaiting_nickname": False,
-                "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "joined_at": datetime.timestamp(datetime.now()),
                 "chats": [],
                 "blocklist": []
             }
@@ -95,13 +95,16 @@ class StartBot:
                               parse_mode='Markdown')
 
     async def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
+        target_user_bot_id = users_collection.find_one({"user_id": target_user_id})['id']
         users_collection.update_one(
             {"user_id": user_id},
             {
                 "$push": {
                     "chats": {
+                        "target_user_bot_id": target_user_bot_id,
                         "target_user_id": target_user_id,
-                        "chat_started_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "chat_created_at": datetime.timestamp(datetime.now()),
+                        "chat_started_at": datetime.timestamp(datetime.now()),
                         "open": True
                     }
                 }
