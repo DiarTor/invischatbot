@@ -5,7 +5,7 @@ from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.utils.chats import close_existing_chats
+from bot.utils.user_data import close_existing_chats
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response

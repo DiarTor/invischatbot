@@ -1,8 +1,9 @@
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.utils.chats import reset_replying_state, close_existing_chats
+from bot.utils.user_data import reset_replying_state, close_existing_chats
 from bot.utils.database import users_collection
+from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.validators import NicknameValidator
 
@@ -20,7 +21,7 @@ class NicknameManager:
         close_existing_chats(msg.from_user.id)
         await self.bot.send_message(msg.chat.id,
                                     get_response('nickname.ask_nickname', user_data['nickname'], current_first_name),
-                                    parse_mode='Markdown')
+                                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def save_nickname(self, msg: Message):
         """Save the user's nickname after they provide it."""
@@ -38,7 +39,8 @@ class NicknameManager:
             await self.bot.send_message(
                 msg.chat.id,
                 get_response('nickname.nickname_was_set', nickname),
-                parse_mode='Markdown'
+                parse_mode='Markdown',
+                reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
         else:
             # Notify the user about the invalid nickname
