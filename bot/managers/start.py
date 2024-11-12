@@ -1,12 +1,13 @@
 import uuid
+from datetime import datetime
 
 from decouple import config
-from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.utils.chats import close_existing_chats
 from bot.utils.database import users_collection
+from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 
 
@@ -80,7 +81,6 @@ class StartBot:
         else:
             await self._create_new_chat(user_id, target_user_id, target_user_data['nickname'])
 
-
     async def _reopen_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
         users_collection.update_one(
             {"user_id": user_id, "chats.target_user_id": target_user_id},
@@ -92,7 +92,7 @@ class StartBot:
             }
         )
         await self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
-                              parse_mode='Markdown')
+                                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
         target_user_bot_id = users_collection.find_one({"user_id": target_user_id})['id']
@@ -112,12 +112,12 @@ class StartBot:
             upsert=True
         )
         await self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
-                              parse_mode='Markdown')
+                                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def _send_welcome_message(self, msg: Message):
         """Send a welcome message to the user."""
         await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', msg.from_user.first_name),
-                              parse_mode='Markdown')
+                                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons())
 
     async def _send_error_message(self, msg: Message, error_key: str):
         """Send an error message to the user."""

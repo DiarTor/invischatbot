@@ -1,4 +1,4 @@
-from telebot.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton
 
 
 class KeyboardMarkupGenerator:
@@ -6,7 +6,8 @@ class KeyboardMarkupGenerator:
     This Class have the functions to create KeyBoardMarkups
     """
 
-    def _create_reply_keyboard(self, buttons):
+    @staticmethod
+    def _create_reply_keyboard(buttons):
         """
         Create ReplyKeyboardMarkup from list of buttons
         :param buttons:
@@ -20,7 +21,8 @@ class KeyboardMarkupGenerator:
             markup.row(*row)
         return markup
 
-    def _create_inline_keyboard(self, buttons):
+    @staticmethod
+    def _create_inline_keyboard(buttons):
         """
         Create InlineKeyboardMarkup from list of buttons
         :param buttons:
@@ -33,7 +35,9 @@ class KeyboardMarkupGenerator:
         for row in buttons:
             markup.row(row)
         return markup
-    def _create_list_inline_keyboard(self, buttons):
+
+    @staticmethod
+    def _create_list_inline_keyboard(buttons):
         """
                 Create InlineKeyboardMarkup list from list of buttons
                 :param buttons:
@@ -46,6 +50,19 @@ class KeyboardMarkupGenerator:
         for row in buttons:
             markup.row(*row)
         return markup
+
+    def main_buttons(self):
+        buttons = [
+            [KeyboardButton('🔗 لینک من'), KeyboardButton('👤 حساب کاربری')],
+            [KeyboardButton('🛠️ پشتیبانی'), KeyboardButton('📖 راهنما')],
+        ]
+
+        return self._create_reply_keyboard(buttons)
+
+    def cancel_buttons(self):
+        buttons = [[KeyboardButton('⬅️ انصراف')]]
+
+        return self._create_reply_keyboard(buttons)
 
     def recipient_buttons(self, sender_id, message_id=None, message_text=None):
         buttons = [InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),

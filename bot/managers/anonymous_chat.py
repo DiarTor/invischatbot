@@ -14,7 +14,13 @@ class ChatHandler:
         self.bot = bot
 
     async def anonymous_chat(self, msg: Message):
-        user_chat = self._get_user_chat(msg.from_user.id)
+        if not self._get_user(msg.from_user.id):
+            await self.bot.reply_to(msg, get_response('errors.restart_required'))
+            return
+        if msg.text == "⬅️ انصراف":
+            await self.cancel_chat_or_reply(msg)
+            return
+        user_chat = self._get_user(msg.from_user.id)
         open_chat = next((chat for chat in user_chat['chats'] if chat.get('open')), None)
         # Check if the user is awaiting a nickname
         if user_chat.get('awaiting_nickname'):
@@ -53,8 +59,30 @@ class ChatHandler:
         else:
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'), parse_mode='Markdown')
 
+    async def cancel_chat_or_reply(self, msg: Message):
+        """Handle cancellation of open chat or reply on '⬅️ انصراف' message."""
+        user_chat = self._get_user(msg.from_user.id)
+        open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
+        # Cancel reply if the user is in reply mode
+        if user_chat.get("replying"):
+            reset_replying_state(msg.from_user.id)
+            await self.bot.send_message(msg.chat.id, get_response('texting.replying.cancelled'), parse_mode='Markdown',
+                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
+
+        # Close the open chat if it exists
+        elif open_chat:
+            users_collection.update_one(
+                {"user_id": msg.from_user.id, "chats.open": True},
+                {"$set": {"chats.$.open": False}}
+            )
+            await self.bot.send_message(msg.chat.id, get_response('texting.sending.cancelled'), parse_mode='Markdown',
+                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
+        else:
+            await self.bot.send_message(msg.chat.id, get_response('errors.no_cancel'), parse_mode='Markdown')
+            return
+
     @staticmethod
-    def _get_user_chat(user_id: int):
+    def _get_user(user_id: int):
         """Retrieve the user's chat session."""
         return users_collection.find_one({"user_id": user_id})
 
@@ -120,7 +148,8 @@ class ChatHandler:
             )
 
             # Notify the sender that their message was successfully sent
-            await self.bot.send_message(msg.chat.id, get_response('texting.sending.sent'), parse_mode='Markdown')
+            await self.bot.send_message(msg.chat.id, get_response('texting.sending.sent'), parse_mode='Markdown',
+                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
 
             # Close the active chat
             users_collection.update_one(
