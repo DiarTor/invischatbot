@@ -1,14 +1,13 @@
 import uuid
 from datetime import datetime
 
-from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.utils.user_data import close_existing_chats
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
+from bot.utils.user_data import close_existing_chats
 
 
 class StartBot:
@@ -37,15 +36,6 @@ class StartBot:
 
         except (ValueError, IndexError):
             await self._send_error_message(msg, 'errors.wrong_id')
-
-    async def link(self, msg: Message):
-        user_bot_id = users_collection.find_one({"user_id": msg.from_user.id})['id']
-        link = self._generate_link(user_bot_id)
-        await self.bot.send_message(
-            msg.chat.id,
-            get_response('greeting.link', link),
-            parse_mode='Markdown'
-        )
 
     def _store_user_data(self, user_id: int, nickname: str = None):
         """Store user data in the database."""
@@ -127,8 +117,3 @@ class StartBot:
     def _is_user_in_database(user_id: int):
         """Check if the target user ID is in the database (Target user started the bot)."""
         return users_collection.find_one({'user_id': user_id})
-
-    @staticmethod
-    def _generate_link(user_id: int) -> str:
-        """Generate a link to the bot for the user."""
-        return f"https://t.me/{config('BOT_USERNAME', cast=str)}?start={user_id}"

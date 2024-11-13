@@ -2,6 +2,7 @@ from telebot.apihelper import ApiTelegramException
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
+from bot.managers.link import LinkManager
 from bot.managers.nickname import NicknameManager
 from bot.utils.user_data import reset_replying_state
 from bot.utils.database import users_collection
@@ -14,13 +15,16 @@ class ChatHandler:
         self.bot = bot
 
     async def anonymous_chat(self, msg: Message):
+        self.msg = msg
         user_chat = self._get_user(msg.from_user.id)
         if not user_chat:
             await self.bot.reply_to(msg, get_response('errors.restart_required'))
             return
 
-        if msg.text == "⬅️ انصراف":
-            await self.cancel_chat_or_reply(msg)
+        keyboard_commands = {"⬅️ انصراف": self.cancel_chat_or_reply, "🔗 لینک ناشناس من": self.handle_link}
+
+        if msg.text in keyboard_commands:
+            await keyboard_commands[msg.text]()
             return
 
         open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
@@ -41,6 +45,9 @@ class ChatHandler:
                 await self._handle_forward(msg)
         else:
             await self.bot.send_message(msg.from_user.id, get_response('errors.no_active_chat'))
+
+    async def handle_link(self):
+        await LinkManager(self.bot).link(self.msg)
 
     async def cancel_chat_or_reply(self, msg: Message):
         user_chat = self._get_user(msg.from_user.id)
