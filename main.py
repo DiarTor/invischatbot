@@ -3,12 +3,13 @@ import asyncio
 from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 
+from bot.admin.bot_administarion import AdminManager
 from bot.managers.anonymous_chat import ChatHandler
 from bot.managers.block_user import BlockUserManager
 from bot.managers.callback import CallbackHandler
 from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
-from bot.admin.bot_administarion import AdminManager
+
 bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True)
 
 # Bot Commands Classes
@@ -23,7 +24,6 @@ admin_handler = AdminManager(bot)
 
 # Bot Commands
 bot.register_message_handler(start_bot.start, commands=['start'])
-bot.register_message_handler(start_bot.link, commands=['link'])
 bot.register_message_handler(nickname_handler.set_nickname, commands=['nickname'])
 bot.register_message_handler(block_user_handler.block_list, commands=['blocklist'])
 

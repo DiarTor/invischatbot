@@ -16,3 +16,7 @@ def reset_replying_state(user_id: int):
         {"$set": {"replying": False, "reply_target_message_id": "", "reply_target_user_id": ""}}
         # Clear reply state
     )
+
+
+def get_user(user_id: int):
+    return users_collection.find_one({"user_id": user_id})
