@@ -1,3 +1,4 @@
+from decouple import config
 from telebot.apihelper import ApiTelegramException
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
@@ -6,6 +7,7 @@ from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
 from bot.managers.link import LinkManager
 from bot.managers.nickname import NicknameManager
+from bot.managers.start import StartBot
 from bot.managers.support import SupportManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
@@ -16,12 +18,23 @@ from bot.utils.user_data import reset_replying_state, get_user
 class ChatHandler:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
+        self.current_version = config('VERSION', cast=float)
 
     async def anonymous_chat(self, msg: Message):
         self.msg = msg
         user_chat = get_user(self.msg.chat.id)
         if not user_chat:
             await self.bot.reply_to(msg, get_response('errors.restart_required'))
+            return
+        user_version = user_chat.get('version', 0.0)
+        if user_version != self.current_version:
+            # If the user's version is outdated, send a restart message and update their version
+            users_collection.update_one(
+                {'user_id': msg.from_user.id},
+                {'$set': {'version': self.current_version}}
+            )
+            # Optionally, you can initiate the `/start` command to guide the user through the update process
+            await StartBot(self.bot).start(msg)  # Call the start method to refresh the user setup
             return
 
         keyboard_commands = {"⬅️ انصراف": self.handle_cancel, "🔗 لینک ناشناس من": self.handle_link,

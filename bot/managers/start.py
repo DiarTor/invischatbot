@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
@@ -47,7 +48,8 @@ class StartBot:
                 "awaiting_nickname": False,
                 "joined_at": datetime.timestamp(datetime.now()),
                 "chats": [],
-                "blocklist": []
+                "blocklist": [],
+                "version": config('VERSION', cast=float)
             }
             users_collection.insert_one(user_data)
 
