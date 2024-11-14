@@ -2,7 +2,8 @@ from telebot.apihelper import ApiTelegramException
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.managers.block_user import BlockUserManager
+from bot.managers.account import AccountManager
+from bot.managers.block import BlockUserManager
 from bot.managers.link import LinkManager
 from bot.managers.nickname import NicknameManager
 from bot.managers.support import SupportManager
@@ -24,7 +25,8 @@ class ChatHandler:
             return
 
         keyboard_commands = {"⬅️ انصراف": self.handle_cancel, "🔗 لینک ناشناس من": self.handle_link,
-                             "🚫 بلاک لیست": self.handle_blocklist, '🛠️ پشتیبانی': self.handle_support, '📖 راهنما': self.handle_guide}
+                             "🚫 بلاک لیست": self.handle_blocklist, '🛠️ پشتیبانی': self.handle_support,
+                             '📖 راهنما': self.handle_guide, '👤 حساب کاربری': self.handle_account}
 
         if msg.text in keyboard_commands:
             await keyboard_commands[msg.text]()
@@ -63,6 +65,9 @@ class ChatHandler:
 
     async def handle_guide(self):
         await SupportManager(self.bot).guide(self.msg)
+
+    async def handle_account(self):
+        await AccountManager(self.bot).account(self.msg)
 
     async def cancel_chat_or_reply(self, msg: Message):
         user_chat = get_user(msg.from_user.id)

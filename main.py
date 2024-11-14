@@ -4,8 +4,8 @@ from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 
 from bot.admin.bot_administarion import AdminManager
-from bot.managers.anonymous_chat import ChatHandler
-from bot.managers.block_user import BlockUserManager
+from bot.managers.chat import ChatHandler
+from bot.managers.block import BlockUserManager
 from bot.managers.callback import CallbackHandler
 from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot

@@ -1,7 +1,7 @@
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery
 
-from bot.managers.block_user import BlockUserManager
+from bot.managers.block import BlockUserManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
