@@ -5,6 +5,7 @@ from telebot.types import Message
 from bot.managers.block_user import BlockUserManager
 from bot.managers.link import LinkManager
 from bot.managers.nickname import NicknameManager
+from bot.managers.support import SupportManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
@@ -23,7 +24,7 @@ class ChatHandler:
             return
 
         keyboard_commands = {"⬅️ انصراف": self.handle_cancel, "🔗 لینک ناشناس من": self.handle_link,
-                             "🚫 بلاک لیست": self.handle_blocklist}
+                             "🚫 بلاک لیست": self.handle_blocklist, '🛠️ پشتیبانی': self.handle_support, '📖 راهنما': self.handle_guide}
 
         if msg.text in keyboard_commands:
             await keyboard_commands[msg.text]()
@@ -56,6 +57,12 @@ class ChatHandler:
 
     async def handle_cancel(self):
         await self.cancel_chat_or_reply(self.msg)
+
+    async def handle_support(self):
+        await SupportManager(self.bot).support(self.msg)
+
+    async def handle_guide(self):
+        await SupportManager(self.bot).guide(self.msg)
 
     async def cancel_chat_or_reply(self, msg: Message):
         user_chat = get_user(msg.from_user.id)
