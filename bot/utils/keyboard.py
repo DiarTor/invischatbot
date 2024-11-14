@@ -64,6 +64,11 @@ class KeyboardMarkupGenerator:
 
         return self._create_reply_keyboard(buttons)
 
+    def account_buttons(self):
+        buttons = [InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data=f'change_nickname')]
+
+        return self._create_inline_keyboard(buttons)
+
     def recipient_buttons(self, sender_id, message_id=None, message_text=None):
         buttons = [InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
                    InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_text}-{message_id}'), ]

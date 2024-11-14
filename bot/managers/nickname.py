@@ -14,9 +14,9 @@ class NicknameManager:
 
     async def set_nickname(self, msg: Message):
         """Set a Nickname when the user sends /nickname command."""
-        user_data = users_collection.find_one_and_update({'user_id': msg.from_user.id},
+        user_data = users_collection.find_one_and_update({'user_id': msg.chat.id},
                                                          {'$set': {'awaiting_nickname': True}})
-        current_first_name = msg.from_user.first_name
+        current_first_name = msg.chat.first_name
         reset_replying_state(msg.from_user.id)
         close_existing_chats(msg.from_user.id)
         await self.bot.send_message(msg.chat.id,

@@ -24,7 +24,6 @@ admin_handler = AdminManager(bot)
 
 # Bot Commands
 bot.register_message_handler(start_bot.start, commands=['start'])
-bot.register_message_handler(nickname_handler.set_nickname, commands=['nickname'])
 
 # Admin Commands
 bot.register_message_handler(admin_handler.get_bot_status, commands=['status'])

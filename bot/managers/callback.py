@@ -2,6 +2,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery
 
 from bot.managers.block import BlockUserManager
+from bot.managers.nickname import NicknameManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
@@ -19,6 +20,8 @@ class CallbackHandler:
             await self._process_block_callback(callback)
         elif callback.data.startswith('unblock'):
             await self._process_unblock_callback(callback)
+        elif callback.data.startswith('change_nickname'):
+            await self._process_change_nickname(callback)
         await self.bot.answer_callback_query(callback.id)
 
     async def _process_reply_callback(self, callback: CallbackQuery):
@@ -87,3 +90,7 @@ class CallbackHandler:
             action, blocker_id, message_id = callback.data.split('-')
             blocker_bot_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
             await BlockUserManager(self.bot).cancel_unblock_user(blocker_bot_id, str(blocker_id), callback.message.id)
+
+    async def _process_change_nickname(self, callback: CallbackQuery):
+        await self.bot.delete_message(callback.message.chat.id, callback.message.id)
+        await NicknameManager(self.bot).set_nickname(callback.message)

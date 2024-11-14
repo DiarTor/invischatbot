@@ -88,7 +88,7 @@ class ChatHandler:
             )
         elif user_chat.get('awaiting_nickname'):
             self._update_user_field(msg.from_user.id, "awaiting_nickname", False)
-            await self.bot.send_message(msg.from_user.id, get_response('texting.sending.cancelled'),
+            await self.bot.send_message(msg.from_user.id, get_response('nickname.cancelled'),
                                         parse_mode='Markdown',
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
         else:
