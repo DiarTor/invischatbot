@@ -122,7 +122,7 @@ class ChatHandler:
 
             await self.bot.send_message(
                 msg.chat.id, get_response('texting.replying.sent'), parse_mode='Markdown'
-            )
+            , reply_markup=KeyboardMarkupGenerator().main_buttons())
             reset_replying_state(msg.from_user.id)
 
     async def _send_reply(self, msg: Message, recipient_id, original_message_id, sender_id):
