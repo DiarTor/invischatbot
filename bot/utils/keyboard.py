@@ -52,10 +52,10 @@ class KeyboardMarkupGenerator:
         return markup
 
     def main_buttons(self):
-        buttons = [[KeyboardButton('🔗 لینک ناشناس من'),],
-            [KeyboardButton('🚫 بلاک لیست') ,KeyboardButton('👤 حساب کاربری')],
-            [KeyboardButton('🛠️ پشتیبانی'), KeyboardButton('📖 راهنما')],
-        ]
+        buttons = [[KeyboardButton('🔗 لینک ناشناس من'), ],
+                   [KeyboardButton('🚫 بلاک لیست'), KeyboardButton('👤 حساب کاربری')],
+                   [KeyboardButton('🛠️ پشتیبانی'), KeyboardButton('📖 راهنما')],
+                   ]
 
         return self._create_reply_keyboard(buttons)
 
@@ -69,20 +69,36 @@ class KeyboardMarkupGenerator:
 
         return self._create_inline_keyboard(buttons)
 
-    def recipient_buttons(self, sender_id, message_id=None, message_text=None):
+    def recipient_buttons(self, sender_id, message_id=None):
         """
         :param sender_id: anny id
         :param message_id: message id
-        :param message_text: message text
         :return: buttons
         """
         buttons = [InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
-                   InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_text}-{message_id}'), ]
+                   InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}'), ]
         return self._create_inline_keyboard(buttons)
 
-    def block_confirmation_buttons(self, sender_id, message_text=None, message_id=None):
-        buttons = [InlineKeyboardButton('بله 👍', callback_data=f'block_confirm-{sender_id}-{message_id}'),
-                   InlineKeyboardButton('خیر 👎', callback_data=f'block_cancel-{sender_id}-{message_text}-{message_id}')]
+    def block_confirmation_buttons(self, sender_id, message_id=None):
+        """
+
+        :param sender_id: anny id
+        :param message_id:
+        :return:
+        """
+        buttons = [
+            [
+                InlineKeyboardButton("میخوای طرفو بلاک کنی ؟", callback_data='placeholder')
+            ],
+            [
+                InlineKeyboardButton('بله 👍', callback_data=f'block_confirm-{sender_id}-{message_id}'),
+                InlineKeyboardButton('خیر 👎', callback_data=f'block_cancel-{sender_id}')
+            ]
+        ]
+        return self._create_list_inline_keyboard(buttons)
+
+    def blocked_buttons(self):
+        buttons = [InlineKeyboardButton('✅ کاربر بلاک شد.', callback_data='placeholder')]
         return self._create_inline_keyboard(buttons)
 
     def blocklist_buttons(self, blocker_id: str, blocked_list: list, message_id=None):
