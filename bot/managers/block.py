@@ -20,7 +20,7 @@ class BlockUserManager:
         await self.bot.send_message(chat_id=msg.chat.id, text=get_response("blocking.blocklist"), parse_mode='Markdown',
                                     reply_markup=keyboard.blocklist_buttons(user_bot_id, blocklist, msg.id))
 
-    async def block_user(self, blocker_id: int, blocked_id: int, bot_message_id):
+    async def block_user(self, blocker_id: int, blocked_id: str, bot_message_id):
         users_collection.update_one(
             {"user_id": blocker_id},
             {"$addToSet": {"blocklist": blocked_id}}, upsert=True
@@ -33,7 +33,7 @@ class BlockUserManager:
         )
 
     async def cancel_block(self, chat_id, message_text, message_id, sender_id, bot_message_id: int):
-        await self.bot.edit_message_text(text=get_response('texting.sending.recipient', message_text, sender_id), chat_id=chat_id,
+        await self.bot.edit_message_text(text=get_response('texting.sending.text.recipient', message_text, sender_id), chat_id=chat_id,
                                    message_id=bot_message_id,
                                    reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_id, message_id,
                                                                                             message_text),

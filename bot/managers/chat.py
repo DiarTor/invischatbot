@@ -6,7 +6,6 @@ from telebot.types import Message
 from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
 from bot.managers.link import LinkManager
-from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
 from bot.managers.support import SupportManager
 from bot.utils.database import users_collection
@@ -21,53 +20,150 @@ class ChatHandler:
         self.current_version = config('VERSION', cast=float)
 
     async def anonymous_chat(self, msg: Message):
+        """Main method to handle anonymous chat with support for different media types."""
         self.msg = msg
         user_chat = get_user(self.msg.chat.id)
+
         if not user_chat:
             await self.bot.reply_to(msg, get_response('errors.restart_required'))
             return
+
         user_version = user_chat.get('version', 0.0)
         if user_version != self.current_version:
-            # If the user's version is outdated, send a restart message and update their version
-            users_collection.update_one(
-                {'user_id': msg.from_user.id},
-                {'$set': {'version': self.current_version}}
-            )
-            # Optionally, you can initiate the `/start` command to guide the user through the update process
-            await StartBot(self.bot).start(msg)  # Call the start method to refresh the user setup
+            await self._handle_version_mismatch(msg)
             return
 
-        keyboard_commands = {"⬅️ انصراف": self.handle_cancel, "🔗 لینک ناشناس من": self.handle_link,
-                             "🚫 بلاک لیست": self.handle_blocklist, '🛠️ پشتیبانی': self.handle_support,
-                             '📖 راهنما': self.handle_guide, '👤 حساب کاربری': self.handle_account}
+        # Handle commands from the keyboard
+        keyboard_commands = {
+            "⬅️ انصراف": self.handle_cancel,
+            "🔗 لینک ناشناس من": self.handle_link,
+            "🚫 بلاک لیست": self.handle_blocklist,
+            '🛠️ پشتیبانی': self.handle_support,
+            '📖 راهنما': self.handle_guide,
+            '👤 حساب کاربری': self.handle_account
+        }
 
         if msg.text in keyboard_commands:
             await keyboard_commands[msg.text]()
             return
 
+        # Handle the chat message
+        await self._handle_media(msg)
+
+    async def _handle_version_mismatch(self, msg: Message):
+        """Handle version mismatch by prompting a restart and updating the version."""
+        users_collection.update_one(
+            {'user_id': msg.from_user.id},
+            {'$set': {'version': self.current_version}}
+        )
+        await StartBot(self.bot).start(msg)
+
+    async def _handle_media(self, msg: Message):
+        """Dispatch the handling of media based on the message type."""
+        if msg.text:
+            await self._handle_text(msg)
+        elif msg.sticker:
+            await self._handle_sticker(msg)
+        elif msg.photo:
+            await self._handle_photo(msg)
+        elif msg.video:
+            await self._handle_video(msg)
+        elif msg.audio:
+            await self._handle_audio(msg)
+        elif msg.document:
+            await self._handle_document(msg)
+        else:
+            await self.bot.send_message(msg.chat.id, get_response('errors.unknown_media'))
+
+    async def _handle_text(self, msg: Message):
+        """Handle text messages."""
+        await self._process_chat(msg)
+
+    async def _handle_sticker(self, msg: Message):
+        """Handle sticker messages."""
+        await self._process_chat(msg, is_sticker=True)
+
+    async def _handle_photo(self, msg: Message):
+        """Handle photo messages."""
+        await self._process_chat(msg, is_photo=True)
+
+    async def _handle_video(self, msg: Message):
+        """Handle video messages."""
+        await self._process_chat(msg, is_video=True)
+
+    async def _handle_audio(self, msg: Message):
+        """Handle audio messages."""
+        await self._process_chat(msg, is_audio=True)
+
+    async def _handle_document(self, msg: Message):
+        """Handle document messages."""
+        await self._process_chat(msg, is_document=True)
+
+    async def _process_chat(self, msg: Message, **kwargs):
+        """Process the chat based on the type of message."""
+        user_chat = get_user(msg.from_user.id)
         open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
-
-        if user_chat.get('awaiting_nickname'):
-            if open_chat or user_chat.get('reply_target_user_id'):
-                self._update_user_field(msg.from_user.id, "awaiting_nickname", False)
-            else:
-                await NicknameManager(self.bot).save_nickname(msg)
-                return
-
-        target_user_id = open_chat.get('target_user_id') if open_chat else user_chat.get('reply_target_user_id')
-
-        if target_user_id:
-            if not is_user_blocked(user_chat.get('id'), target_user_id):
-                if user_chat.get("replying"):
-                    await self._handle_reply(msg, user_chat)
+        if not user_chat.get('replying'):
+            if open_chat:
+                target_user_id = open_chat.get('target_user_id')
+                if not is_user_blocked(user_chat.get('id'), target_user_id):
+                    await self._forward_media(msg, target_user_id, **kwargs)
                 else:
-                    await self._handle_forward(msg)
+                    close_existing_chats(user_chat.get('user_id'))
+                    await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'), reply_markup=KeyboardMarkupGenerator().main_buttons())
             else:
-                close_existing_chats(user_chat.get('user_id'))
+                await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
+        else:
+            await self._handle_reply(msg, user_chat)
+
+    async def _forward_media(self, msg: Message, recipient_id: int, **kwargs):
+        """Forward media to the recipient based on message type."""
+        try:
+            if kwargs.get('is_sticker'):
+                await self.bot.send_sticker(recipient_id, msg.sticker.file_id)
+            elif kwargs.get('is_photo'):
+                await self.bot.send_photo(recipient_id, msg.photo[-1].file_id)
+            elif kwargs.get('is_video'):
+                await self.bot.send_video(recipient_id, msg.video.file_id)
+            elif kwargs.get('is_audio'):
+                await self.bot.send_audio(recipient_id, msg.audio.file_id)
+            elif kwargs.get('is_document'):
+                await self.bot.send_document(recipient_id, msg.document.file_id)
+            else:
+                await self.bot.send_message(recipient_id, get_response("texting.sending.text.recipient", msg.text,
+                                                                       get_user(msg.chat.id).get('id')),
+                                            parse_mode='Markdown',
+                                            reply_markup=KeyboardMarkupGenerator().recipient_buttons(
+                                                get_user(msg.chat.id).get('id'), msg.id, msg.text))
+
+            # After sending, update the chat state (if applicable)
+            close_existing_chats(msg.chat.id)
+            await self.bot.send_message(msg.chat.id, get_response('texting.sending.text.sent'), parse_mode='Markdown',
+                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
+        except ApiTelegramException:
+            self._handle_bot_blocked(msg)
+
+    async def _handle_reply(self, msg: Message, user_chat):
+        """Handle replies to messages."""
+        recipient_id, original_message_id = user_chat['reply_target_user_id'], user_chat['reply_target_message_id']
+        recipient_user = users_collection.find_one({"id": recipient_id})
+
+        if recipient_user:
+            if not is_user_blocked(user_chat.get("id"), recipient_user.get('user_id')):
+                try:
+                    await self._send_reply(msg, recipient_user['user_id'], original_message_id, user_chat['id'])
+                except ApiTelegramException:
+                    self._handle_bot_blocked(msg)
+                    return
+            else:
+                reset_replying_state(msg.chat.id)
                 await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
                                             reply_markup=KeyboardMarkupGenerator().main_buttons())
-        else:
-            await self.bot.send_message(msg.from_user.id, get_response('errors.no_active_chat'))
+                return
+            await self.bot.send_message(
+                msg.chat.id, get_response('texting.replying.sent'), parse_mode='Markdown',
+                reply_markup=KeyboardMarkupGenerator().main_buttons())
+            reset_replying_state(msg.from_user.id)
 
     async def handle_link(self):
         await LinkManager(self.bot).link(self.msg)
@@ -113,27 +209,6 @@ class ChatHandler:
             await self.bot.send_message(
                 msg.chat.id, get_response('errors.no_cancel'), parse_mode='Markdown'
             )
-
-    async def _handle_reply(self, msg: Message, user_chat):
-        recipient_id, original_message_id = user_chat['reply_target_user_id'], user_chat['reply_target_message_id']
-        recipient_user = users_collection.find_one({"id": recipient_id})
-
-        if recipient_user:
-            if not is_user_blocked(user_chat.get("id"), recipient_user.get('user_id')):
-                try:
-                    await self._send_reply(msg, recipient_user['user_id'], original_message_id, user_chat['id'])
-                except ApiTelegramException:
-                    self._handle_bot_blocked(msg)
-                    return
-            else:
-                reset_replying_state(msg.chat.id)
-                await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
-                                            reply_markup=KeyboardMarkupGenerator().main_buttons())
-                return
-            await self.bot.send_message(
-                msg.chat.id, get_response('texting.replying.sent'), parse_mode='Markdown'
-                , reply_markup=KeyboardMarkupGenerator().main_buttons())
-            reset_replying_state(msg.from_user.id)
 
     async def _send_reply(self, msg: Message, recipient_id, original_message_id, sender_id):
         await self.bot.send_message(
