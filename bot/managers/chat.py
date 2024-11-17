@@ -145,7 +145,7 @@ class ChatHandler:
                                                                        get_user(msg.chat.id).get('id')),
                                             parse_mode='Markdown',
                                             reply_markup=KeyboardMarkupGenerator().recipient_buttons(
-                                                get_user(msg.chat.id).get('id'), msg.id, msg.text))
+                                                get_user(msg.chat.id).get('id'), msg.id))
 
             # After sending, update the chat state (if applicable)
             close_existing_chats(msg.chat.id)
@@ -227,7 +227,7 @@ class ChatHandler:
             get_response('texting.replying.recipient', msg.text, sender_id),
             reply_to_message_id=original_message_id,
             parse_mode='Markdown',
-            reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_id, msg.id, msg.text)
+            reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_id, msg.id)
         )
 
     async def _handle_forward(self, msg: Message):
@@ -247,7 +247,7 @@ class ChatHandler:
             await self.bot.send_message(
                 recipient_id,
                 get_response('texting.sending.text.recipient', msg.text, user_bot_id),
-                reply_markup=KeyboardMarkupGenerator().recipient_buttons(user_bot_id, msg.id, msg.text),
+                reply_markup=KeyboardMarkupGenerator().recipient_buttons(user_bot_id, msg.id),
                 parse_mode='Markdown'
             )
             await self.bot.send_message(
