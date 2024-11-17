@@ -70,6 +70,12 @@ class KeyboardMarkupGenerator:
         return self._create_inline_keyboard(buttons)
 
     def recipient_buttons(self, sender_id, message_id=None, message_text=None):
+        """
+        :param sender_id: anny id
+        :param message_id: message id
+        :param message_text: message text
+        :return: buttons
+        """
         buttons = [InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
                    InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_text}-{message_id}'), ]
         return self._create_inline_keyboard(buttons)

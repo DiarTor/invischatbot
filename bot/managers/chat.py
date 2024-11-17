@@ -12,7 +12,7 @@ from bot.managers.support import SupportManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import reset_replying_state, get_user
+from bot.utils.user_data import reset_replying_state, get_user, is_user_blocked, close_existing_chats
 
 
 class ChatHandler:
@@ -56,11 +56,16 @@ class ChatHandler:
 
         target_user_id = open_chat.get('target_user_id') if open_chat else user_chat.get('reply_target_user_id')
 
-        if target_user_id and not self._is_user_blocked(user_chat.get('id'), target_user_id):
-            if user_chat.get("replying"):
-                await self._handle_reply(msg, user_chat)
+        if target_user_id:
+            if not is_user_blocked(user_chat.get('id'), target_user_id):
+                if user_chat.get("replying"):
+                    await self._handle_reply(msg, user_chat)
+                else:
+                    await self._handle_forward(msg)
             else:
-                await self._handle_forward(msg)
+                close_existing_chats(user_chat.get('user_id'))
+                await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
+                                            reply_markup=KeyboardMarkupGenerator().main_buttons())
         else:
             await self.bot.send_message(msg.from_user.id, get_response('errors.no_active_chat'))
 
@@ -114,15 +119,20 @@ class ChatHandler:
         recipient_user = users_collection.find_one({"id": recipient_id})
 
         if recipient_user:
-            try:
-                await self._send_reply(msg, recipient_user['user_id'], original_message_id, user_chat['id'])
-            except ApiTelegramException:
-                self._handle_bot_blocked(msg)
+            if not is_user_blocked(user_chat.get("id"), recipient_user.get('user_id')):
+                try:
+                    await self._send_reply(msg, recipient_user['user_id'], original_message_id, user_chat['id'])
+                except ApiTelegramException:
+                    self._handle_bot_blocked(msg)
+                    return
+            else:
+                reset_replying_state(msg.chat.id)
+                await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
+                                            reply_markup=KeyboardMarkupGenerator().main_buttons())
                 return
-
             await self.bot.send_message(
                 msg.chat.id, get_response('texting.replying.sent'), parse_mode='Markdown'
-            , reply_markup=KeyboardMarkupGenerator().main_buttons())
+                , reply_markup=KeyboardMarkupGenerator().main_buttons())
             reset_replying_state(msg.from_user.id)
 
     async def _send_reply(self, msg: Message, recipient_id, original_message_id, sender_id):
@@ -150,12 +160,12 @@ class ChatHandler:
         try:
             await self.bot.send_message(
                 recipient_id,
-                get_response('texting.sending.recipient', msg.text, user_bot_id),
+                get_response('texting.sending.text.recipient', msg.text, user_bot_id),
                 reply_markup=KeyboardMarkupGenerator().recipient_buttons(user_bot_id, msg.id, msg.text),
                 parse_mode='Markdown'
             )
             await self.bot.send_message(
-                msg.chat.id, get_response('texting.sending.sent'), parse_mode='Markdown',
+                msg.chat.id, get_response('texting.sending.text.sent'), parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
             self._update_chat_field(msg.from_user.id, "chats.$.open", False,
@@ -183,13 +193,3 @@ class ChatHandler:
         if not query:
             query = {"user_id": user_id, "chats.open": True}
         users_collection.update_one(query, {"$set": {field: value}})
-
-    @staticmethod
-    def _is_user_blocked(sender_id: str, recipient_id: int) -> bool:
-        sender_data = users_collection.find_one({"id": sender_id})
-        recipient_data = users_collection.find_one({"user_id": recipient_id})
-
-        return recipient_data and (
-                sender_data['id'] in recipient_data.get('blocklist', []) or
-                recipient_data['id'] in sender_data.get('blocklist', [])
-        )

@@ -8,7 +8,7 @@ from telebot.types import Message
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import close_existing_chats
+from bot.utils.user_data import close_existing_chats, is_user_blocked
 
 
 class StartBot:
@@ -83,7 +83,7 @@ class StartBot:
                 }
             }
         )
-        await self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
+        await self.bot.send_message(user_id, get_response('texting.sending.text.send', target_user_nickname),
                                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
@@ -103,7 +103,7 @@ class StartBot:
             },
             upsert=True
         )
-        await self.bot.send_message(user_id, get_response('texting.sending.send', target_user_nickname),
+        await self.bot.send_message(user_id, get_response('texting.sending.text.send', target_user_nickname),
                                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def _send_welcome_message(self, msg: Message):
