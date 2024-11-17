@@ -25,7 +25,7 @@ class ChatHandler:
         user_chat = get_user(self.msg.chat.id)
 
         if not user_chat:
-            await StartBot(self.bot).start(self.msg)
+            await StartBot(self.bot).start(msg)
             return
 
         user_version = user_chat.get('version', 0.0)
