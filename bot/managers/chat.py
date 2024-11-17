@@ -110,19 +110,30 @@ class ChatHandler:
                     await self._forward_media(msg, target_user_id, **kwargs)
                 else:
                     close_existing_chats(user_chat.get('user_id'))
-                    await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'), reply_markup=KeyboardMarkupGenerator().main_buttons())
+                    await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
+                                                reply_markup=KeyboardMarkupGenerator().main_buttons())
             else:
                 await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
         else:
             await self._handle_reply(msg, user_chat)
 
     async def _forward_media(self, msg: Message, recipient_id: int, **kwargs):
+        sender_anny_id = get_user(msg.chat.id).get('id')
+        caption = msg.caption if msg.caption else ""
         """Forward media to the recipient based on message type."""
         try:
             if kwargs.get('is_sticker'):
+                await self.bot.send_message(recipient_id, get_response("texting.sending.sticker.recipient",
+                                                                       sender_anny_id, ),
+                                            parse_mode='Markdown',
+                                            reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
+                                                                                                     msg.id))
                 await self.bot.send_sticker(recipient_id, msg.sticker.file_id)
             elif kwargs.get('is_photo'):
-                await self.bot.send_photo(recipient_id, msg.photo[-1].file_id)
+                await self.bot.send_photo(recipient_id, msg.photo[-1].file_id,
+                                          caption=get_response('texting.sending.photo.recipient',
+                                                               caption, sender_anny_id),
+                                          parse_mode='Markdown')
             elif kwargs.get('is_video'):
                 await self.bot.send_video(recipient_id, msg.video.file_id)
             elif kwargs.get('is_audio'):
