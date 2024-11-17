@@ -72,6 +72,8 @@ class ChatHandler:
             await self._handle_audio(msg)
         elif msg.document:
             await self._handle_document(msg)
+        elif msg.video_note:
+            await self._handle_video_note(msg)
         else:
             await self.bot.send_message(msg.chat.id, get_response('errors.unknown_media'))
 
@@ -98,6 +100,10 @@ class ChatHandler:
     async def _handle_document(self, msg: Message):
         """Handle document messages."""
         await self._process_chat(msg, is_document=True)
+
+    async def _handle_video_note(self, msg: Message):
+        """Handle video note messages."""
+        await self._process_chat(msg, is_video_note=True)
 
     async def _process_chat(self, msg: Message, **kwargs):
         """Process the chat based on the type of message."""
@@ -133,9 +139,17 @@ class ChatHandler:
                 await self.bot.send_photo(recipient_id, msg.photo[-1].file_id,
                                           caption=get_response('texting.sending.photo.recipient',
                                                                caption, sender_anny_id),
-                                          parse_mode='Markdown')
+                                          parse_mode='Markdown',
+                                          reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
+                                                                                                   msg.id))
             elif kwargs.get('is_video'):
-                await self.bot.send_video(recipient_id, msg.video.file_id)
+                await self.bot.send_video(recipient_id, msg.video.file_id,
+                                          caption=get_response('texting.sending.video.recipient', caption,
+                                                               sender_anny_id),
+                                          reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id, ),
+                                          parse_mode='Markdown')
+            elif kwargs.get('is_video_note'):
+                await self.bot.send_video_note(recipient_id, msg.video_note.file_id)
             elif kwargs.get('is_audio'):
                 await self.bot.send_audio(recipient_id, msg.audio.file_id)
             elif kwargs.get('is_document'):
