@@ -11,7 +11,7 @@ class AdminManager:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
 
-    async def get_bot_status(self, msg: Message):
+    async def get_bot_stats(self, msg: Message):
         if not msg.from_user.id == int(1154909190):
             return
         user_counts = self.get_users_count()

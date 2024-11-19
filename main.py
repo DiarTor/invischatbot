@@ -26,7 +26,7 @@ admin_handler = AdminManager(bot)
 bot.register_message_handler(start_bot.start, commands=['start'])
 
 # Admin Commands
-bot.register_message_handler(admin_handler.get_bot_status, commands=['status'])
+bot.register_message_handler(admin_handler.get_bot_stats, commands=['stats'])
 
 # Content Type Handlers
 bot.register_message_handler(chat_handler.anonymous_chat,
