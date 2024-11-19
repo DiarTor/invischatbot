@@ -27,7 +27,15 @@ class StartBot:
             if target_user_id:
                 target_user_data = users_collection.find_one({"id": target_user_id})
                 if target_user_data:
-                    await self._manage_chats(user_data, target_user_data)
+                    if target_user_data["user_id"] == user_id:
+                        await self.bot.send_message(user_id, get_response('errors.cant_message_self'))
+                        return
+                    if not is_user_blocked(user_data.get('id'), target_user_data["user_id"]):
+                        await self._manage_chats(user_data, target_user_data)
+                    else:
+                        await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
+                                                    reply_markup=KeyboardMarkupGenerator().main_buttons())
+                        return
                 else:
                     await self.bot.send_message(user_id, get_response('errors.no_user_found'))
             else:
