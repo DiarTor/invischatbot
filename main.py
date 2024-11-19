@@ -31,7 +31,7 @@ bot.register_message_handler(admin_handler.get_bot_status, commands=['status'])
 # Content Type Handlers
 bot.register_message_handler(chat_handler.anonymous_chat,
                              content_types=['text', 'audio', 'photo', 'voice', 'document', 'video', 'animation',
-                                            'sticker'])
+                                            'sticker', 'video_note'])
 
 # CallBack Handlers
 bot.register_callback_query_handler(callback_handler.handle_callback, func=lambda call: True)
