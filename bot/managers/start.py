@@ -15,17 +15,19 @@ class StartBot:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
 
-    async def start(self, msg: Message):
+    async def start(self, msg: Message, default_target_anny_id=None):
         try:
             user_id = msg.from_user.id
-            target_user_id = self._get_target_user_id(msg)
+            target_anny_id = self._get_target_user_id(msg)
             self._store_user_data(user_id, nickname=msg.from_user.first_name)
 
             # Retrieve user and target user info in a single query
             user_data = users_collection.find_one({"user_id": user_id})
 
-            if target_user_id:
-                target_user_data = users_collection.find_one({"id": target_user_id})
+            if target_anny_id:
+                if default_target_anny_id:
+                    target_anny_id = default_target_anny_id
+                target_user_data = users_collection.find_one({"id": target_anny_id})
                 if target_user_data:
                     if target_user_data["user_id"] == user_id:
                         await self.bot.send_message(user_id, get_response('errors.cant_message_self'))
