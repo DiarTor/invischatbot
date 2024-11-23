@@ -28,10 +28,10 @@ class BlockUserManager:
         await self.bot.edit_message_reply_markup(blocker_id, message_id,
                                                  reply_markup=KeyboardMarkupGenerator().blocked_buttons())
 
-    async def cancel_block(self, chat_id, message_id, sender_id):
+    async def cancel_block(self, chat_id, message_id, reply_message_id, sender_id):
         await self.bot.edit_message_reply_markup(chat_id, message_id,
                                                  reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_id,
-                                                                                                          message_id))
+                                                                                                          reply_message_id))
 
     async def unblock_user(self, blocker_id, blocked_id, bot_message_id):
         users_collection.update_one({'id': str(blocker_id)}, {'$pull': {'blocklist': str(blocked_id)}})

@@ -57,20 +57,22 @@ class CallbackHandler:
     async def _process_block_callback(self, callback: CallbackQuery):
         keyboard = KeyboardMarkupGenerator()
         if 'block' in callback.data.split('-'):
-            action, sender_id = callback.data.split('-')
+            action, sender_id, message_id = callback.data.split('-')
             if sender_id == get_user(callback.message.chat.id).get('id'):
                 await self.bot.answer_callback_query(callback.id, get_response('blocking.self'))
                 return
             await self.bot.edit_message_reply_markup(callback.message.chat.id, callback.message.id,
                                                      callback.inline_message_id,
-                                                     reply_markup=keyboard.block_confirmation_buttons(sender_id))
+                                                     reply_markup=keyboard.block_confirmation_buttons(sender_id,
+                                                                                                      message_id))
         elif 'block_confirm' in callback.data.split('-'):
             action, sender_id, message_id = callback.data.split('-')
             await BlockUserManager(self.bot).block_user(callback.message.chat.id, str(sender_id),
                                                         int(callback.message.id), callback.inline_message_id)
         elif 'block_cancel' in callback.data.split('-'):
-            action, sender_id = callback.data.split('-')
-            await BlockUserManager(self.bot).cancel_block(callback.message.chat.id, callback.message.id, sender_id)
+            action, sender_id, message_id = callback.data.split('-')
+            await BlockUserManager(self.bot).cancel_block(callback.message.chat.id, callback.message.id, message_id,
+                                                          sender_id)
 
     async def _process_unblock_callback(self, callback: CallbackQuery):
         keyboard = KeyboardMarkupGenerator()

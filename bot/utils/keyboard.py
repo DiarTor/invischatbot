@@ -76,7 +76,7 @@ class KeyboardMarkupGenerator:
         :return: buttons
         """
         buttons = [InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
-                   InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}'), ]
+                   InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_id}'), ]
         return self._create_inline_keyboard(buttons)
 
     def block_confirmation_buttons(self, sender_id, message_id=None):
@@ -92,7 +92,7 @@ class KeyboardMarkupGenerator:
             ],
             [
                 InlineKeyboardButton('بله 👍', callback_data=f'block_confirm-{sender_id}-{message_id}'),
-                InlineKeyboardButton('خیر 👎', callback_data=f'block_cancel-{sender_id}')
+                InlineKeyboardButton('خیر 👎', callback_data=f'block_cancel-{sender_id}-{message_id}'),
             ]
         ]
         return self._create_list_inline_keyboard(buttons)
