@@ -51,66 +51,26 @@ class ChatHandler:
         # Handle the chat message
         await self._handle_media(msg)
 
-    async def _handle_version_mismatch(self, msg: Message):
-        """Handle version mismatch by prompting a restart and updating the version."""
-        users_collection.update_one(
-            {'user_id': msg.from_user.id},
-            {'$set': {'version': self.current_version}}
-        )
-        await StartBot(self.bot).start(msg)
-
     async def _handle_media(self, msg: Message):
         """Dispatch the handling of media based on the message type."""
-        if msg.text:
-            await self._handle_text(msg)
-        elif msg.sticker:
-            await self._handle_sticker(msg)
-        elif msg.photo:
-            await self._handle_photo(msg)
-        elif msg.video:
-            await self._handle_video(msg)
-        elif msg.audio:
-            await self._handle_audio(msg)
-        elif msg.document:
-            await self._handle_document(msg)
-        elif msg.video_note:
-            await self._handle_video_note(msg)
-        elif msg.voice:
-            await self._handle_voice(msg)
-        else:
-            await self.bot.send_message(msg.chat.id, get_response('errors.unknown_media'))
+        media_mapping = {
+            "text": {"is_text": True},
+            "sticker": {"is_sticker": True},
+            "photo": {"is_photo": True},
+            "video": {"is_video": True},
+            "audio": {"is_audio": True},
+            "document": {"is_document": True},
+            "video_note": {"is_video_note": True},
+            "voice": {"is_voice": True},
+        }
 
-    async def _handle_text(self, msg: Message):
-        """Handle text messages."""
-        await self._process_chat(msg)
+        for media_type, kwargs in media_mapping.items():
+            if getattr(msg, media_type, None):
+                await self._process_chat(msg, **kwargs)
+                return
 
-    async def _handle_sticker(self, msg: Message):
-        """Handle sticker messages."""
-        await self._process_chat(msg, is_sticker=True)
-
-    async def _handle_photo(self, msg: Message):
-        """Handle photo messages."""
-        await self._process_chat(msg, is_photo=True)
-
-    async def _handle_video(self, msg: Message):
-        """Handle video messages."""
-        await self._process_chat(msg, is_video=True)
-
-    async def _handle_audio(self, msg: Message):
-        """Handle audio messages."""
-        await self._process_chat(msg, is_audio=True)
-
-    async def _handle_document(self, msg: Message):
-        """Handle document messages."""
-        await self._process_chat(msg, is_document=True)
-
-    async def _handle_video_note(self, msg: Message):
-        """Handle video note messages."""
-        await self._process_chat(msg, is_video_note=True)
-
-    async def _handle_voice(self, msg: Message):
-        """Handle voice messages."""
-        await self._process_chat(msg, is_voice=True)
+        # Handle unknown media
+        await self.bot.send_message(msg.chat.id, get_response("errors.unknown_media"))
 
     async def _process_chat(self, msg: Message, **kwargs):
         """Process the chat based on the type of message."""
@@ -370,6 +330,14 @@ class ChatHandler:
                                      "chats.open": True})
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
+
+    async def _handle_version_mismatch(self, msg: Message):
+        """Handle version mismatch by prompting a restart and updating the version."""
+        users_collection.update_one(
+            {'user_id': msg.from_user.id},
+            {'$set': {'version': self.current_version}}
+        )
+        await StartBot(self.bot).start(msg)
 
     @staticmethod
     def _get_active_chat(user_id):
