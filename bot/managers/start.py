@@ -1,14 +1,12 @@
-import uuid
 from datetime import datetime
 
-from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import close_existing_chats, is_user_blocked
+from bot.utils.user_data import close_existing_chats, is_user_blocked, store_user_data
 
 
 class StartBot:
@@ -18,50 +16,42 @@ class StartBot:
     async def start(self, msg: Message, default_target_anny_id=None):
         try:
             user_id = msg.from_user.id
-            target_anny_id = self._get_target_user_id(msg)
-            self._store_user_data(user_id, nickname=msg.from_user.first_name)
+            user_nickname = msg.from_user.first_name
+            target_anny_id = default_target_anny_id or self._get_target_user_id(msg)
 
-            # Retrieve user and target user info in a single query
+            store_user_data(user_id, nickname=user_nickname)
             user_data = users_collection.find_one({"user_id": user_id})
 
-            if target_anny_id:
-                if default_target_anny_id:
-                    target_anny_id = default_target_anny_id
-                target_user_data = users_collection.find_one({"id": target_anny_id})
-                if target_user_data:
-                    if target_user_data["user_id"] == user_id:
-                        await self.bot.send_message(user_id, get_response('errors.cant_message_self'))
-                        return
-                    if not is_user_blocked(user_data.get('id'), target_user_data["user_id"]):
-                        await self._manage_chats(user_data, target_user_data)
-                    else:
-                        await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
-                                                    reply_markup=KeyboardMarkupGenerator().main_buttons())
-                        return
-                else:
-                    await self.bot.send_message(user_id, get_response('errors.no_user_found'))
-            else:
-                # No target ID, close existing chats and reset replying state
+            # If no target user, close chats and send a welcome message
+            if not target_anny_id:
                 close_existing_chats(user_id)
                 await self._send_welcome_message(msg)
+                return
+
+            # Retrieve target user data
+            target_user_data = users_collection.find_one({"id": target_anny_id})
+            if not target_user_data:
+                await self.bot.send_message(user_id, get_response('errors.no_user_found'))
+                return
+
+            # Check invalid cases
+            if target_user_data["user_id"] == user_id:
+                await self.bot.send_message(user_id, get_response('errors.cant_message_self'))
+                return
+
+            if is_user_blocked(user_data.get('id'), target_user_data["user_id"]):
+                await self.bot.send_message(
+                    msg.chat.id,
+                    get_response('blocking.blocked_by_user'),
+                    reply_markup=KeyboardMarkupGenerator().main_buttons()
+                )
+                return
+
+            # Manage chats if all checks pass
+            await self._manage_chats(user_data, target_user_data)
 
         except (ValueError, IndexError):
             await self._send_error_message(msg, 'errors.wrong_id')
-
-    def _store_user_data(self, user_id: int, nickname: str = None):
-        """Store user data in the database."""
-        if not self._is_user_in_database(user_id):
-            user_data = {
-                "id": f"{str(uuid.uuid4())[:5]}{str(uuid.uuid4().int)[-5:]}",
-                "user_id": user_id,
-                "nickname": nickname,
-                "awaiting_nickname": False,
-                "joined_at": datetime.timestamp(datetime.now()),
-                "chats": [],
-                "blocklist": [],
-                "version": config('VERSION', cast=float)
-            }
-            users_collection.insert_one(user_data)
 
     @staticmethod
     def _get_target_user_id(msg: Message):
@@ -124,8 +114,3 @@ class StartBot:
     async def _send_error_message(self, msg: Message, error_key: str):
         """Send an error message to the user."""
         await self.bot.send_message(msg.chat.id, get_response(error_key), parse_mode='Markdown')
-
-    @staticmethod
-    def _is_user_in_database(user_id: int):
-        """Check if the target user ID is in the database (Target user started the bot)."""
-        return users_collection.find_one({'user_id': user_id})
