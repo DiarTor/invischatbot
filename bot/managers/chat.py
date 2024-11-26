@@ -292,45 +292,6 @@ class ChatHandler:
                 msg.chat.id, get_response('errors.no_cancel'), parse_mode='Markdown'
             )
 
-    async def _send_reply(self, msg: Message, recipient_id, original_message_id, sender_id):
-        await self.bot.send_message(
-            recipient_id,
-            get_response('texting.replying.recipient', msg.text, sender_id),
-            reply_to_message_id=original_message_id,
-            parse_mode='Markdown',
-            reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_id, msg.id)
-        )
-
-    async def _handle_forward(self, msg: Message):
-        active_chat = self._get_active_chat(msg.from_user.id)
-
-        if active_chat:
-            recipient_id = active_chat['target_user_id']
-            await self._forward_message(msg, recipient_id)
-        else:
-            await self.bot.send_message(
-                msg.chat.id, get_response('errors.no_active_chat'), parse_mode='Markdown'
-            )
-
-    async def _forward_message(self, msg: Message, recipient_id: int):
-        user_bot_id = users_collection.find_one({"user_id": msg.from_user.id})['id']
-        try:
-            await self.bot.send_message(
-                recipient_id,
-                get_response('texting.sending.text.recipient', msg.text, user_bot_id),
-                reply_markup=KeyboardMarkupGenerator().recipient_buttons(user_bot_id, msg.id),
-                parse_mode='Markdown'
-            )
-            await self.bot.send_message(
-                msg.chat.id, get_response('texting.sending.text.sent'), parse_mode='Markdown',
-                reply_markup=KeyboardMarkupGenerator().main_buttons()
-            )
-            self._update_chat_field(msg.from_user.id, "chats.$.open", False,
-                                    {"user_id": msg.from_user.id, "chats.target_user_id": recipient_id,
-                                     "chats.open": True})
-        except ApiTelegramException:
-            self._handle_bot_blocked(msg)
-
     async def _handle_version_mismatch(self, msg: Message):
         """Handle version mismatch by prompting a restart and updating the version."""
         users_collection.update_one(
@@ -338,13 +299,6 @@ class ChatHandler:
             {'$set': {'version': self.current_version}}
         )
         await StartBot(self.bot).start(msg)
-
-    @staticmethod
-    def _get_active_chat(user_id):
-        return users_collection.find_one(
-            {"user_id": user_id, "chats.open": True, 'replying': False},
-            {"chats.$": 1}
-        ).get('chats', [None])[0]
 
     def _handle_bot_blocked(self, msg: Message):
         close_existing_chats(msg.chat.id)
