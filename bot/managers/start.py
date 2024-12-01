@@ -6,7 +6,7 @@ from telebot.types import Message
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import close_existing_chats, is_user_blocked, store_user_data
+from bot.utils.user_data import close_open_chats, is_user_blocked, store_user_data
 
 
 class StartBot:
@@ -24,7 +24,7 @@ class StartBot:
 
             # If no target user, close chats and send a welcome message
             if not target_anny_id:
-                close_existing_chats(user_id)
+                close_open_chats(user_id)
                 await self._send_welcome_message(msg)
                 return
 
@@ -65,7 +65,7 @@ class StartBot:
 
         # Close existing chats only if they are not with the target user
         if not any(chat['target_user_id'] == target_user_id and chat['open'] for chat in user_data.get('chats', [])):
-            close_existing_chats(user_id)
+            close_open_chats(user_id)
 
         # Check if there's already an open chat with the target user
         if any(chat['target_user_id'] == target_user_id for chat in user_data.get('chats', [])):

@@ -1,7 +1,7 @@
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.utils.user_data import reset_replying_state, close_existing_chats
+from bot.utils.user_data import close_replying_chat, close_open_chats, close_all_chats
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
@@ -17,8 +17,7 @@ class NicknameManager:
         user_data = users_collection.find_one_and_update({'user_id': msg.chat.id},
                                                          {'$set': {'awaiting_nickname': True}})
         current_first_name = msg.chat.first_name
-        reset_replying_state(msg.chat.id)
-        close_existing_chats(msg.chat.id)
+        close_all_chats(msg.chat.id)
         await self.bot.send_message(msg.chat.id,
                                     get_response('nickname.ask_nickname', user_data['nickname'], current_first_name),
                                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
