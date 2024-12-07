@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
@@ -7,18 +8,19 @@ from bot.utils.database import users_collection
 from bot.utils.language import get_response
 
 
-class AdminManager:
+class BotAdministration:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
+        self.admin = config("ADMIN", cast=int)
 
     async def get_bot_stats(self, msg: Message):
-        if not msg.from_user.id == int(1154909190):
+        if not msg.from_user.id == self.admin:
             return
         user_counts = self.get_users_count()
         chat_counts = self.get_chat_counts()
         # Send the status message
         await self.bot.send_message(msg.chat.id,
-                                    get_response('admin.status', user_counts['today'], user_counts['this_week'],
+                                    get_response('admin.bot.stats', user_counts['today'], user_counts['this_week'],
                                                  user_counts['this_month'], user_counts['this_year'],
                                                  user_counts['all_time'], chat_counts['today'],
                                                  chat_counts['this_week'], chat_counts['this_month'],
