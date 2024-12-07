@@ -61,6 +61,9 @@ class CallbackHandler:
             if sender_id == get_user(callback.message.chat.id).get('id'):
                 await self.bot.answer_callback_query(callback.id, get_response('blocking.self'))
                 return
+            if sender_id == 'support':
+                await self.bot.answer_callback_query(callback.id, get_response('blocking.support'))
+                return
             await self.bot.edit_message_reply_markup(callback.message.chat.id, callback.message.id,
                                                      callback.inline_message_id,
                                                      reply_markup=keyboard.block_confirmation_buttons(sender_id,
