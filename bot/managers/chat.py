@@ -19,6 +19,7 @@ class ChatHandler:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
         self.current_version = config('VERSION', cast=float)
+        self.admin = config('ADMIN', cast=int)
 
     async def anonymous_chat(self, msg: Message):
         """Main method to handle anonymous chat with support for different media types."""
