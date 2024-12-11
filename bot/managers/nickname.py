@@ -1,28 +1,27 @@
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.utils.user_data import reset_replying_state, close_existing_chats
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
+from bot.utils.user_data import reset_replying_state, close_existing_chats, update_user_field
 from bot.utils.validators import NicknameValidator
 
 
 class NicknameManager:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
-    @staticmethod
-    def set_nickname(msg: Message):
+
+    async def set_nickname(self, msg: Message):
         """Set a Nickname when the user sends /nickname command."""
         user_data = users_collection.find_one_and_update({'user_id': msg.chat.id},
                                                          {'$set': {'awaiting_nickname': True}})
         current_first_name = msg.chat.first_name
         reset_replying_state(msg.chat.id)
         close_existing_chats(msg.chat.id)
-        return get_response('nickname.ask_nickname', user_data['nickname'], current_first_name)
-        # await self.bot.send_message(msg.chat.id,
-        #                             get_response('nickname.ask_nickname', user_data['nickname'], current_first_name),
-        #                             parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
+        await self.bot.send_message(msg.chat.id,
+                                    get_response('nickname.ask_nickname', user_data['nickname'], current_first_name),
+                                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def save_nickname(self, msg: Message):
         """Save the user's nickname after they provide it."""
@@ -35,8 +34,8 @@ class NicknameManager:
 
         if is_valid:
             # Proceed to store the user data if the nickname is valid
-            self._store_user_data(user_id, nickname=nickname)
-            users_collection.update_one({'user_id': user_id}, {'$set': {'awaiting_nickname': False}})
+            update_user_field(user_id, "nickname", nickname)
+            update_user_field(user_id, "awaiting_nickname", False)
             await self.bot.send_message(
                 msg.chat.id,
                 get_response('nickname.nickname_was_set', nickname),
@@ -52,5 +51,11 @@ class NicknameManager:
             )
 
     @staticmethod
-    def _store_user_data(user_id: int, nickname: str):
-        users_collection.update_one({'user_id': user_id}, {'$set': {'nickname': nickname}})
+    def get_set_nickname_response(msg: Message):
+        """return set nickname response"""
+        user_data = users_collection.find_one_and_update({'user_id': msg.chat.id},
+                                                         {'$set': {'awaiting_nickname': True}})
+        current_first_name = msg.chat.first_name
+        reset_replying_state(msg.chat.id)
+        close_existing_chats(msg.chat.id)
+        return get_response('nickname.ask_nickname', user_data['nickname'], current_first_name)

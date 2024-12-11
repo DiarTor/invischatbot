@@ -13,7 +13,7 @@ from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.user_data import reset_replying_state, get_user, is_user_blocked, close_existing_chats
-
+from bot.utils.user_data import update_user_field
 
 class ChatHandler:
     def __init__(self, bot: AsyncTeleBot):
@@ -284,7 +284,7 @@ class ChatHandler:
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
         elif user_chat.get('awaiting_nickname'):
-            self._update_user_field(msg.from_user.id, "awaiting_nickname", False)
+            update_user_field(msg.from_user.id, "awaiting_nickname", False)
             await self.bot.send_message(msg.from_user.id, get_response('nickname.cancelled'),
                                         parse_mode='Markdown',
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
@@ -306,10 +306,6 @@ class ChatHandler:
         reset_replying_state(msg.chat.id)
         self.bot.send_message(msg.chat.id, get_response('errors.bot_blocked'),
                               reply_markup=KeyboardMarkupGenerator().main_buttons())
-
-    @staticmethod
-    def _update_user_field(user_id, field, value):
-        users_collection.update_one({"user_id": user_id}, {"$set": {field: value}})
 
     @staticmethod
     def _update_chat_field(user_id, field, value, query=None):

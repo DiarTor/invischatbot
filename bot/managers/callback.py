@@ -1,12 +1,13 @@
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery
 
+from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
 from bot.managers.nickname import NicknameManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import get_user
+from bot.utils.user_data import get_user, update_user_field
 
 
 class CallbackHandler:
@@ -15,14 +16,17 @@ class CallbackHandler:
 
     async def handle_callback(self, callback: CallbackQuery):
         """Main method to handle callbacks from the user."""
-        if callback.data.startswith('reply'):
+        callback_data = callback.data
+        if callback_data.startswith('reply'):
             await self._process_reply_callback(callback)
-        elif callback.data.startswith('block'):
+        elif callback_data.startswith('block'):
             await self._process_block_callback(callback)
-        elif callback.data.startswith('unblock'):
+        elif callback_data.startswith('unblock'):
             await self._process_unblock_callback(callback)
-        elif callback.data.startswith('change_nickname'):
+        elif callback_data.startswith('change-nickname'):
             await self._process_change_nickname(callback)
+        elif callback_data.startswith('cancel'):
+            await self._process_cancel(callback)
         await self.bot.answer_callback_query(callback.id)
 
     async def _process_reply_callback(self, callback: CallbackQuery):
@@ -38,20 +42,6 @@ class CallbackHandler:
             get_response('texting.replying.send'),
             parse_mode='Markdown',
             reply_markup=KeyboardMarkupGenerator().cancel_buttons()
-        )
-
-    @staticmethod
-    def _set_replying_state(user_id: int, message_id: str, sender_id: str):
-        """Set the replying state in the database."""
-        users_collection.update_one(
-            {"user_id": user_id},
-            {
-                "$set": {
-                    "replying": True,
-                    "reply_target_message_id": message_id,
-                    "reply_target_user_id": str(sender_id),
-                },
-            }
         )
 
     async def _process_block_callback(self, callback: CallbackQuery):
@@ -98,6 +88,28 @@ class CallbackHandler:
             await BlockUserManager(self.bot).cancel_unblock_user(blocker_bot_id, str(blocker_id), callback.message.id)
 
     async def _process_change_nickname(self, callback: CallbackQuery):
-        response = NicknameManager(self.bot).set_nickname(callback.message)
+        response = NicknameManager(self.bot).get_set_nickname_response(callback.message)
         await self.bot.edit_message_text(response, callback.message.chat.id, callback.message.id, parse_mode='Markdown',
                                          reply_markup=KeyboardMarkupGenerator().cancel_changing_nickname())
+
+    async def _process_cancel(self, callback: CallbackQuery):
+        action, task = callback.data.split('-')
+        if task == "changing_nickname":
+            update_user_field(callback.from_user.id, 'awaiting_nickname', False)
+            await self.bot.edit_message_text(AccountManager(self.bot).get_account_response(callback.message),
+                                             callback.from_user.id, callback.message.id, parse_mode='Markdown',
+                                             reply_markup=KeyboardMarkupGenerator().account_buttons())
+
+    @staticmethod
+    def _set_replying_state(user_id: int, message_id: str, sender_id: str):
+        """Set the replying state in the database."""
+        users_collection.update_one(
+            {"user_id": user_id},
+            {
+                "$set": {
+                    "replying": True,
+                    "reply_target_message_id": message_id,
+                    "reply_target_user_id": str(sender_id),
+                },
+            }
+        )

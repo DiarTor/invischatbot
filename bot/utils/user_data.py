@@ -78,3 +78,13 @@ def is_user_blocked(sender_id: str, recipient_id: int) -> bool:
             sender_data['id'] in recipient_data.get('blocklist', []) or
             recipient_data['id'] in sender_data.get('blocklist', [])
     )
+
+
+def update_user_field(user_id, field, value):
+    """
+    Update user field with new value
+    :param user_id: user id
+    :param field: the field you want to update
+    :param value: new value of the field
+    """
+    users_collection.update_one({"user_id": user_id}, {"$set": {field: value}})
