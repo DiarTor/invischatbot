@@ -19,13 +19,15 @@ class UserAdministration:
         parts = msg.text.split()
         if not len(parts) == 2:
             await self.bot.send_message(user_id, get_response('admin.errors.info.wrong_format'))
+
         user_anny_id = parts[1]
         user_info = users_collection.find_one({"id": user_anny_id})
         if not user_info:
             await self.bot.send_message(user_id, get_response('admin.errors.info.not_found'))
+
         joined_at = convert_timestamp_to_date(user_info['joined_at'])
-        chats_count = self._get_chats_count(user_info['chats'])  # Corrected here
-        blocks_count = self._get_blocks_count(user_info['blocklist'])  # Corrected here
+        chats_count = self._get_chats_count(user_info['chats'])
+        blocks_count = self._get_blocks_count(user_info['blocklist'])
         await self.bot.send_message(user_id, get_response('admin.user.info', user_info['user_id'], user_info['id'],
                                                           user_info['nickname'], joined_at, chats_count,
                                                           blocks_count),

@@ -98,5 +98,6 @@ class CallbackHandler:
             await BlockUserManager(self.bot).cancel_unblock_user(blocker_bot_id, str(blocker_id), callback.message.id)
 
     async def _process_change_nickname(self, callback: CallbackQuery):
-        await self.bot.delete_message(callback.message.chat.id, callback.message.id)
-        await NicknameManager(self.bot).set_nickname(callback.message)
+        response = NicknameManager(self.bot).set_nickname(callback.message)
+        await self.bot.edit_message_text(response, callback.message.chat.id, callback.message.id, parse_mode='Markdown',
+                                         reply_markup=KeyboardMarkupGenerator().cancel_changing_nickname())

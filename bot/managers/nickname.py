@@ -11,17 +11,18 @@ from bot.utils.validators import NicknameValidator
 class NicknameManager:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
-
-    async def set_nickname(self, msg: Message):
+    @staticmethod
+    def set_nickname(msg: Message):
         """Set a Nickname when the user sends /nickname command."""
         user_data = users_collection.find_one_and_update({'user_id': msg.chat.id},
                                                          {'$set': {'awaiting_nickname': True}})
         current_first_name = msg.chat.first_name
         reset_replying_state(msg.chat.id)
         close_existing_chats(msg.chat.id)
-        await self.bot.send_message(msg.chat.id,
-                                    get_response('nickname.ask_nickname', user_data['nickname'], current_first_name),
-                                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
+        return get_response('nickname.ask_nickname', user_data['nickname'], current_first_name)
+        # await self.bot.send_message(msg.chat.id,
+        #                             get_response('nickname.ask_nickname', user_data['nickname'], current_first_name),
+        #                             parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def save_nickname(self, msg: Message):
         """Save the user's nickname after they provide it."""
