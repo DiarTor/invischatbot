@@ -39,6 +39,5 @@ bot.register_message_handler(chat_handler.anonymous_chat,
 # CallBack Handlers
 bot.register_callback_query_handler(callback_handler.handle_callback, func=lambda call: True)
 
-
 if __name__ == '__main__':
     asyncio.run(bot.infinity_polling())
