@@ -12,7 +12,7 @@ from bot.managers.support import SupportManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import reset_replying_state, get_user, is_user_blocked, close_existing_chats
+from bot.utils.user_data import close_replying_chat, get_user, is_user_blocked, close_open_chats, close_all_chats
 
 
 class ChatHandler:
@@ -76,176 +76,123 @@ class ChatHandler:
         """Process the chat based on the type of message."""
         user_chat = get_user(msg.from_user.id)
         open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
-        if open_chat or user_chat.get('replying'):
+
+        # Check if the user is in awaiting nickname state and trying to send a message, if so set the state to false
+        # so the text they send serves as a message and doesn't set to their nickname.
+        # this condition happens when someone is in awaiting nickname state and set their replying state to True or open a chat.
+        if open_chat or user_chat.get('replying') and user_chat.get('awaiting_nickname'):
             users_collection.update_one({'user_id': msg.chat.id}, {'$set': {'awaiting_nickname': False}})
             user_chat = get_user(msg.chat.id)
-        if not user_chat.get('replying'):
-            if not user_chat.get('awaiting_nickname'):
-                if open_chat:
-                    target_user_id = open_chat.get('target_user_id')
-                    if not is_user_blocked(user_chat.get('id'), target_user_id):
-                        await self._forward_media(msg, target_user_id, **kwargs)
-                    else:
-                        close_existing_chats(user_chat.get('user_id'))
-                        await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
-                                                    reply_markup=KeyboardMarkupGenerator().main_buttons())
-                else:
-                    await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
-            else:
-                await NicknameManager(self.bot).save_nickname(msg)
-        else:
+        # Check if the user is in replying state, if so handle the text as reply message.
+        if user_chat.get('replying'):
             await self._handle_reply(msg, user_chat)
+            return
+        # Check if the user is in awaiting nickname state, if so handle the text as nickname.
+        if user_chat.get('awaiting_nickname'):
+            await NicknameManager(self.bot).save_nickname(msg)
+            return
+        # Check if there is any open chat when the user sent the message
+        if not open_chat:
+            await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
+            return
 
-    async def _forward_media(self, msg: Message, recipient_id: int, **kwargs):
-        sender_anny_id = get_user(msg.chat.id).get('id')
-        caption = msg.caption if msg.caption else ""
-        """Forward media to the recipient based on message type."""
-        try:
-            if kwargs.get('is_sticker'):
-                await self.bot.send_sticker(recipient_id, msg.sticker.file_id,
-                                            reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                     msg.id))
-            elif kwargs.get('is_photo'):
-                await self.bot.send_photo(recipient_id, msg.photo[-1].file_id,
-                                          caption=get_response('texting.sending.text.recipient',
-                                                               caption, sender_anny_id),
-                                          parse_mode='Markdown',
-                                          reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                   msg.id))
-            elif kwargs.get('is_video'):
-                await self.bot.send_video(recipient_id, msg.video.file_id,
-                                          caption=get_response('texting.sending.text.recipient', caption,
-                                                               sender_anny_id),
-                                          reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                   msg.id),
-                                          parse_mode='Markdown')
-            elif kwargs.get('is_voice'):
-                await self.bot.send_voice(recipient_id, msg.voice.file_id,
-                                          caption=get_response('texting.sending.text.recipient', caption,
-                                                               sender_anny_id),
-                                          reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                   msg.id),
-                                          parse_mode='Markdown')
-            elif kwargs.get('is_video_note'):
-                await self.bot.send_video_note(recipient_id, msg.video_note.file_id,
-                                               reply_markup=KeyboardMarkupGenerator().recipient_buttons(
-                                                   sender_anny_id, msg.id))
-            elif kwargs.get('is_audio'):
-                await self.bot.send_audio(recipient_id, msg.audio.file_id,
-                                          caption=get_response('texting.sending.text.recipient', caption,
-                                                               sender_anny_id),
-                                          reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                   msg.id),
-                                          parse_mode='Markdown')
-            elif kwargs.get('is_document'):
-                await self.bot.send_document(recipient_id, msg.document.file_id,
-                                             caption=get_response('texting.sending.text.recipient', caption,
-                                                                  sender_anny_id),
-                                             reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                      msg.id),
-                                             parse_mode='Markdown')
-            else:
-                await self.bot.send_message(recipient_id, get_response("texting.sending.text.recipient", msg.text,
-                                                                       sender_anny_id),
-                                            parse_mode='Markdown',
-                                            reply_markup=KeyboardMarkupGenerator().recipient_buttons(
-                                                sender_anny_id, msg.id))
-
-            # After sending, update the chat state (if applicable)
-            close_existing_chats(msg.chat.id)
-            await self.bot.send_message(msg.chat.id, get_response('texting.sending.text.sent'), parse_mode='Markdown',
+        # Check if the target user blocked the user
+        target_user_id = open_chat.get('target_user_id')
+        if is_user_blocked(user_chat.get('id'), target_user_id):
+            close_open_chats(user_chat.get('user_id'))
+            await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
+
+        # if everything is fine, forward the message
+        await self._handle_forward(msg, target_user_id, **kwargs)
+
+    async def _send_media(self, msg: Message, recipient_id: int, sender_anny_id: str, reply_to_message_id=None):
+        """
+        Send media based on its type.
+        :param recipient_id: recipient user id.
+        :param sender_anny_id: sender anny id.
+        :param reply_to_message_id: reply message id.
+        """
+        caption = msg.caption if msg.caption else ""
+        reply_markup = KeyboardMarkupGenerator().recipient_buttons(sender_anny_id, msg.id)
+        base_kwargs = {
+            "caption": get_response('texting.sending.text.recipient', caption, sender_anny_id),
+            "parse_mode": 'Markdown',
+            "reply_markup": reply_markup,
+        }
+        strict_kwargs = {
+            "reply_markup": reply_markup,
+        }
+        if reply_to_message_id:
+            base_kwargs["reply_to_message_id"] = reply_to_message_id
+            strict_kwargs['reply_to_message_id'] = reply_to_message_id
+        try:
+            if msg.sticker:
+                await self.bot.send_sticker(recipient_id, msg.sticker.file_id, **strict_kwargs)
+            elif msg.photo:
+                await self.bot.send_photo(recipient_id, msg.photo[-1].file_id, **base_kwargs)
+            elif msg.video:
+                await self.bot.send_video(recipient_id, msg.video.file_id, **base_kwargs)
+            elif msg.voice:
+                await self.bot.send_voice(recipient_id, msg.voice.file_id, **base_kwargs)
+            elif msg.video_note:
+                await self.bot.send_video_note(recipient_id, msg.video_note.file_id, **strict_kwargs)
+            elif msg.audio:
+                await self.bot.send_audio(recipient_id, msg.audio.file_id, **base_kwargs)
+            elif msg.document:
+                await self.bot.send_document(recipient_id, msg.document.file_id, **base_kwargs)
+            else:  # Default to text
+                await self.bot.send_message(
+                    recipient_id, get_response("texting.sending.text.recipient", msg.text, sender_anny_id),
+                    parse_mode='Markdown', reply_markup=reply_markup
+                )
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
 
+    async def _handle_forward(self, msg: Message, recipient_id: int, **kwargs):
+        """
+        Forward media to a recipient.
+
+        :param recipient_id: recipient user id.
+        """
+        sender_anny_id = get_user(msg.chat.id).get('id')
+        await self._send_media(msg, recipient_id, sender_anny_id)
+        close_open_chats(msg.chat.id)
+        await self.bot.send_message(
+            msg.chat.id, get_response('texting.sending.text.sent'),
+            parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons()
+        )
+
     async def _handle_reply(self, msg: Message, user_chat):
-        """Handle replies to messages."""
+        """Handle replies to a message."""
         recipient_id, original_message_id = user_chat['reply_target_user_id'], user_chat['reply_target_message_id']
         recipient_user = users_collection.find_one({"id": recipient_id})
 
         if not recipient_user:
-            reset_replying_state(msg.chat.id)
-            await self.bot.send_message(msg.chat.id, get_response('errors.user_not_found'),
-                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
+            close_replying_chat(msg.chat.id)
+            await self.bot.send_message(
+                msg.chat.id, get_response('errors.user_not_found'),
+                reply_markup=KeyboardMarkupGenerator().main_buttons()
+            )
             return
 
         if is_user_blocked(user_chat.get("id"), recipient_user.get('user_id')):
-            reset_replying_state(msg.chat.id)
-            await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
-                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
+            close_replying_chat(msg.chat.id)
+            await self.bot.send_message(
+                msg.chat.id, get_response('blocking.blocked_by_user'),
+                reply_markup=KeyboardMarkupGenerator().main_buttons()
+            )
             return
 
-        try:
-            # Check the type of message and forward appropriately
-            caption = msg.caption if msg.caption else ""
-            sender_anny_id = user_chat.get('id')
-            if msg.photo:
-                await self.bot.send_photo(recipient_user['user_id'], msg.photo[-1].file_id,
-                                          caption=get_response('texting.sending.text.recipient', caption,
-                                                               sender_anny_id),
-                                          reply_to_message_id=original_message_id,
-                                          parse_mode='Markdown',
-                                          reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                   msg.id))
-            elif msg.video:
-                await self.bot.send_video(recipient_user['user_id'], msg.video.file_id,
-                                          caption=get_response('texting.sending.text.recipient', caption,
-                                                               sender_anny_id),
-                                          reply_to_message_id=original_message_id,
-                                          parse_mode='Markdown',
-                                          reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                   msg.id))
-            elif msg.document:
-                await self.bot.send_document(recipient_user['user_id'], msg.document.file_id,
-                                             caption=get_response('texting.sending.text.recipient', caption,
-                                                                  sender_anny_id),
-                                             reply_to_message_id=original_message_id,
-                                             parse_mode='Markdown',
-                                             reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                      msg.id))
-            elif msg.audio:
-                await self.bot.send_audio(recipient_user['user_id'], msg.audio.file_id,
-                                          caption=get_response('texting.sending.text.recipient', caption,
-                                                               sender_anny_id),
-                                          reply_to_message_id=original_message_id,
-                                          parse_mode='Markdown',
-                                          reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                   msg.id))
-            elif msg.voice:
-                await self.bot.send_voice(recipient_user['user_id'], msg.voice.file_id,
-                                          caption=get_response('texting.sending.text.recipient', caption,
-                                                               sender_anny_id),
-                                          reply_to_message_id=original_message_id,
-                                          parse_mode='Markdown',
-                                          reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                   msg.id))
-            elif msg.video_note:
-                await self.bot.send_video_note(recipient_user['user_id'], msg.video_note.file_id,
-                                               reply_to_message_id=original_message_id,
-                                               reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                        msg.id))
-            elif msg.sticker:
-                await self.bot.send_sticker(recipient_user['user_id'], msg.sticker.file_id,
-                                            reply_to_message_id=original_message_id,
-                                            reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                     msg.id))
-            else:  # Default to text
-                await self.bot.send_message(recipient_user['user_id'],
-                                            get_response('texting.sending.text.recipient', msg.text, sender_anny_id),
-                                            reply_to_message_id=original_message_id,
-                                            parse_mode='Markdown',
-                                            reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id,
-                                                                                                     msg.id))
-        except ApiTelegramException:
-            self._handle_bot_blocked(msg)
-            return
-
-        # Notify sender that reply was sent successfully
+        sender_anny_id = user_chat.get('id')
+        await self._send_media(msg,
+                               recipient_user['user_id'], sender_anny_id, reply_to_message_id=original_message_id
+                               )
         await self.bot.send_message(
-            msg.chat.id, get_response('texting.replying.sent'), parse_mode='Markdown',
-            reply_markup=KeyboardMarkupGenerator().main_buttons()
+            msg.chat.id, get_response('texting.replying.sent'),
+            parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons()
         )
-        reset_replying_state(msg.from_user.id)
+        close_replying_chat(msg.from_user.id)
 
     async def handle_link(self):
         await LinkManager(self.bot).link(self.msg)
@@ -270,7 +217,7 @@ class ChatHandler:
         open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
 
         if user_chat.get("replying"):
-            reset_replying_state(msg.from_user.id)
+            close_replying_chat(msg.from_user.id)
             await self.bot.send_message(
                 msg.chat.id, get_response('texting.replying.cancelled'), parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -301,8 +248,7 @@ class ChatHandler:
         await StartBot(self.bot).start(msg)
 
     def _handle_bot_blocked(self, msg: Message):
-        close_existing_chats(msg.chat.id)
-        reset_replying_state(msg.chat.id)
+        close_all_chats(msg.chat.id)
         self.bot.send_message(msg.chat.id, get_response('errors.bot_blocked'),
                               reply_markup=KeyboardMarkupGenerator().main_buttons())
 
