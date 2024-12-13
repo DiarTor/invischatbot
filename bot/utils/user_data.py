@@ -88,3 +88,14 @@ def update_user_field(user_id, field, value):
     :param value: new value of the field
     """
     users_collection.update_one({"user_id": user_id}, {"$set": {field: value}})
+
+
+def close_open_chats(user_id: int):
+    """
+    Close existing chats for the user.
+    :param user_id: user id
+    """
+    users_collection.update_one(
+        {"user_id": user_id},
+        {"$set": {"chats.$[].open": False}}  # Close all open chats
+    )

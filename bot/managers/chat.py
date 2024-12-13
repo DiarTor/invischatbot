@@ -12,7 +12,7 @@ from bot.managers.support import SupportManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import close_replying_chat, get_user, is_user_blocked, close_open_chats, close_all_chats
+from bot.utils.user_data import get_user, is_user_blocked, close_open_chats, reset_replying_state
 
 
 class ChatHandler:
@@ -169,7 +169,7 @@ class ChatHandler:
         recipient_user = users_collection.find_one({"id": recipient_id})
 
         if not recipient_user:
-            close_replying_chat(msg.chat.id)
+            reset_replying_state(msg.chat.id)
             await self.bot.send_message(
                 msg.chat.id, get_response('errors.user_not_found'),
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -177,7 +177,7 @@ class ChatHandler:
             return
 
         if is_user_blocked(user_chat.get("id"), recipient_user.get('user_id')):
-            close_replying_chat(msg.chat.id)
+            reset_replying_state(msg.chat.id)
             await self.bot.send_message(
                 msg.chat.id, get_response('blocking.blocked_by_user'),
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -192,7 +192,7 @@ class ChatHandler:
             msg.chat.id, get_response('texting.replying.sent'),
             parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons()
         )
-        close_replying_chat(msg.from_user.id)
+        reset_replying_state(msg.from_user.id)
 
     async def handle_link(self):
         await LinkManager(self.bot).link(self.msg)
@@ -217,7 +217,7 @@ class ChatHandler:
         open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
 
         if user_chat.get("replying"):
-            close_replying_chat(msg.from_user.id)
+            reset_replying_state(msg.from_user.id)
             await self.bot.send_message(
                 msg.chat.id, get_response('texting.replying.cancelled'), parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -248,7 +248,8 @@ class ChatHandler:
         await StartBot(self.bot).start(msg)
 
     def _handle_bot_blocked(self, msg: Message):
-        close_all_chats(msg.chat.id)
+        close_open_chats(msg.chat.id)
+        reset_replying_state(msg.chat.id)
         self.bot.send_message(msg.chat.id, get_response('errors.bot_blocked'),
                               reply_markup=KeyboardMarkupGenerator().main_buttons())
 
