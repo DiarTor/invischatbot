@@ -62,7 +62,7 @@ class CallbackHandler:
         elif 'block_confirm' in callback.data.split('-'):
             action, sender_id, message_id = callback.data.split('-')
             await BlockUserManager(self.bot).block_user(callback.message.chat.id, str(sender_id),
-                                                        int(callback.message.id), callback.inline_message_id)
+                                                        callback)
         elif 'block_cancel' in callback.data.split('-'):
             action, sender_id, message_id = callback.data.split('-')
             await BlockUserManager(self.bot).cancel_block(callback.message.chat.id, callback.message.id, message_id,
@@ -72,21 +72,18 @@ class CallbackHandler:
         keyboard = KeyboardMarkupGenerator()
         if 'unblock' in callback.data.split('-'):
             action, blocker_id, blocked_id, message_id = callback.data.split('-')
-            await self.bot.edit_message_text(get_response('blocking.unblock?', blocked_id),
-                                             chat_id=callback.message.chat.id,
-                                             message_id=int(callback.message.id),
-                                             parse_mode='Markdown',
-                                             reply_markup=keyboard.unblock_confirmation_buttons(str(blocker_id),
-                                                                                                str(blocked_id),
-                                                                                                message_id))
+            await self.bot.edit_message_reply_markup(chat_id=callback.message.chat.id, message_id=callback.message.id,
+                                                     reply_markup=keyboard.unblock_confirmation_buttons(str(blocker_id),
+                                                                                                        str(blocked_id),
+                                                                                                        ))
         elif 'unblock_confirm' in callback.data.split('-'):
-            action, blocker_id, blocked_id, message_id = callback.data.split('-')
-            blocker_bot_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-            await BlockUserManager(self.bot).unblock_user(blocker_bot_id, str(blocked_id), int(callback.message.id))
+            action, blocker_id, blocked_id = callback.data.split('-')
+            blocker_anny_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
+            await BlockUserManager(self.bot).unblock_user(blocker_anny_id, str(blocked_id), callback)
         elif 'unblock_cancel' in callback.data.split('-'):
-            action, blocker_id, message_id = callback.data.split('-')
-            blocker_bot_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-            await BlockUserManager(self.bot).cancel_unblock_user(blocker_bot_id, str(blocker_id), callback.message.id)
+            action, blocker_id = callback.data.split('-')
+            blocker_anny_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
+            await BlockUserManager(self.bot).cancel_unblock_user(blocker_anny_id, str(blocker_id), callback.message.id)
 
     async def _process_change_nickname(self, callback: CallbackQuery):
         response = NicknameManager(self.bot).get_set_nickname_response(callback.message)

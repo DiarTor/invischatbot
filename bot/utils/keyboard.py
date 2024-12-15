@@ -68,6 +68,7 @@ class KeyboardMarkupGenerator:
         buttons = [InlineKeyboardButton('⬅️ بازگشت', callback_data='cancel-changing_nickname')]
 
         return self._create_inline_keyboard(buttons)
+
     def account_buttons(self):
         buttons = [InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data=f'change-nickname')]
 
@@ -106,6 +107,11 @@ class KeyboardMarkupGenerator:
         return self._create_inline_keyboard(buttons)
 
     def blocklist_buttons(self, blocker_id: str, blocked_list: list, message_id=None):
+        """ Block List InlineButtons
+        :param blocker_id: blocker anny id
+        :param blocked_list: the list of blocked anny ids
+        :param message_id: message id
+        """
         buttons = [
             [InlineKeyboardButton(text=str(blocked_id),
                                   callback_data=f'unblock-{blocker_id}-{blocked_id}-{message_id}'), ]
@@ -113,8 +119,11 @@ class KeyboardMarkupGenerator:
         ]
         return self._create_list_inline_keyboard(buttons)
 
-    def unblock_confirmation_buttons(self, blocker_id: str, blocked_id: str, message_id=None):
+    def unblock_confirmation_buttons(self, blocker_id: str, blocked_id: str):
         buttons = [
-            InlineKeyboardButton('بله 👍', callback_data=f'unblock_confirm-{blocker_id}-{blocked_id}-{message_id}'),
-            InlineKeyboardButton('خیر 👎', callback_data=f'unblock_cancel-{blocker_id}-{message_id}')]
-        return self._create_inline_keyboard(buttons)
+            [
+                InlineKeyboardButton(f"میخوای {blocked_id} رو آنبلاک کنی؟", callback_data='placeholder')
+            ],
+            [InlineKeyboardButton('بله 👍', callback_data=f'unblock_confirm-{blocker_id}-{blocked_id}'),
+             InlineKeyboardButton('خیر 👎', callback_data=f'unblock_cancel-{blocker_id}')]]
+        return self._create_list_inline_keyboard(buttons)
