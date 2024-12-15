@@ -15,7 +15,7 @@ class AccountManager:
         """ send the response text"""
         user_data = get_user(msg.chat.id)
         joined_at = convert_timestamp_to_date(user_data['joined_at'])
-        await self.bot.send_message(msg.chat.id, get_response('account.show', msg.from_user.id, user_data['id'],
+        await self.bot.send_message(msg.chat.id, get_response('account.show', user_data['id'],
                                                               user_data['nickname'], joined_at), parse_mode='Markdown',
                                     reply_markup=KeyboardMarkupGenerator().account_buttons())
     @staticmethod
