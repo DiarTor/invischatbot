@@ -40,6 +40,7 @@ class CallbackHandler:
         await self.bot.send_message(
             callback.from_user.id,
             get_response('texting.replying.send'),
+            reply_to_message_id=callback.message.id,
             parse_mode='Markdown',
             reply_markup=KeyboardMarkupGenerator().cancel_buttons()
         )
