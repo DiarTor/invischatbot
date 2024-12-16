@@ -7,7 +7,7 @@ from bot.managers.nickname import NicknameManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import get_user, update_user_field
+from bot.utils.user_data import get_user, update_user_field, get_user_id
 
 
 class CallbackHandler:
@@ -19,6 +19,9 @@ class CallbackHandler:
         callback_data = callback.data
         if callback_data.startswith('reply'):
             await self._process_reply_callback(callback)
+        elif callback_data.startswith('seen'):
+            callback.data = callback_data.split('-')[1:]
+            await self._process_seen_callback(callback)
         elif callback_data.startswith('block'):
             await self._process_block_callback(callback)
         elif callback_data.startswith('unblock'):
@@ -32,7 +35,6 @@ class CallbackHandler:
     async def _process_reply_callback(self, callback: CallbackQuery):
         """Process the reply callback and set the replying state."""
         action, sender_id, message_id = callback.data.split('-')
-
         # Update the user's chat state to indicate they are replying
         self._set_replying_state(callback.from_user.id, message_id, sender_id)
 
@@ -44,6 +46,17 @@ class CallbackHandler:
             parse_mode='Markdown',
             reply_markup=KeyboardMarkupGenerator().cancel_buttons()
         )
+
+    async def _process_seen_callback(self, callback: CallbackQuery):
+        """Process the seen callback"""
+        sender_anny_id, message_id = callback.data
+        sender_id = get_user_id(sender_anny_id)
+        await self.bot.send_message(chat_id=sender_id, reply_to_message_id=message_id,
+                                    text=get_response('texting.seen.recipient'))
+        await self.bot.edit_message_reply_markup(chat_id=callback.message.chat.id, message_id=callback.message.id,
+                                                 reply_markup=KeyboardMarkupGenerator().recipient_buttons(
+                                                     sender_anny_id, message_id, True))
+        await self.bot.answer_callback_query(callback.id, get_response('texting.seen.sent'))
 
     async def _process_block_callback(self, callback: CallbackQuery):
         keyboard = KeyboardMarkupGenerator()

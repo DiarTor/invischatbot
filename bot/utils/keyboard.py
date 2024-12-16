@@ -74,15 +74,24 @@ class KeyboardMarkupGenerator:
 
         return self._create_inline_keyboard(buttons)
 
-    def recipient_buttons(self, sender_id, message_id=None):
+    def recipient_buttons(self, sender_id, message_id=None, seen=False):
         """
         :param sender_id: anny id
         :param message_id: message id
+        :param seen: if True, updates the 'seen' button to indicate it has already been seen
         :return: buttons
         """
-        buttons = [InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
-                   InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_id}'), ]
-        return self._create_inline_keyboard(buttons)
+        buttons = [
+            [
+                InlineKeyboardButton('دیدم 👀️' if not seen else 'قبلاً دیده شده ✅',
+                                     callback_data=f'seen-{sender_id}-{message_id}' if not seen else 'placeholder'),
+                InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
+            ],
+            [
+                InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_id}')
+            ]
+        ]
+        return self._create_list_inline_keyboard(buttons)
 
     def block_confirmation_buttons(self, sender_id, message_id=None):
         """

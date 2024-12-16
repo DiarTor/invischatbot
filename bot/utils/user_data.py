@@ -65,6 +65,13 @@ def get_user(user_id: int):
     """
     return users_collection.find_one({"user_id": user_id})
 
+def get_user_id(user_anny_id:str):
+    """
+    Retrieve user id from database
+    :param user_anny_id: the user anonymous id
+    :return: the user id
+    """
+    return users_collection.find_one({"id": user_anny_id}).get('user_id', None)
 
 def is_user_blocked(sender_id: str, recipient_id: int) -> bool:
     """
