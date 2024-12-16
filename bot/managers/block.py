@@ -27,7 +27,7 @@ class BlockUserManager:
         """ Block user
         :param blocker_id: Blocker ID
         :param blocked_id: Blocked anny ID
-        :param message_id: Message ID
+        :param callback: Callback query
         """
         blocklist = users_collection.find_one({'user_id': blocker_id}).get('blocklist', None)
         if blocked_id in blocklist:
@@ -67,11 +67,9 @@ class BlockUserManager:
                                              message_id=callback.message.message_id)
             return
         user_anny_id = users_collection.find_one({'user_id': chat_id}).get('id', None)
-        await self.bot.edit_message_reply_markup(chat_id, callback.message.message_id, reply_markup=KeyboardMarkupGenerator().blocklist_buttons(user_anny_id, blocklist))
-
-        # await self.bot.edit_message_text(text=get_response('blocking.unblock_confirm', blocked_id), chat_id=chat_id,
-        #                                  message_id=callback.message.id,
-        #                                  parse_mode='Markdown')
+        await self.bot.edit_message_reply_markup(chat_id, callback.message.message_id,
+                                                 reply_markup=KeyboardMarkupGenerator().blocklist_buttons(user_anny_id,
+                                                                                                          blocklist))
 
     async def cancel_unblock_user(self, blocker_id, message_id, bot_message_id):
         user = users_collection.find_one({'id': str(blocker_id)})
