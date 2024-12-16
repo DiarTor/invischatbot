@@ -7,7 +7,7 @@ from bot.managers.nickname import NicknameManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import get_user, update_user_field, get_user_id, close_open_chats
+from bot.utils.user_data import get_user, update_user_field, get_user_id, close_open_chats, add_seen_message
 
 
 class CallbackHandler:
@@ -54,6 +54,8 @@ class CallbackHandler:
         """Process the seen callback"""
         sender_anny_id, message_id = callback.data
         sender_id = get_user_id(sender_anny_id)
+        add_seen_message(callback.from_user.id, sender_id, message_id
+                         )
         await self.bot.send_message(chat_id=sender_id, reply_to_message_id=message_id,
                                     text=get_response('texting.seen.recipient'))
         await self.bot.edit_message_reply_markup(chat_id=callback.message.chat.id, message_id=callback.message.id,
@@ -81,7 +83,7 @@ class CallbackHandler:
                                                         callback)
         elif 'block_cancel' in callback.data.split('-'):
             action, sender_id, message_id = callback.data.split('-')
-            await BlockUserManager(self.bot).cancel_block(callback.message.chat.id, callback.message.id, message_id,
+            await BlockUserManager(self.bot).cancel_block(callback, message_id,
                                                           sender_id)
 
     async def _process_report_callback(self, callback: CallbackQuery):

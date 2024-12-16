@@ -65,13 +65,15 @@ def get_user(user_id: int):
     """
     return users_collection.find_one({"user_id": user_id})
 
-def get_user_id(user_anny_id:str):
+
+def get_user_id(user_anny_id: str):
     """
     Retrieve user id from database
     :param user_anny_id: the user anonymous id
     :return: the user id
     """
     return users_collection.find_one({"id": user_anny_id}).get('user_id', None)
+
 
 def is_user_blocked(sender_id: str, recipient_id: int) -> bool:
     """
@@ -106,3 +108,44 @@ def close_open_chats(user_id: int):
         {"user_id": user_id},
         {"$set": {"chats.$[].open": False}}  # Close all open chats
     )
+
+
+def add_seen_message(user_id, target_user_id, message_id):
+    """
+    Adds a message ID to the seen_messages array for a specific target user in the chats array.
+    :param user_id: The ID of the user
+    :param target_user_id: The ID of the target user in the chat
+    :param message_id: The ID of the message to mark as seen
+    """
+    users_collection.update_one(
+        {
+            "user_id": user_id,
+            "chats.target_user_id": target_user_id
+        },
+        {
+            "$addToSet": {
+                "chats.$.seen_messages": int(message_id)
+            }
+        }
+    )
+
+
+def get_seen_status(user_id, target_chat_id, message_id: int):
+    """ Retrieve the seen status for the message from the database
+    :param user_id: User ID of requester
+    :param target_chat_id: Chat ID with the target user
+    :param message_id: Message ID to check the seen status
+    :return: Boolean indicating whether the message has been seen
+    """
+    # Query the database to get the 'seen_messages' for the specific chat
+    user_data = users_collection.find_one(
+        {"user_id": user_id, "chats.target_user_id": target_chat_id}
+    )
+    # Check if the 'seen_messages' array contains the given message_id
+    if user_data:
+        for chat in user_data['chats']:
+            if chat['target_user_id'] == target_chat_id:
+                return message_id in chat.get('seen_messages', [])
+
+    # If no data is found, assume the message has not been seen
+    return False

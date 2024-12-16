@@ -5,6 +5,7 @@ from telebot.types import CallbackQuery
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
+from bot.utils.user_data import get_seen_status, get_user_id
 
 
 class BlockUserManager:
@@ -40,16 +41,19 @@ class BlockUserManager:
         await self.bot.edit_message_reply_markup(blocker_id, callback.message.id,
                                                  reply_markup=KeyboardMarkupGenerator().blocked_buttons())
 
-    async def cancel_block(self, chat_id, message_id, reply_message_id, sender_id):
+    async def cancel_block(self, callback: CallbackQuery, reply_message_id, sender_id):
         """ Cancel blocking operation
-        :param chat_id: Chat ID
-        :param message_id: Message ID
+        :param callback: Callback query
         :param reply_message_id: Reply message ID
         :param sender_id: Sender anny ID
         """
-        await self.bot.edit_message_reply_markup(chat_id, message_id,
+        chat_id = callback.message.chat.id
+        target_chat_id = get_user_id(sender_id)
+        seen = get_seen_status(user_id=chat_id, target_chat_id=target_chat_id, message_id=reply_message_id)
+        await self.bot.edit_message_reply_markup(callback.message.chat.id, callback.message.id,
                                                  reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_id,
-                                                                                                          reply_message_id))
+                                                                                                          reply_message_id,
+                                                                                                          seen))
 
     async def unblock_user(self, blocker_id: str, blocked_id: str, callback: CallbackQuery):
         """ Unblock user
