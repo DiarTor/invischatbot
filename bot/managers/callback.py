@@ -7,7 +7,7 @@ from bot.managers.nickname import NicknameManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import get_user, update_user_field, get_user_id
+from bot.utils.user_data import get_user, update_user_field, get_user_id, close_open_chats
 
 
 class CallbackHandler:
@@ -24,6 +24,8 @@ class CallbackHandler:
             await self._process_seen_callback(callback)
         elif callback_data.startswith('block'):
             await self._process_block_callback(callback)
+        elif callback_data.startswith('report'):
+            await self._process_report_callback(callback)
         elif callback_data.startswith('unblock'):
             await self._process_unblock_callback(callback)
         elif callback_data.startswith('change-nickname'):
@@ -36,6 +38,7 @@ class CallbackHandler:
         """Process the reply callback and set the replying state."""
         action, sender_id, message_id = callback.data.split('-')
         # Update the user's chat state to indicate they are replying
+        close_open_chats(callback.from_user.id)
         self._set_replying_state(callback.from_user.id, message_id, sender_id)
 
         # Prompt the user to send their reply text
@@ -80,6 +83,10 @@ class CallbackHandler:
             action, sender_id, message_id = callback.data.split('-')
             await BlockUserManager(self.bot).cancel_block(callback.message.chat.id, callback.message.id, message_id,
                                                           sender_id)
+
+    async def _process_report_callback(self, callback: CallbackQuery):
+        """Process the report callback"""
+        await self.bot.answer_callback_query(callback.id, get_response('reporting.send'), show_alert=True)
 
     async def _process_unblock_callback(self, callback: CallbackQuery):
         keyboard = KeyboardMarkupGenerator()

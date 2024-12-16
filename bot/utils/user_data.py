@@ -35,7 +35,7 @@ def store_user_data(user_id: int, nickname: str = None):
 
 def close_existing_chats(user_id: int):
     """
-    Close existing chats for the user.
+    Close existing chats and replying state for the user.
     :param user_id: user id
     :return:
     """

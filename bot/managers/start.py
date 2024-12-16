@@ -6,7 +6,7 @@ from telebot.types import Message
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import close_open_chats, is_user_blocked, store_user_data
+from bot.utils.user_data import close_open_chats, is_user_blocked, store_user_data, reset_replying_state
 
 
 class StartBot:
@@ -47,7 +47,8 @@ class StartBot:
                 )
                 return
 
-            # Manage chats if all checks pass
+            # Manage chats if all checks pass, first reset replying state to handle any bugs
+            reset_replying_state(user_id)
             await self._manage_chats(user_data, target_user_data)
 
         except (ValueError, IndexError):

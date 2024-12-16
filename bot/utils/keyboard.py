@@ -88,6 +88,7 @@ class KeyboardMarkupGenerator:
                 InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
             ],
             [
+                InlineKeyboardButton('گزارش ⚠️', callback_data='report'),
                 InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_id}')
             ]
         ]
