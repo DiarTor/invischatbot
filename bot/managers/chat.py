@@ -144,7 +144,7 @@ class ChatHandler:
             else:  # Default to text
                 await self.bot.send_message(
                     recipient_id, get_response("texting.sending.text.recipient", msg.text, sender_anny_id),
-                    parse_mode='Markdown', reply_markup=reply_markup
+                    parse_mode='Markdown', **strict_kwargs,
                 )
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
