@@ -6,7 +6,7 @@ from telebot.types import Message
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import close_open_chats, is_user_blocked, store_user_data, reset_replying_state
+from bot.utils.user_data import close_open_chats, is_user_blocked, store_user_data, reset_replying_state, get_user
 
 
 class StartBot:
@@ -99,6 +99,22 @@ class StartBot:
                         "chat_created_at": datetime.timestamp(datetime.now()),
                         "chat_started_at": datetime.timestamp(datetime.now()),
                         "open": True
+                    }
+                }
+            },
+            upsert=True
+        )
+        # create the chat for the target user with the sender information
+        users_collection.update_one(
+            {"user_id": target_user_id},
+            {
+                "$push": {
+                    "chats": {
+                        "target_user_bot_id": get_user(user_id).get('id'),
+                        "target_user_id": user_id,
+                        "chat_created_at": datetime.timestamp(datetime.now()),
+                        "chat_started_at": datetime.timestamp(datetime.now()),
+                        "open": False
                     }
                 }
             },

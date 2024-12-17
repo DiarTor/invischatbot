@@ -5,7 +5,7 @@ from telebot.types import CallbackQuery
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import get_seen_status, get_user_id
+from bot.utils.user_data import get_seen_status
 
 
 class BlockUserManager:
@@ -48,8 +48,7 @@ class BlockUserManager:
         :param sender_id: Sender anny ID
         """
         chat_id = callback.message.chat.id
-        target_chat_id = get_user_id(sender_id)
-        seen = get_seen_status(user_id=chat_id, target_chat_id=target_chat_id, message_id=reply_message_id)
+        seen = get_seen_status(user_id=chat_id, message_id=reply_message_id)
         await self.bot.edit_message_reply_markup(callback.message.chat.id, callback.message.id,
                                                  reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_id,
                                                                                                           reply_message_id,

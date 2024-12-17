@@ -110,42 +110,41 @@ def close_open_chats(user_id: int):
     )
 
 
-def add_seen_message(user_id, target_user_id, message_id):
+def add_seen_message(user_id, message_id:int):
     """
-    Adds a message ID to the seen_messages array for a specific target user in the chats array.
+    Adds a message ID to the seen_messages array for a specific user.
     :param user_id: The ID of the user
-    :param target_user_id: The ID of the target user in the chat
     :param message_id: The ID of the message to mark as seen
     """
+    print(message_id, type(message_id))
     users_collection.update_one(
         {
-            "user_id": user_id,
-            "chats.target_user_id": target_user_id
+            "user_id": user_id
         },
         {
             "$addToSet": {
-                "chats.$.seen_messages": int(message_id)
+                "seen_messages": int(message_id)
             }
         }
     )
 
 
-def get_seen_status(user_id, target_chat_id, message_id: int):
-    """ Retrieve the seen status for the message from the database
+def get_seen_status(user_id, message_id: int):
+    """
+    Retrieve the seen status for the message from the user's document
     :param user_id: User ID of requester
-    :param target_chat_id: Chat ID with the target user
     :param message_id: Message ID to check the seen status
     :return: Boolean indicating whether the message has been seen
     """
-    # Query the database to get the 'seen_messages' for the specific chat
+    # Query the database to get the 'seen_messages' for the user
     user_data = users_collection.find_one(
-        {"user_id": user_id, "chats.target_user_id": target_chat_id}
+        {"user_id": user_id}
     )
+
     # Check if the 'seen_messages' array contains the given message_id
     if user_data:
-        for chat in user_data['chats']:
-            if chat['target_user_id'] == target_chat_id:
-                return message_id in chat.get('seen_messages', [])
+        return int(message_id) in user_data.get('seen_messages', [])
 
     # If no data is found, assume the message has not been seen
     return False
+

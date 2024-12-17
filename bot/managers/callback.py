@@ -54,7 +54,7 @@ class CallbackHandler:
         """Process the seen callback"""
         sender_anny_id, message_id = callback.data
         sender_id = get_user_id(sender_anny_id)
-        add_seen_message(callback.from_user.id, sender_id, message_id
+        add_seen_message(callback.from_user.id, int(message_id)
                          )
         await self.bot.send_message(chat_id=sender_id, reply_to_message_id=message_id,
                                     text=get_response('texting.seen.recipient'))
