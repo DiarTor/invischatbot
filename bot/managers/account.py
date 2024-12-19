@@ -24,5 +24,5 @@ class AccountManager:
         """ return the response text"""
         user_data = get_user(msg.chat.id)
         joined_at = convert_timestamp_to_date(user_data['joined_at'])
-        return get_response('account.show', msg.chat.id, user_data['id'],
+        return get_response('account.show', user_data['id'],
                             user_data['nickname'], joined_at)
