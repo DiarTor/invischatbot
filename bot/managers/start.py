@@ -6,7 +6,8 @@ from telebot.types import Message
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import close_open_chats, is_user_blocked, store_user_data, reset_replying_state, get_user
+from bot.utils.user_data import close_open_chats, is_user_blocked, store_user_data, reset_replying_state, get_user, \
+    is_bot_status_off
 
 
 class StartBot:
@@ -46,7 +47,21 @@ class StartBot:
                     reply_markup=KeyboardMarkupGenerator().main_buttons()
                 )
                 return
-
+            # check if the user bot status is off
+            if is_bot_status_off(user_id):
+                await self.bot.send_message(
+                    msg.chat.id, get_response('account.bot_status.self.off'),
+                    reply_markup=KeyboardMarkupGenerator().main_buttons(),
+                    parse_mode='Markdown'
+                )
+                return
+            # check if the target user bot status is off
+            if is_bot_status_off(target_user_data["user_id"]):
+                await self.bot.send_message(msg.chat.id, get_response('account.bot_status.recipient.off'),
+                                            reply_markup=KeyboardMarkupGenerator().main_buttons(),
+                                            parse_mode='Markdown'
+                                            )
+                return
             # Manage chats if all checks pass, first reset replying state to handle any bugs
             reset_replying_state(user_id)
             await self._manage_chats(user_data, target_user_data)

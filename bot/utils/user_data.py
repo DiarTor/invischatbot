@@ -28,6 +28,7 @@ def store_user_data(user_id: int, nickname: str = None):
             "joined_at": datetime.timestamp(datetime.now()),
             "chats": [],
             "blocklist": [],
+            "is_bot_off": False,
             "version": config('VERSION', cast=float)
         }
         users_collection.insert_one(user_data)
@@ -110,13 +111,12 @@ def close_open_chats(user_id: int):
     )
 
 
-def add_seen_message(user_id, message_id:int):
+def add_seen_message(user_id, message_id: int):
     """
     Adds a message ID to the seen_messages array for a specific user.
     :param user_id: The ID of the user
     :param message_id: The ID of the message to mark as seen
     """
-    print(message_id, type(message_id))
     users_collection.update_one(
         {
             "user_id": user_id
@@ -148,3 +148,8 @@ def get_seen_status(user_id, message_id: int):
     # If no data is found, assume the message has not been seen
     return False
 
+
+def is_bot_status_off(user_id: str | int):
+    if users_collection.find_one({"user_id": user_id}).get('is_bot_off', False):
+        return True
+    return False

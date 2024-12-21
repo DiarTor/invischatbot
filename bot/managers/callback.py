@@ -4,10 +4,12 @@ from telebot.types import CallbackQuery
 from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
 from bot.managers.nickname import NicknameManager
+from bot.managers.settings import SettingsManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import get_user, update_user_field, get_user_id, close_open_chats, add_seen_message
+from bot.utils.user_data import get_user, update_user_field, get_user_id, close_open_chats, add_seen_message, \
+    is_bot_status_off
 
 
 class CallbackHandler:
@@ -30,6 +32,8 @@ class CallbackHandler:
             await self._process_unblock_callback(callback)
         elif callback_data.startswith('change-nickname'):
             await self._process_change_nickname(callback)
+        elif callback_data.startswith('change-bot_status'):
+            await self._process_change_bot_status(callback)
         elif callback_data.startswith('cancel'):
             await self._process_cancel(callback)
         await self.bot.answer_callback_query(callback.id)
@@ -37,6 +41,19 @@ class CallbackHandler:
     async def _process_reply_callback(self, callback: CallbackQuery):
         """Process the reply callback and set the replying state."""
         action, sender_id, message_id = callback.data.split('-')
+        # check if the user or the target user, bot status is off
+        if is_bot_status_off(callback.from_user.id):
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('account.bot_status.self.off'),
+                show_alert=True
+            )
+            return
+        elif is_bot_status_off(get_user_id(sender_id)):
+            await self.bot.answer_callback_query(callback.id, get_response('account.bot_status.recipient.off'),
+                                                 show_alert=True
+                                                 )
+            return
         # Update the user's chat state to indicate they are replying
         close_open_chats(callback.from_user.id)
         self._set_replying_state(callback.from_user.id, message_id, sender_id)
@@ -54,6 +71,19 @@ class CallbackHandler:
         """Process the seen callback"""
         sender_anny_id, message_id = callback.data
         sender_id = get_user_id(sender_anny_id)
+        # check if the user or the target user, bot status is off
+        if is_bot_status_off(callback.from_user.id):
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('account.bot_status.self.off'),
+                show_alert=True
+            )
+            return
+        elif is_bot_status_off(sender_id):
+            await self.bot.answer_callback_query(callback.id, get_response('account.bot_status.recipient.off'),
+                                                 show_alert=True
+                                                 )
+            return
         add_seen_message(callback.from_user.id, int(message_id)
                          )
         await self.bot.send_message(chat_id=sender_id, reply_to_message_id=message_id,
@@ -119,6 +149,9 @@ class CallbackHandler:
             await self.bot.edit_message_text(AccountManager(self.bot).get_account_response(callback.message),
                                              callback.from_user.id, callback.message.id, parse_mode='Markdown',
                                              reply_markup=KeyboardMarkupGenerator().account_buttons())
+
+    async def _process_change_bot_status(self, callback: CallbackQuery):
+        await SettingsManager(self.bot).change_bot_status(callback)
 
     @staticmethod
     def _set_replying_state(user_id: int, message_id: str, sender_id: str):

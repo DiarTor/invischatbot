@@ -12,7 +12,7 @@ from bot.managers.support import SupportManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import get_user, is_user_blocked, close_open_chats, reset_replying_state
+from bot.utils.user_data import get_user, is_user_blocked, close_open_chats, reset_replying_state, is_bot_status_off
 
 
 class ChatHandler:
@@ -101,6 +101,11 @@ class ChatHandler:
         if is_user_blocked(user_chat.get('id'), target_user_id):
             close_open_chats(user_chat.get('user_id'))
             await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
+                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
+        # check if the target user changed the bot status to off
+        if is_bot_status_off(target_user_id):
+            close_open_chats(user_chat.get('user_id'))
+            await self.bot.send_message(msg.chat.id, get_response('account.bot_status.recipient.off'),
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
 
         # if everything is fine, forward the message

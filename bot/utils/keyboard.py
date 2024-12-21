@@ -69,22 +69,30 @@ class KeyboardMarkupGenerator:
 
         return self._create_inline_keyboard(buttons)
 
-    def account_buttons(self):
-        buttons = [InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data=f'change-nickname')]
+    def account_buttons(self, is_bot_off=False):
+        bot_status = 'خاموش😴' if is_bot_off else 'روشن 😁'
+        buttons = [
+            [
+                InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data=f'change-nickname')
+            ],
+            [
+                InlineKeyboardButton(f'وضغیت ربات: {bot_status}', callback_data=f'change-bot_status')
+            ]
+        ]
 
-        return self._create_inline_keyboard(buttons)
+        return self._create_list_inline_keyboard(buttons)
 
-    def recipient_buttons(self, sender_id, message_id=None, seen=False):
+    def recipient_buttons(self, sender_id, message_id=None, is_seen=False):
         """
         :param sender_id: anny id
         :param message_id: message id
-        :param seen: if True, updates the 'seen' button to indicate it has already been seen
+        :param is_seen: if True, updates the 'seen' button to indicate it has already been seen
         :return: buttons
         """
         buttons = [
             [
-                InlineKeyboardButton('دیدم 👀️' if not seen else 'قبلاً دیده شده ✅',
-                                     callback_data=f'seen-{sender_id}-{message_id}' if not seen else 'placeholder'),
+                InlineKeyboardButton('دیدم 👀️' if not is_seen else 'قبلاً دیده شده ✅',
+                                     callback_data=f'seen-{sender_id}-{message_id}' if not is_seen else 'placeholder'),
                 InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
             ],
             [
