@@ -76,7 +76,7 @@ class KeyboardMarkupGenerator:
                 InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data=f'change-nickname')
             ],
             [
-                InlineKeyboardButton(f'وضغیت ربات: {bot_status}', callback_data=f'change-bot_status')
+                InlineKeyboardButton(f'وضعیت ربات: {bot_status}', callback_data=f'change-bot_status')
             ]
         ]
 
