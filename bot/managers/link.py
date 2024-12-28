@@ -3,7 +3,9 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.utils.database import users_collection
+from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
+from bot.utils.user_data import generate_anny_link
 
 
 class LinkManager:
@@ -12,19 +14,15 @@ class LinkManager:
 
     async def link(self, msg: Message):
         user_bot_id = users_collection.find_one({"user_id": msg.from_user.id})['id']
-        link = self._generate_link(user_bot_id)
+        link = generate_anny_link(user_bot_id)
         await self.bot.send_message(
             msg.chat.id,
             get_response('greeting.link', link),
-            parse_mode='Markdown'
+            parse_mode='Markdown',
+            reply_markup=KeyboardMarkupGenerator().share_link_buttons(get_response('greeting.share_link'))
         )
         await self.bot.send_message(
             msg.chat.id,
             get_response('greeting.send_link', link),
             parse_mode='Markdown'
         )
-
-    @staticmethod
-    def _generate_link(user_id: str) -> str:
-        """Generate a link to the bot for the user."""
-        return f"https://t.me/{config('BOT_USERNAME', cast=str)}?start={user_id}"

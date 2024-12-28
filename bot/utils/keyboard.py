@@ -145,3 +145,16 @@ class KeyboardMarkupGenerator:
             [InlineKeyboardButton('بله 👍', callback_data=f'unblock_confirm-{blocker_id}-{blocked_id}'),
              InlineKeyboardButton('خیر 👎', callback_data=f'unblock_cancel-{blocker_id}')]]
         return self._create_list_inline_keyboard(buttons)
+
+    def share_link_buttons(self, share_text: str):
+        buttons = [
+            InlineKeyboardButton("📤 اشتراک‌گذاری با دیگران", switch_inline_query=share_text),
+        ]
+
+        return self._create_inline_keyboard(buttons)
+
+    def inline_text_me_button(self, url: str):
+        buttons = [
+            InlineKeyboardButton("📩 بهم ناشناس پیام بده", url=url),
+        ]
+        return self._create_inline_keyboard(buttons)

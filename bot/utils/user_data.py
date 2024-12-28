@@ -76,6 +76,15 @@ def get_user_id(user_anny_id: str):
     return users_collection.find_one({"id": user_anny_id}).get('user_id', None)
 
 
+def get_user_anny_id(user_id: int):
+    """
+    Retrieve user anonymous id from database
+    :param user_id:
+    :return:
+    """
+    return users_collection.find_one({"user_id": user_id}).get('id', None)
+
+
 def is_user_blocked(sender_id: str, recipient_id: int) -> bool:
     """
     :param sender_id: anny id
@@ -153,3 +162,8 @@ def is_bot_status_off(user_id: str | int):
     if users_collection.find_one({"user_id": user_id}).get('is_bot_off', False):
         return True
     return False
+
+
+def generate_anny_link(user_anny_id: str) -> str:
+    """Generate a link to the bot for the user."""
+    return f"https://t.me/{config('BOT_USERNAME', cast=str)}?start={user_anny_id}"

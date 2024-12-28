@@ -1,5 +1,6 @@
 from telebot.async_telebot import AsyncTeleBot
-from telebot.types import CallbackQuery
+from telebot.types import CallbackQuery, InputTextMessageContent, \
+    InlineQueryResultArticle, InlineQuery
 
 from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
@@ -9,7 +10,7 @@ from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.user_data import get_user, update_user_field, get_user_id, close_open_chats, add_seen_message, \
-    is_bot_status_off
+    is_bot_status_off, generate_anny_link, get_user_anny_id
 
 
 class CallbackHandler:
@@ -37,6 +38,30 @@ class CallbackHandler:
         elif callback_data.startswith('cancel'):
             await self._process_cancel(callback)
         await self.bot.answer_callback_query(callback.id)
+
+    async def handle_inline_query(self, inline: InlineQuery):
+        """Handle inline queries for 'Text Me'."""
+        user_id = inline.from_user.id
+        text = inline.query.strip() or "پیام خود را بنویسید..."  # Default text if empty
+
+        # Generate the unique link for the user (user's ID or custom data)
+        link = generate_anny_link(get_user_anny_id(user_id))
+
+        # Create the inline message content with the text and button
+        content = InputTextMessageContent(f"{text}")
+        result = InlineQueryResultArticle(
+            id=inline.id,
+            title="پیام خود را بفرستید",
+            description=text,
+            input_message_content=content,
+            reply_markup=KeyboardMarkupGenerator().inline_text_me_button(link)  # Add the button below the message
+        )
+
+        # Send the inline query result back
+        await self.bot.answer_inline_query(inline.id, results=[result])
+
+        # Respond to the query
+        await self.bot.answer_inline_query(inline.id, [result])
 
     async def _process_reply_callback(self, callback: CallbackQuery):
         """Process the reply callback and set the replying state."""
