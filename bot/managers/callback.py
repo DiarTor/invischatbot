@@ -54,6 +54,7 @@ class CallbackHandler:
             title="پیام خود را بفرستید",
             description=text,
             input_message_content=content,
+            thumbnail_url='https://s8.uupload.ir/files/photo_2024-10-20_02-07-59_h3tq.jpg',
             reply_markup=KeyboardMarkupGenerator().inline_text_me_button(link)  # Add the button below the message
         )
 
