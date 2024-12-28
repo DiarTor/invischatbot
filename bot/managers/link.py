@@ -18,6 +18,11 @@ class LinkManager:
             get_response('greeting.link', link),
             parse_mode='Markdown'
         )
+        await self.bot.send_message(
+            msg.chat.id,
+            get_response('greeting.send_link', link),
+            parse_mode='Markdown'
+        )
 
     @staticmethod
     def _generate_link(user_id: str) -> str:
