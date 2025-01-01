@@ -80,3 +80,41 @@ class NicknameValidator:
             return False, "🔤 نام مستعار باید فقط حروف، اعداد یا زیرخط (_) باشد."
 
         return True, "✅ نام مستعار معتبر است."
+
+import re
+
+class MessageValidator:
+    """
+    A class for validating and formatting messages to prevent formatting errors.
+    """
+
+    # Define special characters for Markdown formatting
+    MARKDOWN_SPECIAL_CHARS = r'_*[]()~`>#+-=|{}.!'
+
+    @classmethod
+    def escape_markdown(cls, text: str) -> str:
+        """
+        Escapes special characters in Markdown text.
+        :param text: The input text to escape.
+        :return: Escaped text safe for Markdown.
+        """
+        return re.sub(f'([{re.escape(cls.MARKDOWN_SPECIAL_CHARS)}])', r'\\\1', text)
+
+    @classmethod
+    def validate_and_format(cls, text: str, parse_mode: str = 'Markdown') -> str:
+        """
+        Validates and formats the input text based on the specified parse mode.
+        :param text: The input message text.
+        :param parse_mode: The parsing mode ('Markdown', 'HTML', or None).
+        :return: Validated and formatted text.
+        """
+        if parse_mode == 'Markdown':
+            # Escape Markdown special characters
+            return cls.escape_markdown(text)
+        elif parse_mode == 'HTML':
+            # Escape HTML special characters
+            import html
+            return html.escape(text)
+        else:
+            # Return plain text if no parsing is required
+            return text

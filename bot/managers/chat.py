@@ -1,4 +1,5 @@
 from decouple import config
+from humanfriendly.terminal import message
 from telebot.apihelper import ApiTelegramException
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
@@ -13,6 +14,7 @@ from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.user_data import get_user, is_user_blocked, close_open_chats, reset_replying_state, is_bot_status_off
+from bot.utils.validators import MessageValidator
 
 
 class ChatHandler:
@@ -149,7 +151,7 @@ class ChatHandler:
             else:  # Default to text
                 await self.bot.send_message(
                     recipient_id, get_response("texting.sending.text.recipient", msg.text, sender_anny_id),
-                    parse_mode='Markdown', **strict_kwargs,
+                     **strict_kwargs,
                 )
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
@@ -161,6 +163,7 @@ class ChatHandler:
         :param recipient_id: recipient user id.
         """
         sender_anny_id = get_user(msg.chat.id).get('id')
+        print(msg.text, type(msg.text))
         await self._send_media(msg, recipient_id, sender_anny_id)
         close_open_chats(msg.chat.id)
         await self.bot.send_message(
