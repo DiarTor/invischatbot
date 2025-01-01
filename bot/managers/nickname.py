@@ -6,7 +6,7 @@ from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.user_data import reset_replying_state, close_existing_chats, update_user_field
 from bot.utils.validators import NicknameValidator
-
+import random
 
 class NicknameManager:
     def __init__(self, bot: AsyncTeleBot):
@@ -59,3 +59,18 @@ class NicknameManager:
         reset_replying_state(msg.chat.id)
         close_existing_chats(msg.chat.id)
         return get_response('nickname.ask_nickname', user_data['nickname'], current_first_name)
+
+    @staticmethod
+    def generate_random_nickname():
+        # List of random English names
+        random_names = [
+            "John", "Alice", "Bob", "Charlie", "Daisy", "Eve", "Frank",
+            "Grace", "Hannah", "Ivy", "Jack", "Kate", "Liam", "Mia",
+            "Noah", "Olivia", "Paul", "Quinn", "Ryan", "Sophie", "Tom",
+            "Uma", "Victor", "Wendy", "Xander", "Yara", "Zack", "Ali", "Ahmad"
+        ]
+
+        # Pick a random name from the list
+        random_name = random.choice(random_names)
+        # Return the nickname
+        return random_name

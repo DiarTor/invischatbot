@@ -3,11 +3,12 @@ from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
+from bot.managers.nickname import NicknameManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.user_data import close_open_chats, is_user_blocked, store_user_data, reset_replying_state, get_user, \
-    is_bot_status_off
+    is_bot_status_off, is_user_in_database, update_user_field
 
 
 class StartBot:
@@ -17,10 +18,11 @@ class StartBot:
     async def start(self, msg: Message, default_target_anny_id=None):
         try:
             user_id = msg.from_user.id
-            user_nickname = msg.from_user.first_name
+            user_nickname = NicknameManager(self.bot).generate_random_nickname()
             target_anny_id = default_target_anny_id or self._get_target_user_id(msg)
-
-            store_user_data(user_id, nickname=user_nickname)
+            if not is_user_in_database(user_id):
+                store_user_data(user_id, nickname=user_nickname)
+                update_user_field(user_id, 'first_time', False)
             user_data = users_collection.find_one({"user_id": user_id})
 
             # If no target user, close chats and send a welcome message

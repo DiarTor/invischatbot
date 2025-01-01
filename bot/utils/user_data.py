@@ -19,8 +19,7 @@ def store_user_data(user_id: int, nickname: str = None):
     Store user data in the database.
     :param user_id: user ID.
     :param nickname: nickname of the user."""
-    if not is_user_in_database(user_id):
-        user_data = {
+    user_data = {
             "id": f"{str(uuid.uuid4())[:5]}{str(uuid.uuid4().int)[-5:]}",
             "user_id": user_id,
             "nickname": nickname,
@@ -29,9 +28,10 @@ def store_user_data(user_id: int, nickname: str = None):
             "chats": [],
             "blocklist": [],
             "is_bot_off": False,
-            "version": config('VERSION', cast=float)
+            "version": config('VERSION', cast=float),
+            "first_time": True
         }
-        users_collection.insert_one(user_data)
+    users_collection.insert_one(user_data)
 
 
 def close_existing_chats(user_id: int):
