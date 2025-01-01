@@ -82,6 +82,11 @@ class KeyboardMarkupGenerator:
 
         return self._create_list_inline_keyboard(buttons)
 
+    def change_nickname_buttons(self):
+        buttons = [
+            InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data=f'change-nickname')
+        ]
+        return self._create_inline_keyboard(buttons)
     def recipient_buttons(self, sender_id, message_id=None, is_seen=False):
         """
         :param sender_id: anny id

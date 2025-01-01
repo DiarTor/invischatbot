@@ -20,28 +20,51 @@ class StartBot:
             user_id = msg.from_user.id
             user_nickname = NicknameManager(self.bot).generate_random_nickname()
             target_anny_id = default_target_anny_id or self._get_target_user_id(msg)
+
+            # If the user doesn't exist in the database, store their data
             if not is_user_in_database(user_id):
                 store_user_data(user_id, nickname=user_nickname)
-                update_user_field(user_id, 'first_time', False)
-            user_data = users_collection.find_one({"user_id": user_id})
 
-            # If no target user, close chats and send a welcome message
+            # Retrieve user data from the database
+            user_data = users_collection.find_one({"user_id": user_id})
+            if not target_anny_id and user_data.get('first_time'):
+                await self.bot.send_message(
+                    msg.chat.id,
+                    get_response('greeting.first_time', user_nickname),
+                    reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
+                    parse_mode='Markdown',
+                )
+                # Update the user field to mark them as not first time
+                update_user_field(user_id, 'first_time', False)
+                return
+
+            # If no target user provided, close any open chats and send a general welcome message
             if not target_anny_id:
                 close_open_chats(user_id)
                 await self._send_welcome_message(msg)
                 return
 
+            # If it's the user's first time, show a welcome message and explain the process
+            if user_data.get('first_time'):
+                await self.bot.send_message(
+                    msg.chat.id,
+                    get_response('greeting.first_time', user_nickname),
+                    reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
+                    parse_mode='Markdown',
+                )
+                update_user_field(user_id, 'first_time', False)
             # Retrieve target user data
             target_user_data = users_collection.find_one({"id": target_anny_id})
             if not target_user_data:
                 await self.bot.send_message(user_id, get_response('errors.no_user_found'))
                 return
 
-            # Check invalid cases
+            # Check if the user is trying to message themselves
             if target_user_data["user_id"] == user_id:
                 await self.bot.send_message(user_id, get_response('errors.cant_message_self'))
                 return
 
+            # Check if the user is blocked by the target user
             if is_user_blocked(user_data.get('id'), target_user_data["user_id"]):
                 await self.bot.send_message(
                     msg.chat.id,
@@ -49,22 +72,28 @@ class StartBot:
                     reply_markup=KeyboardMarkupGenerator().main_buttons()
                 )
                 return
-            # check if the user bot status is off
+
+            # Check if the user's bot status is off
             if is_bot_status_off(user_id):
                 await self.bot.send_message(
-                    msg.chat.id, get_response('account.bot_status.self.off'),
+                    msg.chat.id,
+                    get_response('account.bot_status.self.off'),
                     reply_markup=KeyboardMarkupGenerator().main_buttons(),
                     parse_mode='Markdown'
                 )
                 return
-            # check if the target user bot status is off
+
+            # Check if the target user's bot status is off
             if is_bot_status_off(target_user_data["user_id"]):
-                await self.bot.send_message(msg.chat.id, get_response('account.bot_status.recipient.off'),
-                                            reply_markup=KeyboardMarkupGenerator().main_buttons(),
-                                            parse_mode='Markdown'
-                                            )
+                await self.bot.send_message(
+                    msg.chat.id,
+                    get_response('account.bot_status.recipient.off'),
+                    reply_markup=KeyboardMarkupGenerator().main_buttons(),
+                    parse_mode='Markdown'
+                )
                 return
-            # Manage chats if all checks pass, first reset replying state to handle any bugs
+
+            # Manage chats if all checks pass
             reset_replying_state(user_id)
             await self._manage_chats(user_data, target_user_data)
 
@@ -142,7 +171,8 @@ class StartBot:
 
     async def _send_welcome_message(self, msg: Message):
         """Send a welcome message to the user."""
-        await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', msg.from_user.first_name),
+        nickname = get_user(msg.chat.id).get('nickname')
+        await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', nickname),
                                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons())
 
     async def _send_error_message(self, msg: Message, error_key: str):
