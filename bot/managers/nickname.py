@@ -31,7 +31,6 @@ class NicknameManager:
         # Validate the nickname
         validator = NicknameValidator()
         is_valid, validation_message = validator.validate_nickname(nickname)
-
         if is_valid:
             # Proceed to store the user data if the nickname is valid
             update_user_field(user_id, "nickname", nickname)
@@ -47,7 +46,6 @@ class NicknameManager:
             await self.bot.send_message(
                 msg.chat.id,
                 f"{validation_message}",
-                parse_mode='Markdown'
             )
 
     @staticmethod

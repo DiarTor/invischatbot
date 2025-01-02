@@ -76,12 +76,11 @@ class NicknameValidator:
         if any(word in nickname.lower() for word in self.restricted_words):
             return False, "❌ نام مستعار شامل کلمات محدودشده است."
 
-        if not re.match(r'^\w+$', nickname):
-            return False, "🔤 نام مستعار باید فقط حروف، اعداد یا زیرخط (_) باشد."
+        # if not re.match(r'^\w+$', nickname):
+        #     return False, "🔤 نام مستعار باید فقط حروف، اعداد یا زیرخط (_) باشد."
 
         return True, "✅ نام مستعار معتبر است."
 
-import re
 
 class MessageValidator:
     """
