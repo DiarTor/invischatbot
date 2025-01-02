@@ -42,7 +42,7 @@ class CallbackHandler:
     async def handle_inline_query(self, inline: InlineQuery):
         """Handle inline queries for 'Text Me'."""
         user_id = inline.from_user.id
-        text = inline.query.strip() or "پیام خود را بنویسید..."  # Default text if empty
+        text = inline.query.strip() or "حرفتو ناشناس بهم بزن 😉"  # Default text if empty
 
         # Generate the unique link for the user (user's ID or custom data)
         link = generate_anny_link(get_user_anny_id(user_id))
@@ -51,7 +51,7 @@ class CallbackHandler:
         content = InputTextMessageContent(f"{text}")
         result = InlineQueryResultArticle(
             id=inline.id,
-            title="پیام خود را بفرستید",
+            title="متن خودت رو بنویس",
             description=text,
             input_message_content=content,
             thumbnail_url='https://s8.uupload.ir/files/photo_2024-10-20_02-07-59_h3tq.jpg',
