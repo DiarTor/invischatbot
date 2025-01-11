@@ -4,7 +4,7 @@ from telebot.types import Message
 from bot.utils.date import convert_timestamp_to_date
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import get_user
+from bot.utils.user_data import get_user_by_id
 
 
 class AccountManager:
@@ -13,7 +13,7 @@ class AccountManager:
 
     async def account(self, msg: Message):
         """ send the response text"""
-        user_data = get_user(msg.chat.id)
+        user_data = get_user_by_id(msg.chat.id)
         joined_at = convert_timestamp_to_date(user_data['joined_at'])
         if user_data.get('is_bot_off'):
             await self.bot.send_message(msg.chat.id, get_response('account.show', user_data['id'],
@@ -29,7 +29,7 @@ class AccountManager:
     @staticmethod
     def get_account_response(msg: Message):
         """ return the response text"""
-        user_data = get_user(msg.chat.id)
+        user_data = get_user_by_id(msg.chat.id)
         joined_at = convert_timestamp_to_date(user_data['joined_at'])
         return get_response('account.show', user_data['id'],
                             user_data['nickname'], joined_at)

@@ -9,7 +9,7 @@ from bot.managers.settings import SettingsManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import get_user, update_user_field, get_user_id, close_open_chats, add_seen_message, \
+from bot.utils.user_data import get_user_by_id, update_user_field, fetch_user_id, close_chats, add_seen_message, \
     is_bot_status_off, generate_anny_link, get_user_anny_id
 
 
@@ -75,13 +75,13 @@ class CallbackHandler:
                 show_alert=True
             )
             return
-        elif is_bot_status_off(get_user_id(sender_id)):
+        elif is_bot_status_off(fetch_user_id(sender_id)):
             await self.bot.answer_callback_query(callback.id, get_response('account.bot_status.recipient.off'),
                                                  show_alert=True
                                                  )
             return
         # Update the user's chat state to indicate they are replying
-        close_open_chats(callback.from_user.id)
+        close_chats(callback.from_user.id)
         self._set_replying_state(callback.from_user.id, message_id, sender_id)
 
         # Prompt the user to send their reply text
@@ -96,7 +96,7 @@ class CallbackHandler:
     async def _process_seen_callback(self, callback: CallbackQuery):
         """Process the seen callback"""
         sender_anny_id, message_id = callback.data
-        sender_id = get_user_id(sender_anny_id)
+        sender_id = fetch_user_id(sender_anny_id)
         # check if the user or the target user, bot status is off
         if is_bot_status_off(callback.from_user.id):
             await self.bot.answer_callback_query(
@@ -123,7 +123,7 @@ class CallbackHandler:
         keyboard = KeyboardMarkupGenerator()
         if 'block' in callback.data.split('-'):
             action, sender_id, message_id = callback.data.split('-')
-            if sender_id == get_user(callback.message.chat.id).get('id'):
+            if sender_id == get_user_by_id(callback.message.chat.id).get('id'):
                 await self.bot.answer_callback_query(callback.id, get_response('blocking.self'))
                 return
             if sender_id == 'support':

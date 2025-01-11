@@ -13,7 +13,8 @@ from bot.managers.support import SupportManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import get_user, is_user_blocked, close_open_chats, reset_replying_state, is_bot_status_off
+from bot.utils.user_data import get_user_by_id, is_user_blocked, \
+    is_bot_status_off, close_chats
 from bot.utils.validators import MessageValidator
 
 
@@ -25,7 +26,7 @@ class ChatHandler:
     async def anonymous_chat(self, msg: Message):
         """Main method to handle anonymous chat with support for different media types."""
         self.msg = msg
-        user_chat = get_user(self.msg.chat.id)
+        user_chat = get_user_by_id(self.msg.chat.id)
 
         if not user_chat:
             await StartBot(self.bot).start(msg)
@@ -76,7 +77,7 @@ class ChatHandler:
 
     async def _process_chat(self, msg: Message, **kwargs):
         """Process the chat based on the type of message."""
-        user_chat = get_user(msg.from_user.id)
+        user_chat = get_user_by_id(msg.from_user.id)
         open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
 
         # Check if the user is in awaiting nickname state and trying to send a message, if so set the state to false
@@ -84,7 +85,7 @@ class ChatHandler:
         # this condition happens when someone is in awaiting nickname state and set their replying state to True or open a chat.
         if open_chat or user_chat.get('replying') and user_chat.get('awaiting_nickname'):
             users_collection.update_one({'user_id': msg.chat.id}, {'$set': {'awaiting_nickname': False}})
-            user_chat = get_user(msg.chat.id)
+            user_chat = get_user_by_id(msg.chat.id)
         # Check if the user is in replying state, if so handle the text as reply message.
         if user_chat.get('replying'):
             await self._handle_reply(msg, user_chat)
@@ -101,12 +102,12 @@ class ChatHandler:
         # Check if the target user blocked the user
         target_user_id = open_chat.get('target_user_id')
         if is_user_blocked(user_chat.get('id'), target_user_id):
-            close_open_chats(user_chat.get('user_id'))
+            close_chats(user_chat.get('user_id'))
             await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
         # check if the target user changed the bot status to off
         if is_bot_status_off(target_user_id):
-            close_open_chats(user_chat.get('user_id'))
+            close_chats(user_chat.get('user_id'))
             await self.bot.send_message(msg.chat.id, get_response('account.bot_status.recipient.off'),
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
 
@@ -162,10 +163,10 @@ class ChatHandler:
 
         :param recipient_id: recipient user id.
         """
-        sender_anny_id = get_user(msg.chat.id).get('id')
+        sender_anny_id = get_user_by_id(msg.chat.id).get('id')
         print(msg.text, type(msg.text))
         await self._send_media(msg, recipient_id, sender_anny_id)
-        close_open_chats(msg.chat.id)
+        close_chats(msg.chat.id)
         await self.bot.send_message(
             msg.chat.id, get_response('texting.sending.text.sent'),
             parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -177,7 +178,7 @@ class ChatHandler:
         recipient_user = users_collection.find_one({"id": recipient_id})
 
         if not recipient_user:
-            reset_replying_state(msg.chat.id)
+            close_chats(msg.chat.id, True)
             await self.bot.send_message(
                 msg.chat.id, get_response('errors.user_not_found'),
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -185,7 +186,7 @@ class ChatHandler:
             return
 
         if is_user_blocked(user_chat.get("id"), recipient_user.get('user_id')):
-            reset_replying_state(msg.chat.id)
+            close_chats(msg.chat.id, True)
             await self.bot.send_message(
                 msg.chat.id, get_response('blocking.blocked_by_user'),
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -200,7 +201,7 @@ class ChatHandler:
             msg.chat.id, get_response('texting.replying.sent'),
             parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons()
         )
-        reset_replying_state(msg.from_user.id)
+        close_chats(msg.from_user.id, True)
 
     async def handle_link(self):
         await LinkManager(self.bot).link(self.msg)
@@ -221,11 +222,11 @@ class ChatHandler:
         await AccountManager(self.bot).account(self.msg)
 
     async def cancel_chat_or_reply(self, msg: Message):
-        user_chat = get_user(msg.from_user.id)
+        user_chat = get_user_by_id(msg.from_user.id)
         open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
 
         if user_chat.get("replying"):
-            reset_replying_state(msg.from_user.id)
+            close_chats(msg.from_user.id, True)
             await self.bot.send_message(
                 msg.chat.id, get_response('texting.replying.cancelled'), parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -256,8 +257,7 @@ class ChatHandler:
         await StartBot(self.bot).start(msg)
 
     def _handle_bot_blocked(self, msg: Message):
-        close_open_chats(msg.chat.id)
-        reset_replying_state(msg.chat.id)
+        close_chats(msg.chat.id, True)
         self.bot.send_message(msg.chat.id, get_response('errors.bot_blocked'),
                               reply_markup=KeyboardMarkupGenerator().main_buttons())
 

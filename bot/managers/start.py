@@ -7,8 +7,8 @@ from bot.managers.nickname import NicknameManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
-from bot.utils.user_data import close_open_chats, is_user_blocked, store_user_data, reset_replying_state, get_user, \
-    is_bot_status_off, is_user_in_database, update_user_field
+from bot.utils.user_data import close_chats, is_user_blocked, save_user_data, get_user_by_id, \
+    is_bot_status_off, user_exists, update_user_field
 
 
 class StartBot:
@@ -22,8 +22,8 @@ class StartBot:
             target_anny_id = default_target_anny_id or self._get_target_user_id(msg)
 
             # If the user doesn't exist in the database, store their data
-            if not is_user_in_database(user_id):
-                store_user_data(user_id, nickname=user_nickname)
+            if not user_exists(user_id):
+                save_user_data(user_id, nickname=user_nickname)
 
             # Retrieve user data from the database
             user_data = users_collection.find_one({"user_id": user_id})
@@ -40,7 +40,7 @@ class StartBot:
 
             # If no target user provided, close any open chats and send a general welcome message
             if not target_anny_id:
-                close_open_chats(user_id)
+                close_chats(user_id)
                 await self._send_welcome_message(msg)
                 return
 
@@ -94,7 +94,7 @@ class StartBot:
                 return
 
             # Manage chats if all checks pass
-            reset_replying_state(user_id)
+            close_chats(user_id, True)
             await self._manage_chats(user_data, target_user_data)
 
         except (ValueError, IndexError):
@@ -112,7 +112,7 @@ class StartBot:
 
         # Close existing chats only if they are not with the target user
         if not any(chat['target_user_id'] == target_user_id and chat['open'] for chat in user_data.get('chats', [])):
-            close_open_chats(user_id)
+            close_chats(user_id)
 
         # Check if there's already an open chat with the target user
         if any(chat['target_user_id'] == target_user_id for chat in user_data.get('chats', [])):
@@ -156,7 +156,7 @@ class StartBot:
             {
                 "$push": {
                     "chats": {
-                        "target_user_bot_id": get_user(user_id).get('id'),
+                        "target_user_bot_id": get_user_by_id(user_id).get('id'),
                         "target_user_id": user_id,
                         "chat_created_at": datetime.timestamp(datetime.now()),
                         "chat_started_at": datetime.timestamp(datetime.now()),
@@ -171,7 +171,7 @@ class StartBot:
 
     async def _send_welcome_message(self, msg: Message):
         """Send a welcome message to the user."""
-        nickname = get_user(msg.chat.id).get('nickname')
+        nickname = get_user_by_id(msg.chat.id).get('nickname')
         await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', nickname),
                                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons())
 

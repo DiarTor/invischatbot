@@ -1,26 +1,36 @@
 import uuid
 from datetime import datetime
+from urllib.parse import quote
 
 from decouple import config
 
 from bot.utils.database import users_collection
 
 
-def is_user_in_database(user_id: int):
+def user_exists(user_id: int) -> bool:
     """
-    Check if the user ID is in the database
-    :param user_id: The user ID
+    Check if the user exists in the database.
+    :param user_id: User ID to check.
+    :return: True if user exists, False otherwise.
     """
-    return users_collection.find_one({'user_id': user_id})
+    return bool(users_collection.find_one({'user_id': user_id}))
 
 
-def store_user_data(user_id: int, nickname: str = None):
+
+def create_unique_id() -> str:
+    """Generate a unique 10-character ID."""
+    return f"{str(uuid.uuid4())[:5]}{str(uuid.uuid4().int)[-5:]}"
+
+
+def save_user_data(user_id: int, nickname: str = None) -> None:
     """
     Store user data in the database.
-    :param user_id: user ID.
-    :param nickname: nickname of the user."""
-    user_data = {
-            "id": f"{str(uuid.uuid4())[:5]}{str(uuid.uuid4().int)[-5:]}",
+    :param user_id: User ID.
+    :param nickname: Nickname of the user.
+    """
+    try:
+        user_data = {
+            "id": create_unique_id(),
             "user_id": user_id,
             "nickname": nickname,
             "awaiting_nickname": False,
@@ -31,43 +41,21 @@ def store_user_data(user_id: int, nickname: str = None):
             "version": config('VERSION', cast=float),
             "first_time": True
         }
-    users_collection.insert_one(user_data)
+        users_collection.insert_one(user_data)
+    except Exception as e:
+        print(f"Failed to store user data: {e}")
 
 
-def close_existing_chats(user_id: int):
+def get_user_by_id(user_id: int) -> dict | None:
     """
-    Close existing chats and replying state for the user.
-    :param user_id: user id
-    :return:
+    Retrieve user data from the database.
+    :param user_id: User ID.
+    :return: User data dictionary or None if not found.
     """
-    users_collection.update_one(
-        {"user_id": user_id},
-        {"$set": {"replying": False, "reply_target_message_id": "", "reply_target_user_id": "",
-                  "chats.$[].open": False}}  # Close all open chats, reset replying
-    )
+    return users_collection.find_one({"user_id": user_id}) or None
 
 
-def reset_replying_state(user_id: int):
-    """
-    Reset the replying state for the user.
-    :param user_id: user id
-    """
-    users_collection.update_one(
-        {"user_id": user_id},
-        {"$set": {"replying": False, "reply_target_message_id": "", "reply_target_user_id": ""}}
-        # Clear reply state
-    )
-
-
-def get_user(user_id: int):
-    """
-    Retrieve user data from database
-    :param user_id: user id
-    """
-    return users_collection.find_one({"user_id": user_id})
-
-
-def get_user_id(user_anny_id: str):
+def fetch_user_id(user_anny_id: str):
     """
     Retrieve user id from database
     :param user_anny_id: the user anonymous id
@@ -85,39 +73,57 @@ def get_user_anny_id(user_id: int):
     return users_collection.find_one({"user_id": user_id}).get('id', None)
 
 
+def get_user_data_by_query(query: dict) -> dict | None:
+    """Retrieve a user by query."""
+    return users_collection.find_one(query)
+
+
 def is_user_blocked(sender_id: str, recipient_id: int) -> bool:
     """
-    :param sender_id: anny id
-    :param recipient_id: user id
-    :return:
+    Check if a user is blocked.
+    :param sender_id: Anonymous ID of sender.
+    :param recipient_id: User ID of recipient.
+    :return: True if either user has blocked the other, False otherwise.
     """
-    sender_data = users_collection.find_one({"id": sender_id})
-    recipient_data = users_collection.find_one({"user_id": recipient_id})
-    return recipient_data and (
-            sender_data['id'] in recipient_data.get('blocklist', []) or
-            recipient_data['id'] in sender_data.get('blocklist', [])
-    )
+    sender_data = get_user_data_by_query({"id": sender_id})
+    recipient_data = get_user_data_by_query({"user_id": recipient_id})
+
+    if not sender_data or not recipient_data:
+        return False  # If data is missing, assume not blocked
+
+    sender_blocklist = sender_data.get('blocklist', [])
+    recipient_blocklist = recipient_data.get('blocklist', [])
+
+    return sender_data['id'] in recipient_blocklist or recipient_data['id'] in sender_blocklist
 
 
-def update_user_field(user_id, field, value):
+def update_user_field(user_id: int, field: str, value: any) -> bool:
     """
-    Update user field with new value
-    :param user_id: user id
-    :param field: the field you want to update
-    :param value: new value of the field
+    Update a specific user field with a new value.
+    :param user_id: User ID.
+    :param field: Field to update.
+    :param value: New value for the field.
+    :return: True if updated successfully, False otherwise.
     """
-    users_collection.update_one({"user_id": user_id}, {"$set": {field: value}})
+    try:
+        result = users_collection.update_one({"user_id": user_id}, {"$set": {field: value}})
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Failed to update user field: {e}")
+        return False
 
 
-def close_open_chats(user_id: int):
+def close_chats(user_id: int, reset_replying: bool = False) -> None:
     """
-    Close existing chats for the user.
-    :param user_id: user id
+    Close all open chats for a user and optionally reset the replying state.
+    :param user_id: User ID.
+    :param reset_replying: Whether to reset replying state.
     """
-    users_collection.update_one(
-        {"user_id": user_id},
-        {"$set": {"chats.$[].open": False}}  # Close all open chats
-    )
+    update_fields = {"chats.$[].open": False}
+    if reset_replying:
+        update_fields.update({"replying": False, "reply_target_message_id": "", "reply_target_user_id": ""})
+
+    users_collection.update_one({"user_id": user_id}, {"$set": update_fields})
 
 
 def add_seen_message(user_id, message_id: int):
@@ -165,5 +171,10 @@ def is_bot_status_off(user_id: str | int):
 
 
 def generate_anny_link(user_anny_id: str) -> str:
-    """Generate a link to the bot for the user."""
-    return f"https://t.me/{config('BOT_USERNAME', cast=str)}?start={user_anny_id}"
+    """
+    Generate a link to the bot for the user.
+    :param user_anny_id: Anonymous ID of the user.
+    :return: Bot link as a string.
+    """
+    bot_username = quote(config('BOT_USERNAME', cast=str))
+    return f"https://t.me/{bot_username}?start={quote(user_anny_id)}"
