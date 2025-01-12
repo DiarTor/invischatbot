@@ -87,6 +87,13 @@ class KeyboardMarkupGenerator:
             InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data=f'change-nickname')
         ]
         return self._create_inline_keyboard(buttons)
+
+    def sender_buttons(self, recipient_message_id: int, recipient_anon_id):
+        buttons = [
+            InlineKeyboardButton('ویرایش پیام', callback_data=f'edit_message-{recipient_message_id}-{recipient_anon_id}'),
+        ]
+
+        return self._create_inline_keyboard(buttons)
     def recipient_buttons(self, sender_id, message_id=None, is_seen=False):
         """
         :param sender_id: anny id

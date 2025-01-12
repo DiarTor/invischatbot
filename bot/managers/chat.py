@@ -1,5 +1,6 @@
+import time
+
 from decouple import config
-from humanfriendly.terminal import message
 from telebot.apihelper import ApiTelegramException
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
@@ -14,8 +15,7 @@ from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.user_data import get_user_by_id, is_user_blocked, \
-    is_bot_status_off, close_chats
-from bot.utils.validators import MessageValidator
+    is_bot_status_off, close_chats, update_user_fields, get_user_anny_id, fetch_user_id
 
 
 class ChatHandler:
@@ -94,6 +94,10 @@ class ChatHandler:
         if user_chat.get('awaiting_nickname'):
             await NicknameManager(self.bot).save_nickname(msg)
             return
+
+        if msg.reply_to_message and msg.reply_to_message.id == user_chat.get('editing_prompt_message_id'):
+            await self._handle_editing(msg, user_chat)
+            return
         # Check if there is any open chat when the user sent the message
         if not open_chat:
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
@@ -150,9 +154,26 @@ class ChatHandler:
             elif msg.document:
                 await self.bot.send_document(recipient_id, msg.document.file_id, **base_kwargs)
             else:  # Default to text
-                await self.bot.send_message(
+                target_message = await self.bot.send_message(
                     recipient_id, get_response("texting.sending.text.recipient", msg.text, sender_anny_id),
-                     **strict_kwargs,
+                    **strict_kwargs,
+                )
+                waiting_message = await self.bot.send_message(
+                    msg.chat.id, get_response('texting.sending.text.sending'),
+                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons()
+                )
+                time.sleep(0.5)
+                await self.bot.delete_message(waiting_message.chat.id, waiting_message.id)
+                close_chats(msg.chat.id)
+                if not msg.text:
+                    await self.bot.send_message(
+                        msg.chat.id, get_response('texting.sending.text.sent'),
+                        parse_mode='Markdown'
+                    )
+                    return
+                await self.bot.send_message(
+                    msg.chat.id, get_response('texting.sending.text.sent'),
+                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().sender_buttons(target_message.id, get_user_anny_id(recipient_id))
                 )
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
@@ -164,13 +185,7 @@ class ChatHandler:
         :param recipient_id: recipient user id.
         """
         sender_anny_id = get_user_by_id(msg.chat.id).get('id')
-        print(msg.text, type(msg.text))
         await self._send_media(msg, recipient_id, sender_anny_id)
-        close_chats(msg.chat.id)
-        await self.bot.send_message(
-            msg.chat.id, get_response('texting.sending.text.sent'),
-            parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons()
-        )
 
     async def _handle_reply(self, msg: Message, user_chat):
         """Handle replies to a message."""
@@ -202,6 +217,32 @@ class ChatHandler:
             parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons()
         )
         close_chats(msg.from_user.id, True)
+
+    async def _handle_editing(self, msg: Message, user_chat):
+        """Handle editing of a message."""
+        target_id = fetch_user_id(user_chat.get('editing_target_anon_id'))
+        try:
+            # Edit the target message
+            await self.bot.edit_message_text(
+                chat_id=target_id,
+                message_id=int(user_chat.get('editing_target_message_id')),
+                text=msg.text
+            )
+
+            # Confirm the edit
+            await self.bot.send_message(
+                chat_id=msg.chat.id,
+                text="The message has been successfully edited!"
+            )
+
+            # Clear the editing-related fields
+            update_user_fields(msg.chat.id, {
+                "editing_target_message_id": int(),
+                "editing_prompt_message_id": int()
+            })
+
+        except Exception as e:
+            print(f"Unable to edit the message. Error: {e}")
 
     async def handle_link(self):
         await LinkManager(self.bot).link(self.msg)

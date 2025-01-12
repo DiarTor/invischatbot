@@ -113,6 +113,24 @@ def update_user_field(user_id: int, field: str, value: any) -> bool:
         return False
 
 
+def update_user_fields(user_id: int, fields: dict) -> bool:
+    """
+    Update multiple fields for a specific user.
+
+    :param user_id: User ID.
+    :param fields: A dictionary of fields to update.
+    :return: True if updated successfully, False otherwise.
+    """
+    try:
+        result = users_collection.update_one(
+            {"user_id": user_id},
+            {"$set": fields}
+        )
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Failed to update user fields: {e}")
+        return False
+
 def close_chats(user_id: int, reset_replying: bool = False) -> None:
     """
     Close all open chats for a user and optionally reset the replying state.

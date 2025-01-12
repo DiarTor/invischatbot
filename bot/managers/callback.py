@@ -10,7 +10,7 @@ from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.user_data import get_user_by_id, update_user_field, fetch_user_id, close_chats, add_seen_message, \
-    is_bot_status_off, generate_anny_link, get_user_anny_id
+    is_bot_status_off, generate_anny_link, get_user_anny_id, update_user_fields
 
 
 class CallbackHandler:
@@ -22,6 +22,8 @@ class CallbackHandler:
         callback_data = callback.data
         if callback_data.startswith('reply'):
             await self._process_reply_callback(callback)
+        elif callback_data.startswith('edit_message'):
+            await self._process_edit_message_callback(callback)
         elif callback_data.startswith('seen'):
             callback.data = callback_data.split('-')[1:]
             await self._process_seen_callback(callback)
@@ -145,6 +147,17 @@ class CallbackHandler:
     async def _process_report_callback(self, callback: CallbackQuery):
         """Process the report callback"""
         await self.bot.answer_callback_query(callback.id, get_response('reporting.send'), show_alert=True)
+
+    async def _process_edit_message_callback(self, callback: CallbackQuery):
+        """Process the edit message callback"""
+        action, recipient_message_id, recipient_anon_id = callback.data.split('-')
+        prompt_message = await self.bot.send_message(callback.message.chat.id, get_response('texting.editing.send'),
+                                                     reply_to_message_id=callback.message.id, )
+        update_user_fields(callback.message.chat.id, {
+            "editing_target_message_id": int(recipient_message_id),
+            "editing_target_anon_id": str(recipient_anon_id),
+            "editing_prompt_message_id": int(prompt_message.message_id)
+        })
 
     async def _process_unblock_callback(self, callback: CallbackQuery):
         keyboard = KeyboardMarkupGenerator()
