@@ -1,5 +1,3 @@
-import time
-
 from decouple import config
 from jdatetime import datetime
 from telebot.apihelper import ApiTelegramException
@@ -159,12 +157,6 @@ class ChatHandler:
                     recipient_id, get_response("texting.sending.text.recipient", msg.text, sender_anny_id),
                     **strict_kwargs,
                 )
-                waiting_message = await self.bot.send_message(
-                    msg.chat.id, get_response('texting.sending.text.sending'),
-                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons()
-                )
-                time.sleep(0.5)
-                await self.bot.delete_message(waiting_message.chat.id, waiting_message.id)
                 close_chats(msg.chat.id)
                 if not msg.text:
                     await self.bot.send_message(
@@ -176,8 +168,11 @@ class ChatHandler:
                     msg.chat.id, get_response('texting.sending.text.sent'),
                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().sender_buttons(target_message.id,
                                                                                                  get_user_anny_id(
-                                                                                                     recipient_id))
+                                                                                                     recipient_id)),
+                    reply_to_message_id=msg.id
                 )
+                await self.bot.send_message(msg.chat.id, get_response('ad.banner'),
+                                            reply_markup=KeyboardMarkupGenerator().main_buttons())
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
 
@@ -233,7 +228,9 @@ class ChatHandler:
             # Confirm the edit
             await self.bot.send_message(
                 chat_id=msg.chat.id,
-                text=get_response('texting.editing.sent')
+                text=get_response('texting.editing.sent'),
+                reply_markup=KeyboardMarkupGenerator().main_buttons(),
+                reply_to_message_id=msg.id
             )
 
             # Clear the editing-related fields

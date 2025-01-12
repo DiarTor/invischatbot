@@ -90,7 +90,7 @@ class KeyboardMarkupGenerator:
 
     def sender_buttons(self, recipient_message_id: int, recipient_anon_id):
         buttons = [
-            InlineKeyboardButton('ویرایش پیام', callback_data=f'edit_message-{recipient_message_id}-{recipient_anon_id}'),
+            InlineKeyboardButton('ویرایش پیام', callback_data=f'edit_message-{recipient_message_id}-{recipient_anon_id}', ),
         ]
 
         return self._create_inline_keyboard(buttons)
