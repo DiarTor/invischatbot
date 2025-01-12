@@ -1,6 +1,7 @@
 import time
 
 from decouple import config
+from jdatetime import datetime
 from telebot.apihelper import ApiTelegramException
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
@@ -173,7 +174,9 @@ class ChatHandler:
                     return
                 await self.bot.send_message(
                     msg.chat.id, get_response('texting.sending.text.sent'),
-                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().sender_buttons(target_message.id, get_user_anny_id(recipient_id))
+                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().sender_buttons(target_message.id,
+                                                                                                 get_user_anny_id(
+                                                                                                     recipient_id))
                 )
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
@@ -212,27 +215,25 @@ class ChatHandler:
         await self._send_media(msg,
                                recipient_user['user_id'], sender_anny_id, reply_to_message_id=original_message_id
                                )
-        await self.bot.send_message(
-            msg.chat.id, get_response('texting.replying.sent'),
-            parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons()
-        )
         close_chats(msg.from_user.id, True)
 
     async def _handle_editing(self, msg: Message, user_chat):
         """Handle editing of a message."""
         target_id = fetch_user_id(user_chat.get('editing_target_anon_id'))
         try:
+            jdate = datetime.today().strftime('%H:%M %Y/%m/%d')
             # Edit the target message
             await self.bot.edit_message_text(
                 chat_id=target_id,
                 message_id=int(user_chat.get('editing_target_message_id')),
-                text=msg.text
+                text=get_response('texting.editing.recipient', msg.text, get_user_anny_id(msg.chat.id), jdate),
+                reply_markup=KeyboardMarkupGenerator().recipient_buttons(get_user_anny_id(msg.chat.id), msg.id)
             )
 
             # Confirm the edit
             await self.bot.send_message(
                 chat_id=msg.chat.id,
-                text="The message has been successfully edited!"
+                text=get_response('texting.editing.sent')
             )
 
             # Clear the editing-related fields
