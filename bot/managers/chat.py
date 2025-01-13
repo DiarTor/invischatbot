@@ -1,5 +1,6 @@
 import asyncio
 
+import pytz
 from decouple import config
 from jdatetime import datetime
 from telebot.apihelper import ApiTelegramException
@@ -224,8 +225,7 @@ class ChatHandler:
         """Handle editing of a message."""
         target_id = fetch_user_id(user_chat.get('editing_target_anon_id'))
         try:
-            datetime.today().strftime()
-            jdate = datetime.today().strftime('%H:%M %Y/%m/%d')
+            jdate = datetime.now(pytz.timezone('Asia/Tehran')).strftime('%H:%M %Y/%m/%d')
             # Edit the target message
             await self.bot.edit_message_text(
                 chat_id=target_id,

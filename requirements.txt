@@ -16,6 +16,7 @@ propcache==0.2.0
 pymongo==4.10.1
 pyTelegramBotAPI==4.23.0
 python-decouple==3.8
+pytz==2024.2
 requests==2.32.3
 urllib3==2.2.3
 yarl==1.17.1
