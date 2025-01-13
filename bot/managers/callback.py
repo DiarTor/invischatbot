@@ -151,8 +151,10 @@ class CallbackHandler:
     async def _process_edit_message_callback(self, callback: CallbackQuery):
         """Process the edit message callback"""
         action, recipient_message_id, recipient_anon_id = callback.data.split('-')
-        prompt_message = await self.bot.send_message(callback.message.chat.id, get_response('texting.editing.send'),
-                                                     reply_to_message_id=callback.message.id, reply_markup=ForceReply(input_field_placeholder='پیام جدید خود را بنویسید'))
+        prompt_message = await self.bot.send_message(callback.message.chat.id,
+                                                     get_response('texting.tools.editing.send'),
+                                                     reply_to_message_id=callback.message.id, reply_markup=ForceReply(
+                input_field_placeholder='پیام جدید خود را بنویسید'))
         update_user_fields(callback.message.chat.id, {
             "editing_target_message_id": int(recipient_message_id),
             "editing_target_anon_id": str(recipient_anon_id),

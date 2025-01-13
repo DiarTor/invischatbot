@@ -1,3 +1,5 @@
+import threading
+
 from decouple import config
 from jdatetime import datetime
 from telebot.apihelper import ApiTelegramException
@@ -13,6 +15,7 @@ from bot.managers.support import SupportManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
+from bot.utils.threads import delete_message
 from bot.utils.user_data import get_user_by_id, is_user_blocked, \
     is_bot_status_off, close_chats, update_user_fields, get_user_anny_id, fetch_user_id
 
@@ -166,13 +169,20 @@ class ChatHandler:
                     return
                 await self.bot.send_message(
                     msg.chat.id, get_response('texting.sending.text.sent'),
-                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().sender_buttons(target_message.id,
-                                                                                                 get_user_anny_id(
-                                                                                                     recipient_id)),
+                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons(),
                     reply_to_message_id=msg.id
                 )
-                await self.bot.send_message(msg.chat.id, get_response('ad.banner'),
-                                            reply_markup=KeyboardMarkupGenerator().main_buttons())
+                tools_message = await self.bot.send_message(msg.chat.id, get_response('texting.tools.announce'),
+                                                            reply_markup=KeyboardMarkupGenerator().sender_buttons(
+                                                                target_message.id,
+
+                                                                get_user_anny_id(
+                                                                    recipient_id)),
+                                                            reply_to_message_id=msg.id)
+                func = await delete_message(self.bot, msg.chat.id, tools_message.id)
+                delete_tools_message_threads = threading.Thread(target=func)
+                delete_tools_message_threads.start()
+
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
 
@@ -216,19 +226,20 @@ class ChatHandler:
         """Handle editing of a message."""
         target_id = fetch_user_id(user_chat.get('editing_target_anon_id'))
         try:
+            datetime.today().strftime()
             jdate = datetime.today().strftime('%H:%M %Y/%m/%d')
             # Edit the target message
             await self.bot.edit_message_text(
                 chat_id=target_id,
                 message_id=int(user_chat.get('editing_target_message_id')),
-                text=get_response('texting.editing.recipient', msg.text, get_user_anny_id(msg.chat.id), jdate),
+                text=get_response('texting.tools.editing.recipient', msg.text, get_user_anny_id(msg.chat.id), jdate),
                 reply_markup=KeyboardMarkupGenerator().recipient_buttons(get_user_anny_id(msg.chat.id), msg.id)
             )
 
             # Confirm the edit
             await self.bot.send_message(
                 chat_id=msg.chat.id,
-                text=get_response('texting.editing.sent'),
+                text=get_response('texting.tools.editing.sent'),
                 reply_markup=KeyboardMarkupGenerator().main_buttons(),
                 reply_to_message_id=msg.id
             )
