@@ -1,3 +1,4 @@
+import asyncio
 import threading
 
 from decouple import config
@@ -179,9 +180,7 @@ class ChatHandler:
                                                                 get_user_anny_id(
                                                                     recipient_id)),
                                                             reply_to_message_id=msg.id)
-                func = await delete_message(self.bot, msg.chat.id, tools_message.id)
-                delete_tools_message_threads = threading.Thread(target=func)
-                delete_tools_message_threads.start()
+                asyncio.create_task(delete_message(self.bot, msg.chat.id, tools_message.id, minutes=5))
 
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
