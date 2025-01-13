@@ -179,7 +179,7 @@ class ChatHandler:
                                                                 get_user_anny_id(
                                                                     recipient_id)),
                                                             reply_to_message_id=msg.id)
-                asyncio.create_task(delete_message(self.bot, msg.chat.id, tools_message.id, minutes=0.1))
+                asyncio.create_task(delete_message(self.bot, msg.chat.id, tools_message.id, minutes=5))
 
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
