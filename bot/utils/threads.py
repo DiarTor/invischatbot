@@ -1,8 +1,10 @@
 import asyncio
+
 from telebot.async_telebot import AsyncTeleBot
 
+
 # Define your delete_message function properly
-async def delete_message(bot: AsyncTeleBot, chat_id: int, message_id: int, minutes: int = 5):
+async def delete_message(bot: AsyncTeleBot, chat_id: int, message_id: int, minutes: int | float = 5):
     # Convert minutes to seconds and wait asynchronously
     await asyncio.sleep(minutes * 60)  # Non-blocking wait
     try:
