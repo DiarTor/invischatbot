@@ -22,8 +22,11 @@ class CallbackHandler:
         callback_data = callback.data
         if callback_data.startswith('reply'):
             await self._process_reply_callback(callback)
-        elif callback_data.startswith('edit_message'):
-            await self._process_edit_message_callback(callback)
+        # elif callback_data.startswith('edit_message'):
+        #     await self._process_edit_message_callback(callback)
+        elif callback_data.startswith('delete_message'):
+            callback.data = callback_data.split('-')[1:]
+            await self._process_delete_message_callback(callback)
         elif callback_data.startswith('seen'):
             callback.data = callback_data.split('-')[1:]
             await self._process_seen_callback(callback)
@@ -160,6 +163,12 @@ class CallbackHandler:
             "editing_target_anon_id": str(recipient_anon_id),
             "editing_prompt_message_id": int(prompt_message.message_id)
         })
+
+    async def _process_delete_message_callback(self, callback: CallbackQuery):
+        """Process the delete message callback"""
+        recipient_message_id, recipient_anon_id = callback.data
+        await self.bot.delete_message(fetch_user_id(recipient_anon_id), int(recipient_message_id))
+        await self.bot.edit_message_text(get_response('texting.tools.delete.deleted'), callback.message.chat.id, callback.message.id, parse_mode='Markdown')
 
     async def _process_unblock_callback(self, callback: CallbackQuery):
         keyboard = KeyboardMarkupGenerator()
