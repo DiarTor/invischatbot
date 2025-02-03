@@ -3,6 +3,7 @@ from datetime import datetime
 from urllib.parse import quote
 
 from decouple import config
+from telebot.async_telebot import AsyncTeleBot
 
 from bot.utils.database import users_collection
 
@@ -202,3 +203,17 @@ def generate_anny_link(user_anny_id: str) -> str:
     """
     bot_username = quote(config('BOT_USERNAME', cast=str))
     return f"https://t.me/{bot_username}?start={quote(user_anny_id)}"
+
+
+async def is_subscribed_to_channel(bot: AsyncTeleBot, user_id: int):
+    """
+    Check if the user is subscribed to the channel.
+    :param user_id: the user telegram user id
+    :param bot: An instance Of telebot.TeleBot
+    :return: True if the user is subscribed to the channel, False otherwise
+    """
+    channel_id = -1002456307928
+    chat_member = await bot.get_chat_member(chat_id=int(channel_id), user_id=user_id)
+    if chat_member.status in ["member", "administrator", "creator"]:
+        return True
+    return False

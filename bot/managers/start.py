@@ -8,7 +8,7 @@ from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.user_data import close_chats, is_user_blocked, save_user_data, get_user_by_id, \
-    is_bot_status_off, user_exists, update_user_field
+    is_bot_status_off, user_exists, update_user_field, is_subscribed_to_channel
 
 
 class StartBot:
@@ -25,6 +25,10 @@ class StartBot:
             if not user_exists(user_id):
                 save_user_data(user_id, nickname=user_nickname)
 
+            if not await is_subscribed_to_channel(self.bot, user_id):
+                await self.bot.send_message(user_id, get_response('ad.force_join'),
+                                            reply_markup=KeyboardMarkupGenerator().force_join_buttons())
+                return
             # Retrieve user data from the database
             user_data = users_collection.find_one({"user_id": user_id})
             if not target_anny_id and user_data.get('first_time'):

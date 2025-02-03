@@ -179,3 +179,9 @@ class KeyboardMarkupGenerator:
             InlineKeyboardButton("📩 بهم ناشناس پیام بده", url=url),
         ]
         return self._create_inline_keyboard(buttons)
+
+    def force_join_buttons(self):
+        buttons = [
+            InlineKeyboardButton('InvisChat Channel', url='t.me/invischats')
+        ]
+        return self._create_inline_keyboard(buttons)

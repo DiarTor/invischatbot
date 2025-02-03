@@ -18,7 +18,7 @@ from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.threads import delete_message
 from bot.utils.user_data import get_user_by_id, is_user_blocked, \
-    is_bot_status_off, close_chats, update_user_fields, get_user_anny_id, fetch_user_id
+    is_bot_status_off, close_chats, update_user_fields, get_user_anny_id, fetch_user_id, is_subscribed_to_channel
 
 
 class ChatHandler:
@@ -40,6 +40,10 @@ class ChatHandler:
             await self._handle_version_mismatch(msg)
             return
 
+        if not await is_subscribed_to_channel(self.bot, self.msg.chat.id):
+            await self.bot.send_message(self.msg.chat.id, get_response('ad.force_join'),
+                                        reply_markup=KeyboardMarkupGenerator().force_join_buttons())
+            return
         # Handle commands from the keyboard
         keyboard_commands = {
             "⬅️ انصراف": self.handle_cancel,
