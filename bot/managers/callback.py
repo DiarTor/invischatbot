@@ -10,7 +10,7 @@ from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.user_data import get_user_by_id, update_user_field, fetch_user_id, close_chats, add_seen_message, \
-    is_bot_status_off, generate_anny_link, get_user_anny_id, update_user_fields
+    is_bot_status_off, generate_anny_link, get_user_anny_id, update_user_fields, get_marked_status, get_seen_status
 
 
 class CallbackHandler:
@@ -34,6 +34,9 @@ class CallbackHandler:
             await self._process_block_callback(callback)
         elif callback_data.startswith('report'):
             await self._process_report_callback(callback)
+        elif callback_data.startswith('mark'):
+            callback.data = callback_data.split('-')[1:]
+            await self._process_mark_message(callback)
         elif callback_data.startswith('unblock'):
             await self._process_unblock_callback(callback)
         elif callback_data.startswith('change-nickname'):
@@ -168,7 +171,8 @@ class CallbackHandler:
         """Process the delete message callback"""
         recipient_message_id, recipient_anon_id = callback.data
         await self.bot.delete_message(fetch_user_id(recipient_anon_id), int(recipient_message_id))
-        await self.bot.edit_message_text(get_response('texting.tools.delete.deleted'), callback.message.chat.id, callback.message.id, parse_mode='Markdown')
+        await self.bot.edit_message_text(get_response('texting.tools.delete.deleted'), callback.message.chat.id,
+                                         callback.message.id, parse_mode='Markdown')
 
     async def _process_unblock_callback(self, callback: CallbackQuery):
         keyboard = KeyboardMarkupGenerator()
@@ -202,6 +206,46 @@ class CallbackHandler:
 
     async def _process_change_bot_status(self, callback: CallbackQuery):
         await SettingsManager(self.bot).change_bot_status(callback)
+
+    async def _process_mark_message(self, callback):
+        sender_anny_id, message_id = callback.data
+        seen = get_seen_status(user_id=callback.message.chat.id, message_id=callback.message.id)
+
+        # Get the original text or caption
+        if callback.message.text:
+            original_text = callback.message.text
+            is_caption = False
+        elif callback.message.caption:
+            original_text = callback.message.caption
+            is_caption = True
+        else:
+            # No text or caption, send a response to the user and exit
+            await self.bot.answer_callback_query(callback.id, "Cannot mark this message.")
+            return
+
+            # Check if the message is already marked
+        if "#️⃣ #marked" in original_text:
+            new_text = original_text.replace("\n #️⃣ #marked", "").strip()
+            marked = False
+        else:
+            new_text = f"{original_text}\n #️⃣ #marked"
+            marked = True
+
+        # Edit the message appropriately (text or caption)
+        if is_caption:
+            await self.bot.edit_message_caption(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.id,
+                caption=new_text,
+                reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id, message_id, seen, marked)
+            )
+        else:
+            await self.bot.edit_message_text(
+                new_text,
+                callback.message.chat.id,
+                callback.message.id,
+                reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id, message_id, seen, marked)
+            )
 
     @staticmethod
     def _set_replying_state(user_id: int, message_id: str, sender_id: str):

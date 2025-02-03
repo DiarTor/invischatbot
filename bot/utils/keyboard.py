@@ -93,15 +93,17 @@ class KeyboardMarkupGenerator:
         #     InlineKeyboardButton('ویرایش پیام', callback_data=f'edit_message-{recipient_message_id}-{recipient_anon_id}', ),
         # ]
         buttons = [
-            InlineKeyboardButton('🗑 حذف پیام', callback_data=f'delete_message-{recipient_message_id}-{recipient_anon_id}')
+            InlineKeyboardButton('🗑 حذف پیام',
+                                 callback_data=f'delete_message-{recipient_message_id}-{recipient_anon_id}')
         ]
         return self._create_inline_keyboard(buttons)
 
-    def recipient_buttons(self, sender_id, message_id=None, is_seen=False):
+    def recipient_buttons(self, sender_id, message_id=None, is_seen=False, is_marked=False):
         """
         :param sender_id: anny id
         :param message_id: message id
         :param is_seen: if True, updates the 'seen' button to indicate it has already been seen
+        :param is_marked: if True, updates the 'marked' button to indicate it has already been marked
         :return: buttons
         """
         buttons = [
@@ -109,6 +111,10 @@ class KeyboardMarkupGenerator:
                 InlineKeyboardButton('دیدم 👀️' if not is_seen else 'قبلاً دیده شده ✅',
                                      callback_data=f'seen-{sender_id}-{message_id}' if not is_seen else 'placeholder'),
                 InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
+            ],
+            [
+                InlineKeyboardButton('☐ علامت گذاری' if not is_marked else '☑ علامت گذاری شده',
+                                     callback_data=f'mark-{sender_id}-{message_id}'),
             ],
             [
                 InlineKeyboardButton('گزارش ⚠️', callback_data='report'),

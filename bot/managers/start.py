@@ -62,7 +62,6 @@ class StartBot:
             # Check if the user is trying to message themselves
             if target_user_data["user_id"] == user_id:
                 await self.bot.send_message(user_id, get_response('errors.cant_message_self'))
-                return
 
             # Check if the user is blocked by the target user
             if is_user_blocked(user_data.get('id'), target_user_data["user_id"]):

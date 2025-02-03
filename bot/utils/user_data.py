@@ -16,7 +16,6 @@ def user_exists(user_id: int) -> bool:
     return bool(users_collection.find_one({'user_id': user_id}))
 
 
-
 def create_unique_id() -> str:
     """Generate a unique 10-character ID."""
     return f"{str(uuid.uuid4())[:5]}{str(uuid.uuid4().int)[-5:]}"
@@ -131,6 +130,7 @@ def update_user_fields(user_id: int, fields: dict) -> bool:
         print(f"Failed to update user fields: {e}")
         return False
 
+
 def close_chats(user_id: int, reset_replying: bool = False) -> None:
     """
     Close all open chats for a user and optionally reset the replying state.
@@ -179,6 +179,12 @@ def get_seen_status(user_id, message_id: int):
         return int(message_id) in user_data.get('seen_messages', [])
 
     # If no data is found, assume the message has not been seen
+    return False
+
+
+def get_marked_status(text: str):
+    if '#️⃣ #marked' in text:
+        return True
     return False
 
 

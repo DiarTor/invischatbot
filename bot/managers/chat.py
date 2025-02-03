@@ -128,6 +128,7 @@ class ChatHandler:
         :param sender_anny_id: sender anny id.
         :param reply_to_message_id: reply message id.
         """
+        global target_message
         caption = msg.caption if msg.caption else ""
         reply_markup = KeyboardMarkupGenerator().recipient_buttons(sender_anny_id, msg.id)
         base_kwargs = {
@@ -143,45 +144,41 @@ class ChatHandler:
             strict_kwargs['reply_to_message_id'] = reply_to_message_id
         try:
             if msg.sticker:
-                await self.bot.send_sticker(recipient_id, msg.sticker.file_id, **strict_kwargs)
+                target_message = await self.bot.send_sticker(recipient_id, msg.sticker.file_id, **strict_kwargs)
             elif msg.photo:
-                await self.bot.send_photo(recipient_id, msg.photo[-1].file_id, **base_kwargs)
+                target_message = await self.bot.send_photo(recipient_id, msg.photo[-1].file_id, **base_kwargs)
             elif msg.video:
-                await self.bot.send_video(recipient_id, msg.video.file_id, **base_kwargs)
+                target_message = await self.bot.send_video(recipient_id, msg.video.file_id, **base_kwargs)
             elif msg.voice:
-                await self.bot.send_voice(recipient_id, msg.voice.file_id, **base_kwargs)
+                target_message = await self.bot.send_voice(recipient_id, msg.voice.file_id, **base_kwargs)
             elif msg.video_note:
-                await self.bot.send_video_note(recipient_id, msg.video_note.file_id, **strict_kwargs)
+                target_message = await self.bot.send_video_note(recipient_id, msg.video_note.file_id, **strict_kwargs)
             elif msg.audio:
-                await self.bot.send_audio(recipient_id, msg.audio.file_id, **base_kwargs)
+                target_message = await self.bot.send_audio(recipient_id, msg.audio.file_id, **base_kwargs)
             elif msg.document:
-                await self.bot.send_document(recipient_id, msg.document.file_id, **base_kwargs)
+                target_message = await self.bot.send_document(recipient_id, msg.document.file_id, **base_kwargs)
             else:  # Default to text
                 target_message = await self.bot.send_message(
                     recipient_id, get_response("texting.sending.text.recipient", msg.text, sender_anny_id),
                     **strict_kwargs,
                 )
-                close_chats(msg.chat.id)
-                if not msg.text:
-                    await self.bot.send_message(
-                        msg.chat.id, get_response('texting.sending.text.sent'),
-                        parse_mode='Markdown'
-                    )
-                    return
-                await self.bot.send_message(
-                    msg.chat.id, get_response('texting.sending.text.sent'),
-                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons(),
-                    reply_to_message_id=msg.id
-                )
-                tools_message = await self.bot.send_message(msg.chat.id, get_response('texting.tools.announce'),
-                                                            reply_markup=KeyboardMarkupGenerator().sender_buttons(
-                                                                target_message.id,
-
-                                                                get_user_anny_id(
-                                                                    recipient_id)),
-                                                            reply_to_message_id=msg.id)
-                asyncio.create_task(delete_message(self.bot, msg.chat.id, tools_message.id, minutes=0.17))
-
+                # await self.bot.send_message(
+                #     msg.chat.id, get_response('texting.sending.text.sent'),
+                #     parse_mode='Markdown'
+                # )
+            close_chats(msg.from_user.id)
+            await self.bot.send_message(
+                msg.chat.id, get_response('texting.sending.text.sent'),
+                parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons(),
+                reply_to_message_id=msg.id
+            )
+            tools_message = await self.bot.send_message(msg.chat.id, get_response('texting.tools.announce'),
+                                                        reply_markup=KeyboardMarkupGenerator().sender_buttons(
+                                                            target_message.id,
+                                                            get_user_anny_id(
+                                                                recipient_id)),
+                                                        reply_to_message_id=msg.id)
+            asyncio.create_task(delete_message(self.bot, msg.chat.id, tools_message.id, minutes=0.17))
         except ApiTelegramException:
             self._handle_bot_blocked(msg)
 
