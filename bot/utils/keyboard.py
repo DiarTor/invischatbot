@@ -181,7 +181,10 @@ class KeyboardMarkupGenerator:
         return self._create_inline_keyboard(buttons)
 
     def force_join_buttons(self):
-        buttons = [
+        buttons = [[
             InlineKeyboardButton('InvisChat Channel', url='t.me/invischats')
-        ]
-        return self._create_inline_keyboard(buttons)
+        ],
+            [
+                InlineKeyboardButton('✅ عضو شدم', callback_data='joined')
+            ]]
+        return self._create_list_inline_keyboard(buttons)

@@ -6,11 +6,13 @@ from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
 from bot.managers.nickname import NicknameManager
 from bot.managers.settings import SettingsManager
+from bot.managers.start import StartBot
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
 from bot.utils.language import get_response
 from bot.utils.user_data import get_user_by_id, update_user_field, fetch_user_id, close_chats, add_seen_message, \
-    is_bot_status_off, generate_anny_link, get_user_anny_id, update_user_fields, get_marked_status, get_seen_status
+    is_bot_status_off, generate_anny_link, get_user_anny_id, update_user_fields, get_seen_status, \
+    is_subscribed_to_channel
 
 
 class CallbackHandler:
@@ -24,6 +26,8 @@ class CallbackHandler:
             await self._process_reply_callback(callback)
         # elif callback_data.startswith('edit_message'):
         #     await self._process_edit_message_callback(callback)
+        elif callback_data.startswith('joined'):
+            await self._process_joined_channel(callback)
         elif callback_data.startswith('delete_message'):
             callback.data = callback_data.split('-')[1:]
             await self._process_delete_message_callback(callback)
@@ -246,6 +250,13 @@ class CallbackHandler:
                 callback.message.id,
                 reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id, message_id, seen, marked)
             )
+
+    async def _process_joined_channel(self, callback):
+        if not await is_subscribed_to_channel(self.bot, callback.message.chat.id):
+            await self.bot.answer_callback_query(callback.id, get_response('ad.not_joined'), show_alert=True)
+            return
+        await self.bot.delete_message(callback.message.chat.id, callback.message.id)
+        await StartBot(self.bot).start(callback.message)
 
     @staticmethod
     def _set_replying_state(user_id: int, message_id: str, sender_id: str):

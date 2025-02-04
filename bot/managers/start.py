@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from telebot.async_telebot import AsyncTeleBot
@@ -17,7 +18,7 @@ class StartBot:
 
     async def start(self, msg: Message, default_target_anny_id=None):
         try:
-            user_id = msg.from_user.id
+            user_id = msg.chat.id
             user_nickname = NicknameManager(self.bot).generate_random_nickname()
             target_anny_id = default_target_anny_id or self._get_target_user_id(msg)
 
@@ -105,9 +106,12 @@ class StartBot:
 
     @staticmethod
     def _get_target_user_id(msg: Message):
-        """Extract the target user ID from the message."""
+        """Extract the target user ID from the message, allowing only English letters and numbers."""
         parts = msg.text.split()[1:]
-        return str(parts[0]) if parts else None
+        if not parts:
+            return None
+        target_id = re.sub(r'[^a-zA-Z0-9]', '', parts[0])  # Remove non-alphanumeric characters
+        return target_id if target_id else None
 
     async def _manage_chats(self, user_data, target_user_data):
         user_id = user_data['user_id']
