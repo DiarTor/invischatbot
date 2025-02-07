@@ -14,6 +14,10 @@ def get_response(address: str, *args) -> str | None:
         if not isinstance(data, dict):
             return None
         data = data.get(key, {})
+
     if isinstance(data, str):
-        return data.format(*args)
+        # print(f"Retrieved format string: {data}")  # Debugging
+        # print(f"Arguments received: {args}")  # Debugging
+        return data.format(*args)  # Formatting happens here
+
     return None
