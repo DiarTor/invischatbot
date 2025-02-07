@@ -39,7 +39,10 @@ def save_user_data(user_id: int, nickname: str = None) -> None:
             "blocklist": [],
             "is_bot_off": False,
             "version": config('VERSION', cast=float),
-            "first_time": True
+            "first_time": True,
+            "referred": False,
+            "referred_by": '',
+            "referrals": [],
         }
         users_collection.insert_one(user_data)
     except Exception as e:
@@ -97,16 +100,20 @@ def is_user_blocked(sender_id: str, recipient_id: int) -> bool:
     return sender_data['id'] in recipient_blocklist or recipient_data['id'] in sender_blocklist
 
 
-def update_user_field(user_id: int, field: str, value: any) -> bool:
+def update_user_field(user_id: int, field: str, value: any, push: bool = False) -> bool:
     """
     Update a specific user field with a new value.
+
     :param user_id: User ID.
     :param field: Field to update.
     :param value: New value for the field.
+    :param push: If True, append the value to a list instead of replacing it.
     :return: True if updated successfully, False otherwise.
     """
     try:
-        result = users_collection.update_one({"user_id": user_id}, {"$set": {field: value}})
+        update_operation = {"$push": {field: value}} if push else {"$set": {field: value}}
+
+        result = users_collection.update_one({"user_id": user_id}, update_operation, upsert=True)
         return result.modified_count > 0
     except Exception as e:
         print(f"Failed to update user field: {e}")
@@ -124,7 +131,8 @@ def update_user_fields(user_id: int, fields: dict) -> bool:
     try:
         result = users_collection.update_one(
             {"user_id": user_id},
-            {"$set": fields}
+            {"$set": fields},
+            upsert=True
         )
         return result.modified_count > 0
     except Exception as e:

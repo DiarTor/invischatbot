@@ -4,6 +4,7 @@ from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
+from bot.managers.account import AccountManager
 from bot.managers.nickname import NicknameManager
 from bot.utils.database import users_collection
 from bot.utils.keyboard import KeyboardMarkupGenerator
@@ -20,7 +21,7 @@ class StartBot:
         try:
             user_id = msg.chat.id
             user_nickname = NicknameManager(self.bot).generate_random_nickname()
-            target_anny_id = default_target_anny_id or self._get_target_user_id(msg)
+            target_anny_id = default_target_anny_id or await self._get_target_user_id(msg)
 
             # If the user doesn't exist in the database, store their data
             if not user_exists(user_id):
@@ -33,6 +34,9 @@ class StartBot:
             # Retrieve user data from the database
             user_data = users_collection.find_one({"user_id": user_id})
             if not target_anny_id and user_data.get('first_time'):
+                parts = msg.text.split()[1:]
+                if str(parts[0]).startswith('ref_'):
+                    await AccountManager(self.bot).referral(msg)
                 await self.bot.send_message(
                     msg.chat.id,
                     get_response('greeting.first_time', user_nickname),
@@ -42,7 +46,6 @@ class StartBot:
                 # Update the user field to mark them as not first time
                 update_user_field(user_id, 'first_time', False)
                 return
-
             # If no target user provided, close any open chats and send a general welcome message
             if not target_anny_id:
                 close_chats(user_id)
@@ -103,13 +106,14 @@ class StartBot:
 
         except (ValueError, IndexError):
             await self._send_error_message(msg, 'errors.wrong_id')
-
     @staticmethod
-    def _get_target_user_id(msg: Message):
+    async def _get_target_user_id( msg: Message):
         """Extract the target user ID from the message, allowing only English letters and numbers."""
         parts = msg.text.split()[1:]
         if not parts:
             return None
+        if str(parts[0]).startswith('ref_'):
+            return
         target_id = re.sub(r'[^a-zA-Z0-9]', '', parts[0])  # Remove non-alphanumeric characters
         return target_id if target_id else None
 
