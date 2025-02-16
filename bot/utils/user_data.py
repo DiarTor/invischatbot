@@ -192,7 +192,7 @@ def get_seen_status(user_id, message_id: int):
 
 
 def get_marked_status(text: str):
-    if '#️⃣ #marked' in text:
+    if '#️⃣ #mark' in text:
         return True
     return False
 

@@ -228,11 +228,11 @@ class CallbackHandler:
             return
 
             # Check if the message is already marked
-        if "#️⃣ #marked" in original_text:
-            new_text = original_text.replace("\n #️⃣ #marked", "").strip()
+        if "#️⃣ #mark" in original_text:
+            new_text = original_text.replace("\n #️⃣ #mark", "").strip()
             marked = False
         else:
-            new_text = f"{original_text}\n #️⃣ #marked"
+            new_text = f"{original_text}\n #️⃣ #mark"
             marked = True
 
         # Edit the message appropriately (text or caption)
