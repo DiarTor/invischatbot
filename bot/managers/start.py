@@ -25,7 +25,8 @@ class StartBot:
 
             # If the user doesn't exist in the database, store their data
             if not user_exists(user_id):
-                save_user_data(user_id, nickname=user_nickname)
+                save_user_data(user_id, nickname=user_nickname, username=msg.from_user.username or None,
+                               first_name=msg.from_user.first_name or None, last_name=msg.from_user.last_name or None)
 
             if not await is_subscribed_to_channel(self.bot, user_id):
                 await self.bot.send_message(user_id, get_response('ad.force_join'),
@@ -106,8 +107,9 @@ class StartBot:
 
         except (ValueError, IndexError):
             await self._send_error_message(msg, 'errors.wrong_id')
+
     @staticmethod
-    async def _get_target_user_id( msg: Message):
+    async def _get_target_user_id(msg: Message):
         """Extract the target user ID from the message, allowing only English letters and numbers."""
         parts = msg.text.split()[1:]
         if not parts:

@@ -22,9 +22,12 @@ def create_unique_id() -> str:
     return f"{str(uuid.uuid4())[:5]}{str(uuid.uuid4().int)[-5:]}"
 
 
-def save_user_data(user_id: int, nickname: str = None) -> None:
+def save_user_data(user_id: int, nickname: str = None, username = None, first_name = None, last_name = None) -> None:
     """
     Store user data in the database.
+    :param first_name:
+    :param last_name:
+    :param username:
     :param user_id: User ID.
     :param nickname: Nickname of the user.
     """
@@ -33,6 +36,9 @@ def save_user_data(user_id: int, nickname: str = None) -> None:
             "id": create_unique_id(),
             "user_id": user_id,
             "nickname": nickname,
+            "username": username,
+            "first_name": first_name,
+            "last_name": last_name,
             "awaiting_nickname": False,
             "joined_at": datetime.timestamp(datetime.now()),
             "chats": [],
