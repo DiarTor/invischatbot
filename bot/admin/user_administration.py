@@ -28,8 +28,14 @@ class UserAdministration:
         joined_at = convert_timestamp_to_date(user_info['joined_at'])
         chats_count = self._get_chats_count(user_info['chats'])
         blocks_count = self._get_blocks_count(user_info['blocklist'])
+
+        username = user_info['username']
+        first_name = user_info['first_name']
+        last_name = user_info['last_name']
+
         await self.bot.send_message(user_id, get_response('admin.user.info', user_info['user_id'], user_info['id'],
-                                                          user_info['nickname'], joined_at, chats_count,
+                                                          user_info['nickname'], joined_at, username, first_name,
+                                                          last_name, chats_count,
                                                           blocks_count),
                                     parse_mode='Markdown')
 
