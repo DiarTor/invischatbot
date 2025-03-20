@@ -2,18 +2,18 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery, InputTextMessageContent, \
     InlineQueryResultArticle, InlineQuery, ForceReply
 
+from bot.common.chat_utils import close_chats, add_seen_message, get_seen_status
 from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
 from bot.managers.nickname import NicknameManager
 from bot.managers.settings import SettingsManager
 from bot.managers.start import StartBot
-from bot.utils.database import users_collection
-from bot.utils.keyboard import KeyboardMarkupGenerator
-from bot.utils.language import get_response
-from bot.utils.user_data import get_user_by_id, update_user_field, fetch_user_id, close_chats, add_seen_message, \
-    is_bot_status_off, generate_anny_link, get_user_anny_id, update_user_fields, get_seen_status, \
-    is_subscribed_to_channel
-
+from bot.database.database import users_collection
+from bot.common.keyboard import KeyboardMarkupGenerator
+from bot.common.language import get_response
+from bot.common.database_utils import fetch_user_data_by_id, update_user_fields, get_user_id, get_user_anon_id
+from bot.common.user import is_subscribed_to_channel, is_bot_status_off
+from bot.common.utils import generate_anon_link
 
 class CallbackHandler:
     def __init__(self, bot: AsyncTeleBot):
@@ -57,7 +57,7 @@ class CallbackHandler:
         text = inline.query.strip() or "حرفتو ناشناس بهم بزن 😉"  # Default text if empty
 
         # Generate the unique link for the user (user's ID or custom data)
-        link = generate_anny_link(get_user_anny_id(user_id))
+        link = generate_anon_link(get_user_anon_id(user_id))
 
         # Create the inline message content with the text and button
         content = InputTextMessageContent(f"{text}")
@@ -87,7 +87,7 @@ class CallbackHandler:
                 show_alert=True
             )
             return
-        elif is_bot_status_off(fetch_user_id(sender_id)):
+        elif is_bot_status_off(get_user_id(sender_id)):
             await self.bot.answer_callback_query(callback.id, get_response('account.bot_status.recipient.off'),
                                                  show_alert=True
                                                  )
@@ -107,8 +107,8 @@ class CallbackHandler:
 
     async def _process_seen_callback(self, callback: CallbackQuery):
         """Process the seen callback"""
-        sender_anny_id, message_id = callback.data
-        sender_id = fetch_user_id(sender_anny_id)
+        sender_anon_id, message_id = callback.data
+        sender_id = get_user_id(sender_anon_id)
         # check if the user or the target user, bot status is off
         if is_bot_status_off(callback.from_user.id):
             await self.bot.answer_callback_query(
@@ -128,14 +128,14 @@ class CallbackHandler:
                                     text=get_response('texting.seen.recipient'))
         await self.bot.edit_message_reply_markup(chat_id=callback.message.chat.id, message_id=callback.message.id,
                                                  reply_markup=KeyboardMarkupGenerator().recipient_buttons(
-                                                     sender_anny_id, message_id, True))
+                                                     sender_anon_id, message_id, True))
         await self.bot.answer_callback_query(callback.id, get_response('texting.seen.sent'))
 
     async def _process_block_callback(self, callback: CallbackQuery):
         keyboard = KeyboardMarkupGenerator()
         if 'block' in callback.data.split('-'):
             action, sender_id, message_id = callback.data.split('-')
-            if sender_id == get_user_by_id(callback.message.chat.id).get('id'):
+            if sender_id == fetch_user_data_by_id(callback.message.chat.id).get('id'):
                 await self.bot.answer_callback_query(callback.id, get_response('blocking.self'))
                 return
             if sender_id == 'support':
@@ -174,7 +174,7 @@ class CallbackHandler:
     async def _process_delete_message_callback(self, callback: CallbackQuery):
         """Process the delete message callback"""
         recipient_message_id, recipient_anon_id = callback.data
-        await self.bot.delete_message(fetch_user_id(recipient_anon_id), int(recipient_message_id))
+        await self.bot.delete_message(get_user_id(recipient_anon_id), int(recipient_message_id))
         await self.bot.edit_message_text(get_response('texting.tools.delete.deleted'), callback.message.chat.id,
                                          callback.message.id, parse_mode='Markdown')
 
@@ -188,12 +188,12 @@ class CallbackHandler:
                                                                                                         ))
         elif 'unblock_confirm' in callback.data.split('-'):
             action, blocker_id, blocked_id = callback.data.split('-')
-            blocker_anny_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-            await BlockUserManager(self.bot).unblock_user(blocker_anny_id, str(blocked_id), callback)
+            blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
+            await BlockUserManager(self.bot).unblock_user(blocker_anon_id, str(blocked_id), callback)
         elif 'unblock_cancel' in callback.data.split('-'):
             action, blocker_id = callback.data.split('-')
-            blocker_anny_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-            await BlockUserManager(self.bot).cancel_unblock_user(blocker_anny_id, str(blocker_id), callback.message.id)
+            blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
+            await BlockUserManager(self.bot).cancel_unblock_user(blocker_anon_id, str(blocker_id), callback.message.id)
 
     async def _process_change_nickname(self, callback: CallbackQuery):
         response = NicknameManager(self.bot).get_set_nickname_response(callback.message)
@@ -203,7 +203,7 @@ class CallbackHandler:
     async def _process_cancel(self, callback: CallbackQuery):
         action, task = callback.data.split('-')
         if task == "changing_nickname":
-            update_user_field(callback.from_user.id, 'awaiting_nickname', False)
+            update_user_fields(callback.from_user.id, 'awaiting_nickname', False)
             await self.bot.edit_message_text(AccountManager(self.bot).get_account_response(callback.message),
                                              callback.from_user.id, callback.message.id, parse_mode='Markdown',
                                              reply_markup=KeyboardMarkupGenerator().account_buttons())
@@ -212,7 +212,7 @@ class CallbackHandler:
         await SettingsManager(self.bot).change_bot_status(callback)
 
     async def _process_mark_message(self, callback):
-        sender_anny_id, message_id = callback.data
+        sender_anon_id, message_id = callback.data
         seen = get_seen_status(user_id=callback.message.chat.id, message_id=callback.message.id)
 
         # Get the original text or caption
@@ -241,14 +241,14 @@ class CallbackHandler:
                 chat_id=callback.message.chat.id,
                 message_id=callback.message.id,
                 caption=new_text,
-                reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id, message_id, seen, marked)
+                reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anon_id, message_id, seen, marked)
             )
         else:
             await self.bot.edit_message_text(
                 new_text,
                 callback.message.chat.id,
                 callback.message.id,
-                reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anny_id, message_id, seen, marked)
+                reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_anon_id, message_id, seen, marked)
             )
 
     async def _process_joined_channel(self, callback):

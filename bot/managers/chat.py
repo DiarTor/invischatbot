@@ -7,18 +7,19 @@ from telebot.apihelper import ApiTelegramException
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
+from bot.common.chat_utils import close_chats
+from bot.common.database_utils import fetch_user_data_by_id, update_user_fields, get_user_anon_id, get_user_id
+from bot.common.keyboard import KeyboardMarkupGenerator
+from bot.common.language import get_response
+from bot.common.threads import delete_message
+from bot.common.user import is_bot_status_off
+from bot.database.database import users_collection
 from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
 from bot.managers.link import LinkManager
 from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
 from bot.managers.support import SupportManager
-from bot.utils.database import users_collection
-from bot.utils.keyboard import KeyboardMarkupGenerator
-from bot.utils.language import get_response
-from bot.utils.threads import delete_message
-from bot.utils.user_data import get_user_by_id, is_user_blocked, \
-    is_bot_status_off, close_chats, update_user_fields, get_user_anny_id, fetch_user_id, is_subscribed_to_channel
 
 
 class ChatHandler:
@@ -29,7 +30,7 @@ class ChatHandler:
     async def anonymous_chat(self, msg: Message):
         """Main method to handle anonymous chat with support for different media types."""
         self.msg = msg
-        user_chat = get_user_by_id(self.msg.chat.id)
+        user_chat = fetch_user_data_by_id(self.msg.chat.id)
 
         if not user_chat:
             await StartBot(self.bot).start(msg)
@@ -84,7 +85,7 @@ class ChatHandler:
 
     async def _process_chat(self, msg: Message, **kwargs):
         """Process the chat based on the type of message."""
-        user_chat = get_user_by_id(msg.from_user.id)
+        user_chat = fetch_user_data_by_id(msg.from_user.id)
         open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
 
         # Check if the user is in awaiting nickname state and trying to send a message, if so set the state to false
@@ -92,7 +93,7 @@ class ChatHandler:
         # this condition happens when someone is in awaiting nickname state and set their replying state to True or open a chat.
         if open_chat or user_chat.get('replying') and user_chat.get('awaiting_nickname'):
             users_collection.update_one({'user_id': msg.chat.id}, {'$set': {'awaiting_nickname': False}})
-            user_chat = get_user_by_id(msg.chat.id)
+            user_chat = fetch_user_data_by_id(msg.chat.id)
         # Check if the user is in replying state, if so handle the text as reply message.
         if user_chat.get('replying'):
             await self._handle_reply(msg, user_chat)
@@ -112,7 +113,7 @@ class ChatHandler:
 
         # Check if the target user blocked the user
         target_user_id = open_chat.get('target_user_id')
-        if is_user_blocked(user_chat.get('id'), target_user_id):
+        if await BlockUserManager.is_user_blocked(user_chat.get('id'), target_user_id):
             close_chats(user_chat.get('user_id'))
             await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
@@ -125,18 +126,18 @@ class ChatHandler:
         # if everything is fine, forward the message
         await self._handle_forward(msg, target_user_id, **kwargs)
 
-    async def _send_media(self, msg: Message, recipient_id: int, sender_anny_id: str, reply_to_message_id=None):
+    async def _send_media(self, msg: Message, recipient_id: int, sender_anon_id: str, reply_to_message_id=None):
         """
         Send media based on its type.
         :param recipient_id: recipient user id.
-        :param sender_anny_id: sender anny id.
+        :param sender_anon_id: sender anonymous id.
         :param reply_to_message_id: reply message id.
         """
         global target_message
         caption = msg.caption if msg.caption else ""
-        reply_markup = KeyboardMarkupGenerator().recipient_buttons(sender_anny_id, msg.id)
+        reply_markup = KeyboardMarkupGenerator().recipient_buttons(sender_anon_id, msg.id)
         base_kwargs = {
-            "caption": get_response('texting.sending.text.recipient', caption, sender_anny_id),
+            "caption": get_response('texting.sending.text.recipient', caption, sender_anon_id),
             "parse_mode": 'Markdown',
             "reply_markup": reply_markup,
         }
@@ -163,7 +164,7 @@ class ChatHandler:
                 target_message = await self.bot.send_document(recipient_id, msg.document.file_id, **base_kwargs)
             else:  # Default to text
                 target_message = await self.bot.send_message(
-                    recipient_id, get_response("texting.sending.text.recipient", msg.text, sender_anny_id),
+                    recipient_id, get_response("texting.sending.text.recipient", msg.text, sender_anon_id),
                     **strict_kwargs,
                 )
                 # await self.bot.send_message(
@@ -179,7 +180,7 @@ class ChatHandler:
             tools_message = await self.bot.send_message(msg.chat.id, get_response('texting.tools.announce'),
                                                         reply_markup=KeyboardMarkupGenerator().sender_buttons(
                                                             target_message.id,
-                                                            get_user_anny_id(
+                                                            get_user_anon_id(
                                                                 recipient_id)),
                                                         reply_to_message_id=msg.id)
             asyncio.create_task(delete_message(self.bot, msg.chat.id, tools_message.id, minutes=0.17))
@@ -192,8 +193,8 @@ class ChatHandler:
 
         :param recipient_id: recipient user id.
         """
-        sender_anny_id = get_user_by_id(msg.chat.id).get('id')
-        await self._send_media(msg, recipient_id, sender_anny_id)
+        sender_anon_id = fetch_user_data_by_id(msg.chat.id).get('id')
+        await self._send_media(msg, recipient_id, sender_anon_id)
 
     async def _handle_reply(self, msg: Message, user_chat):
         """Handle replies to a message."""
@@ -208,7 +209,7 @@ class ChatHandler:
             )
             return
 
-        if is_user_blocked(user_chat.get("id"), recipient_user.get('user_id')):
+        if await BlockUserManager.is_user_blocked(user_chat.get("id"), recipient_user.get('user_id')):
             close_chats(msg.chat.id, True)
             await self.bot.send_message(
                 msg.chat.id, get_response('blocking.blocked_by_user'),
@@ -216,23 +217,21 @@ class ChatHandler:
             )
             return
 
-        sender_anny_id = user_chat.get('id')
-        await self._send_media(msg,
-                               recipient_user['user_id'], sender_anny_id, reply_to_message_id=original_message_id
-                               )
+        sender_anon_id = user_chat.get('id')
+        await self._send_media(msg, recipient_user['user_id'], sender_anon_id, reply_to_message_id=original_message_id)
         close_chats(msg.from_user.id, True)
 
     async def _handle_editing(self, msg: Message, user_chat):
         """Handle editing of a message."""
-        target_id = fetch_user_id(user_chat.get('editing_target_anon_id'))
+        target_id = get_user_id(user_chat.get('editing_target_anon_id'))
         try:
             jdate = datetime.now(pytz.timezone('Asia/Tehran')).strftime('%H:%M %Y/%m/%d')
             # Edit the target message
             await self.bot.edit_message_text(
                 chat_id=target_id,
                 message_id=int(user_chat.get('editing_target_message_id')),
-                text=get_response('texting.tools.editing.recipient', msg.text, get_user_anny_id(msg.chat.id), jdate),
-                reply_markup=KeyboardMarkupGenerator().recipient_buttons(get_user_anny_id(msg.chat.id), msg.id)
+                text=get_response('texting.tools.editing.recipient', msg.text, get_user_anon_id(msg.chat.id), jdate),
+                reply_markup=KeyboardMarkupGenerator().recipient_buttons(get_user_anon_id(msg.chat.id), msg.id)
             )
 
             # Confirm the edit
@@ -271,7 +270,7 @@ class ChatHandler:
         await AccountManager(self.bot).account(self.msg)
 
     async def cancel_chat_or_reply(self, msg: Message):
-        user_chat = get_user_by_id(msg.from_user.id)
+        user_chat = fetch_user_data_by_id(msg.from_user.id)
         open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
 
         if user_chat.get("replying"):

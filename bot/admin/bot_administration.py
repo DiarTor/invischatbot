@@ -4,8 +4,8 @@ from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.utils.database import users_collection
-from bot.utils.language import get_response
+from bot.database.database import users_collection
+from bot.common.language import get_response
 
 
 class BotAdministration:

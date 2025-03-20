@@ -2,10 +2,11 @@ import telebot
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery
 
-from bot.utils.database import users_collection
-from bot.utils.keyboard import KeyboardMarkupGenerator
-from bot.utils.language import get_response
-from bot.utils.user_data import get_seen_status, get_marked_status
+from bot.database.database import users_collection
+from bot.common.keyboard import KeyboardMarkupGenerator
+from bot.common.language import get_response
+from bot.common.chat_utils import get_seen_status, get_marked_status
+from bot.common.database_utils import fetch_user_data_by_query
 
 
 class BlockUserManager:
@@ -20,14 +21,14 @@ class BlockUserManager:
             await self.bot.send_message(text=get_response('blocking.blocklist_empty'), chat_id=user_id)
             return
         keyboard = KeyboardMarkupGenerator()
-        user_anny_id = users_collection.find_one({'user_id': user_id}).get('id', None)
+        user_anon_id = users_collection.find_one({'user_id': user_id}).get('id', None)
         await self.bot.send_message(chat_id=user_id, text=get_response("blocking.blocklist"), parse_mode='Markdown',
-                                    reply_markup=keyboard.blocklist_buttons(user_anny_id, blocklist))
+                                    reply_markup=keyboard.blocklist_buttons(user_anon_id, blocklist))
 
     async def block_user(self, blocker_id: int, blocked_id: str, callback: CallbackQuery):
         """ Block user
         :param blocker_id: Blocker ID
-        :param blocked_id: Blocked anny ID
+        :param blocked_id: Blocked anonymous ID
         :param callback: Callback query
         """
         blocklist = users_collection.find_one({'user_id': blocker_id}).get('blocklist', None)
@@ -45,7 +46,7 @@ class BlockUserManager:
         """ Cancel blocking operation
         :param callback: Callback query
         :param reply_message_id: Reply message ID
-        :param sender_id: Sender anny ID
+        :param sender_id: Sender anonymous ID
         """
         chat_id = callback.message.chat.id
         seen = get_seen_status(user_id=chat_id, message_id=reply_message_id)
@@ -57,8 +58,8 @@ class BlockUserManager:
 
     async def unblock_user(self, blocker_id: str, blocked_id: str, callback: CallbackQuery):
         """ Unblock user
-        :param blocker_id: Blocker anny ID
-        :param blocked_id: Blocked anny ID
+        :param blocker_id: Blocker anonymous ID
+        :param blocked_id: Blocked anonymous ID
         :param callback: Callback Query
         """
         users_collection.update_one({'id': blocker_id}, {'$pull': {'blocklist': blocked_id}})
@@ -70,9 +71,9 @@ class BlockUserManager:
             await self.bot.edit_message_text(text=get_response('blocking.blocklist_empty'), chat_id=chat_id,
                                              message_id=callback.message.message_id)
             return
-        user_anny_id = users_collection.find_one({'user_id': chat_id}).get('id', None)
+        user_anon_id = users_collection.find_one({'user_id': chat_id}).get('id', None)
         await self.bot.edit_message_reply_markup(chat_id, callback.message.message_id,
-                                                 reply_markup=KeyboardMarkupGenerator().blocklist_buttons(user_anny_id,
+                                                 reply_markup=KeyboardMarkupGenerator().blocklist_buttons(user_anon_id,
                                                                                                           blocklist))
 
     async def cancel_unblock_user(self, blocker_id, message_id, bot_message_id):
@@ -84,3 +85,21 @@ class BlockUserManager:
                                          reply_markup=KeyboardMarkupGenerator().blocklist_buttons(chat_id, blocklist,
                                                                                                   message_id),
                                          parse_mode='Markdown')
+    @staticmethod
+    async def is_user_blocked(sender_id: str, recipient_id: int) -> bool:
+        """
+        Check if a user is blocked.
+        :param sender_id: Anonymous ID of sender.
+        :param recipient_id: User ID of recipient.
+        :return: True if either user has blocked the other, False otherwise.
+        """
+        sender_data = fetch_user_data_by_query({"id": sender_id})
+        recipient_data = fetch_user_data_by_query({"user_id": recipient_id})
+
+        if not sender_data or not recipient_data:
+             return False  # If data is missing, assume not blocked
+
+        sender_blocklist = sender_data.get('blocklist', [])
+        recipient_blocklist = recipient_data.get('blocklist', [])
+
+        return sender_data['id'] in recipient_blocklist or recipient_data['id'] in sender_blocklist

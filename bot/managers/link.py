@@ -1,11 +1,10 @@
-from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.utils.database import users_collection
-from bot.utils.keyboard import KeyboardMarkupGenerator
-from bot.utils.language import get_response
-from bot.utils.user_data import generate_anny_link
+from bot.database.database import users_collection
+from bot.common.keyboard import KeyboardMarkupGenerator
+from bot.common.language import get_response
+from bot.common.utils import generate_anon_link
 
 
 class LinkManager:
@@ -14,7 +13,7 @@ class LinkManager:
 
     async def link(self, msg: Message):
         user_bot_id = users_collection.find_one({"user_id": msg.from_user.id})['id']
-        link = generate_anny_link(user_bot_id)
+        link = generate_anon_link(user_bot_id)
         await self.bot.send_message(
             msg.chat.id,
             get_response('greeting.link', link),

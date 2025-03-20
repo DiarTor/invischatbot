@@ -341,10 +341,10 @@ persian = {
             'info': {
                 "wrong_format": dedent("""
                 ❌ Wrong Format
-                ^ Correct Format: /info <anny_id>
+                ^ Correct Format: /info <anon_id>
                 """),
                 "not_found": dedent("""
-                ❌ No User Found, Make Sure The Anny Id Is Correct.
+                ❌ No User Found, Make Sure The Anonymous Id Is Correct.
                 """)
             }
         }

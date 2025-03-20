@@ -100,7 +100,7 @@ class KeyboardMarkupGenerator:
 
     def recipient_buttons(self, sender_id, message_id=None, is_seen=False, is_marked=False):
         """
-        :param sender_id: anny id
+        :param sender_id: anonymous id
         :param message_id: message id
         :param is_seen: if True, updates the 'seen' button to indicate it has already been seen
         :param is_marked: if True, updates the 'marked' button to indicate it has already been marked
@@ -126,7 +126,7 @@ class KeyboardMarkupGenerator:
     def block_confirmation_buttons(self, sender_id, message_id=None):
         """
 
-        :param sender_id: anny id
+        :param sender_id: anonymous id
         :param message_id:
         :return:
         """
@@ -147,8 +147,8 @@ class KeyboardMarkupGenerator:
 
     def blocklist_buttons(self, blocker_id: str, blocked_list: list, message_id=None):
         """ Block List InlineButtons
-        :param blocker_id: blocker anny id
-        :param blocked_list: the list of blocked anny ids
+        :param blocker_id: blocker anonymous id
+        :param blocked_list: the list of blocked anonymous ids
         :param message_id: message id
         """
         buttons = [

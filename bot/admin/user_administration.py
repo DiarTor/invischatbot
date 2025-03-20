@@ -2,9 +2,9 @@ from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.utils.database import users_collection
-from bot.utils.date import convert_timestamp_to_date
-from bot.utils.language import get_response
+from bot.database.database import users_collection
+from bot.common.date import convert_timestamp_to_date
+from bot.common.language import get_response
 
 
 class UserAdministration:
@@ -20,8 +20,8 @@ class UserAdministration:
         if not len(parts) == 2:
             await self.bot.send_message(user_id, get_response('admin.errors.info.wrong_format'))
 
-        user_anny_id = parts[1]
-        user_info = users_collection.find_one({"id": user_anny_id})
+        user_anon_id = parts[1]
+        user_info = users_collection.find_one({"id": user_anon_id})
         if not user_info:
             await self.bot.send_message(user_id, get_response('admin.errors.info.not_found'))
 

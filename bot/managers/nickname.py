@@ -3,11 +3,12 @@ import random
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.utils.database import users_collection
-from bot.utils.keyboard import KeyboardMarkupGenerator
-from bot.utils.language import get_response
-from bot.utils.user_data import close_chats, update_user_field
-from bot.utils.validators import NicknameValidator
+from bot.database.database import users_collection
+from bot.common.keyboard import KeyboardMarkupGenerator
+from bot.common.language import get_response
+from bot.common.chat_utils import close_chats
+from bot.common.database_utils import update_user_fields
+from bot.common.validators import NicknameValidator
 
 
 class NicknameManager:
@@ -34,8 +35,8 @@ class NicknameManager:
         is_valid, validation_message = validator.validate_nickname(nickname)
         if is_valid:
             # Proceed to store the user data if the nickname is valid
-            update_user_field(user_id, "nickname", nickname)
-            update_user_field(user_id, "awaiting_nickname", False)
+            update_user_fields(user_id, "nickname", nickname)
+            update_user_fields(user_id, "awaiting_nickname", False)
             await self.bot.send_message(
                 msg.chat.id,
                 get_response('nickname.nickname_was_set', nickname),

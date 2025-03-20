@@ -2,7 +2,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.managers.start import StartBot
-from bot.utils.language import get_response
+from bot.common.language import get_response
 
 
 class SupportManager:

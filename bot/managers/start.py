@@ -6,22 +6,23 @@ from telebot.types import Message
 
 from bot.managers.account import AccountManager
 from bot.managers.nickname import NicknameManager
-from bot.utils.database import users_collection
-from bot.utils.keyboard import KeyboardMarkupGenerator
-from bot.utils.language import get_response
-from bot.utils.user_data import close_chats, is_user_blocked, save_user_data, get_user_by_id, \
-    is_bot_status_off, user_exists, update_user_field, is_subscribed_to_channel
-
-
+from bot.database.database import users_collection
+from bot.common.keyboard import KeyboardMarkupGenerator
+from bot.common.language import get_response
+from bot.common.chat_utils import close_chats
+from bot.common.database_utils import save_user_data, fetch_user_data_by_id, user_exists, update_user_fields, \
+    get_user_anon_id
+from bot.common.user import is_bot_status_off
+from bot.managers.block import BlockUserManager
 class StartBot:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
 
-    async def start(self, msg: Message, default_target_anny_id=None):
+    async def start(self, msg: Message, default_target_anon_id=None):
         try:
             user_id = msg.chat.id
             user_nickname = NicknameManager(self.bot).generate_random_nickname()
-            target_anny_id = default_target_anny_id or await self._get_target_user_id(msg)
+            target_anon_id = default_target_anon_id or await self._get_target_user_id(msg)
 
             # If the user doesn't exist in the database, store their data
             if not user_exists(user_id):
@@ -34,7 +35,7 @@ class StartBot:
             #     return
             # Retrieve user data from the database
             user_data = users_collection.find_one({"user_id": user_id})
-            if not target_anny_id and user_data.get('first_time'):
+            if not target_anon_id and user_data.get('first_time'):
                 parts = msg.text.split()[1:]
                 if str(parts[0]).startswith('ref_'):
                     await AccountManager(self.bot).referral(msg)
@@ -45,10 +46,10 @@ class StartBot:
                     parse_mode='Markdown',
                 )
                 # Update the user field to mark them as not first time
-                update_user_field(user_id, 'first_time', False)
+                update_user_fields(user_id, 'first_time', False)
                 return
             # If no target user provided, close any open chats and send a general welcome message
-            if not target_anny_id:
+            if not target_anon_id:
                 close_chats(user_id)
                 await self._send_welcome_message(msg)
                 return
@@ -61,9 +62,9 @@ class StartBot:
                     reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
                     parse_mode='Markdown',
                 )
-                update_user_field(user_id, 'first_time', False)
+                update_user_fields(user_id, 'first_time', False)
             # Retrieve target user data
-            target_user_data = users_collection.find_one({"id": target_anny_id})
+            target_user_data = users_collection.find_one({"id": target_anon_id})
             if not target_user_data:
                 await self.bot.send_message(user_id, get_response('errors.no_user_found'))
                 return
@@ -73,7 +74,7 @@ class StartBot:
                 await self.bot.send_message(user_id, get_response('errors.cant_message_self'))
 
             # Check if the user is blocked by the target user
-            if is_user_blocked(user_data.get('id'), target_user_data["user_id"]):
+            if await BlockUserManager.is_user_blocked(user_data.get('id'), target_user_data["user_id"]):
                 await self.bot.send_message(
                     msg.chat.id,
                     get_response('blocking.blocked_by_user'),
@@ -169,7 +170,7 @@ class StartBot:
             {
                 "$push": {
                     "chats": {
-                        "target_user_bot_id": get_user_by_id(user_id).get('id'),
+                        "target_user_anon_id": get_user_anon_id(user_id),
                         "target_user_id": user_id,
                         "chat_created_at": datetime.timestamp(datetime.now()),
                         "chat_started_at": datetime.timestamp(datetime.now()),
@@ -184,7 +185,7 @@ class StartBot:
 
     async def _send_welcome_message(self, msg: Message):
         """Send a welcome message to the user."""
-        nickname = get_user_by_id(msg.chat.id).get('nickname')
+        nickname = fetch_user_data_by_id(msg.chat.id).get('nickname')
         await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', nickname),
                                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons())
 
