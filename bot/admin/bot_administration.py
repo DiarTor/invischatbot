@@ -4,8 +4,8 @@ from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.database.database import users_collection
 from bot.common.language import get_response
+from bot.database.database import users_collection
 
 
 class BotAdministration:
@@ -14,18 +14,32 @@ class BotAdministration:
         self.admin = config("ADMIN", cast=int)
 
     async def get_bot_stats(self, msg: Message):
-        if not msg.from_user.id == self.admin:
+        if msg.from_user.id != self.admin:
             return
+
         user_counts = self.get_users_count()
         chat_counts = self.get_chat_counts()
+
+        # Prepare formatted response data
+        stats_data = {
+            "today": user_counts["today"],
+            "week": user_counts["this_week"],
+            "month": user_counts["this_month"],
+            "year": user_counts["this_year"],
+            "all_time": user_counts["all_time"],
+            "chat_today": chat_counts["today"],
+            "chat_week": chat_counts["this_week"],
+            "chat_month": chat_counts["this_month"],
+            "chat_year": chat_counts["this_year"],
+            "chat_all_time": chat_counts["all_time"],
+        }
+
         # Send the status message
-        await self.bot.send_message(msg.chat.id,
-                                    get_response('admin.bot.stats', user_counts['today'], user_counts['this_week'],
-                                                 user_counts['this_month'], user_counts['this_year'],
-                                                 user_counts['all_time'], chat_counts['today'],
-                                                 chat_counts['this_week'], chat_counts['this_month'],
-                                                 chat_counts['this_year'], chat_counts['all_time']),
-                                    parse_mode='Markdown')
+        await self.bot.send_message(
+            msg.chat.id,
+            get_response("admin.bot.stats", **stats_data),
+            parse_mode="Markdown"
+        )
 
     @staticmethod
     def get_users_count():
