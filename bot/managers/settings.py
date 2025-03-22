@@ -3,7 +3,7 @@ from telebot.types import CallbackQuery
 
 from bot.managers.account import AccountManager
 from bot.common.keyboard import KeyboardMarkupGenerator
-from bot.common.language import get_response
+from bot.languages.response import get_response
 from bot.common.user import is_bot_status_off
 from bot.common.database_utils import update_user_fields
 

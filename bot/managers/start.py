@@ -8,7 +8,7 @@ from bot.managers.account import AccountManager
 from bot.managers.nickname import NicknameManager
 from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
-from bot.common.language import get_response
+from bot.languages.response import get_response
 from bot.common.chat_utils import close_chats
 from bot.common.database_utils import save_user_data, fetch_user_data_by_id, user_exists, update_user_fields, \
     get_user_anon_id

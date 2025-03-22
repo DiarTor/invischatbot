@@ -6,7 +6,7 @@ from telebot.types import Message
 from bot.common.database_utils import fetch_user_data_by_id, update_user_fields, get_user_anon_id
 from bot.common.date import convert_timestamp_to_date
 from bot.common.keyboard import KeyboardMarkupGenerator
-from bot.common.language import get_response
+from bot.languages.response import get_response
 from bot.database.database import users_collection
 
 

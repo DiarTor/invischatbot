@@ -3,7 +3,7 @@ from telebot.types import Message
 
 from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
-from bot.common.language import get_response
+from bot.languages.response import get_response
 from bot.common.utils import generate_anon_link
 
 

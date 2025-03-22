@@ -10,7 +10,7 @@ from bot.managers.settings import SettingsManager
 from bot.managers.start import StartBot
 from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
-from bot.common.language import get_response
+from bot.languages.response import get_response
 from bot.common.database_utils import fetch_user_data_by_id, update_user_fields, get_user_id, get_user_anon_id
 from bot.common.user import is_subscribed_to_channel, is_bot_status_off
 from bot.common.utils import generate_anon_link

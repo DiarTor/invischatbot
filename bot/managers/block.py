@@ -4,7 +4,7 @@ from telebot.types import CallbackQuery
 
 from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
-from bot.common.language import get_response
+from bot.languages.response import get_response
 from bot.common.chat_utils import get_seen_status, get_marked_status
 from bot.common.database_utils import fetch_user_data_by_query
 

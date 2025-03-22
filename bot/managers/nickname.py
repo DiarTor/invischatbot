@@ -5,7 +5,7 @@ from telebot.types import Message
 
 from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
-from bot.common.language import get_response
+from bot.languages.response import get_response
 from bot.common.chat_utils import close_chats
 from bot.common.database_utils import update_user_fields
 from bot.common.validators import NicknameValidator

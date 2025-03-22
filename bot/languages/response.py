@@ -1,4 +1,4 @@
-from languages.dictionary import translations
+from bot.languages.dictionary import translations
 
 
 def get_response(address: str, locale: str = 'fa', **kwargs) -> str | None:

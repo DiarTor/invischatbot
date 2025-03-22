@@ -10,7 +10,7 @@ from telebot.types import Message
 from bot.common.chat_utils import close_chats
 from bot.common.database_utils import fetch_user_data_by_id, update_user_fields, get_user_anon_id, get_user_id
 from bot.common.keyboard import KeyboardMarkupGenerator
-from bot.common.language import get_response
+from bot.languages.response import get_response
 from bot.common.threads import delete_message
 from bot.common.user import is_bot_status_off
 from bot.database.database import users_collection

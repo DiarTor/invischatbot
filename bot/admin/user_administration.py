@@ -4,7 +4,7 @@ from telebot.types import Message
 
 from bot.database.database import users_collection
 from bot.common.date import convert_timestamp_to_date
-from bot.common.language import get_response
+from bot.languages.response import get_response
 
 
 class UserAdministration:
