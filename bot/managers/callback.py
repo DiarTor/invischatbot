@@ -14,7 +14,7 @@ from bot.languages.response import get_response
 from bot.common.database_utils import fetch_user_data_by_id, update_user_fields, get_user_id, get_user_anon_id
 from bot.common.user import is_subscribed_to_channel, is_bot_status_off
 from bot.common.utils import generate_anon_link
-
+from bot.admin.callback import AdminCallbackHandler
 class CallbackHandler:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
@@ -49,7 +49,10 @@ class CallbackHandler:
             await self._process_change_bot_status(callback)
         elif callback_data.startswith('cancel'):
             await self._process_cancel(callback)
+        elif callback_data.startswith('admin'):
+            await AdminCallbackHandler(bot=self.bot).handle_callback(callback)
         await self.bot.answer_callback_query(callback.id)
+
 
     async def handle_inline_query(self, inline: InlineQuery):
         """Handle inline queries for 'Text Me'."""

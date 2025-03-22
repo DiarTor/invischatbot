@@ -5,3 +5,4 @@ from pymongo import MongoClient
 client = MongoClient(config('MONGO_URI', cast=str))
 db = client.get_database(config('DATABASE_NAME', cast=str))
 users_collection = db.get_collection(config('USERS_COLLECTION', cast=str))
+bot_collection = db.get_collection(config('BOT_COLLECTION', cast=str))

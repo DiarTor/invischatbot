@@ -11,12 +11,8 @@ from bot.database.database import users_collection
 class BotAdministration:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
-        self.admin = config("ADMIN", cast=int)
 
     async def get_bot_stats(self, msg: Message):
-        if msg.from_user.id != self.admin:
-            return
-
         user_counts = self.get_users_count()
         chat_counts = self.get_chat_counts()
 
