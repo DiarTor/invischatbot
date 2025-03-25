@@ -9,5 +9,7 @@ class AdminCallbackHandler:
 
     async def handle_callback(self, callback: CallbackQuery):
         callback_data = callback.data.split('-')[1:]
-        if 'chat_stats' in callback_data:
-            await BotAdministration(self.bot).get_bot_stats(callback.message)
+        if 'chats_stats' in callback_data:
+            await BotAdministration(self.bot).get_chats_stats(callback.message)
+        elif 'users_stats' in callback_data:
+            await BotAdministration(self.bot).get_users_stats(callback.message)

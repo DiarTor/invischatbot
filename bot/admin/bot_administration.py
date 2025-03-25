@@ -1,28 +1,21 @@
 from datetime import datetime, timedelta
 
-from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.languages.response import get_response
 from bot.database.database import users_collection
+from bot.languages.response import get_response
 
 
 class BotAdministration:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
 
-    async def get_bot_stats(self, msg: Message):
-        user_counts = self.get_users_count()
+    async def get_chats_stats(self, msg: Message):
         chat_counts = self.get_chat_counts()
 
         # Prepare formatted response data
         stats_data = {
-            "today": user_counts["today"],
-            "week": user_counts["this_week"],
-            "month": user_counts["this_month"],
-            "year": user_counts["this_year"],
-            "all_time": user_counts["all_time"],
             "chat_today": chat_counts["today"],
             "chat_week": chat_counts["this_week"],
             "chat_month": chat_counts["this_month"],
@@ -33,9 +26,25 @@ class BotAdministration:
         # Send the status message
         await self.bot.send_message(
             msg.chat.id,
-            get_response("admin.bot.stats", **stats_data),
+            get_response("admin.stats.chats", **stats_data),
             parse_mode="Markdown"
         )
+
+    async def get_users_stats(self, msg: Message):
+        user_counts = self.get_users_count()
+        stats_data = {
+            "today": user_counts["today"],
+            "week": user_counts["this_week"],
+            "month": user_counts["this_month"],
+            "year": user_counts["this_year"],
+            "all_time": user_counts["all_time"],
+
+        }
+        # Send the status message
+        await self.bot.send_message(
+            msg.chat.id,
+            get_response("admin.stats.users", **stats_data),
+            parse_mode="Markdown")
 
     @staticmethod
     def get_users_count():
