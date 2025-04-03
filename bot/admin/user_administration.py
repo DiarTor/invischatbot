@@ -33,11 +33,19 @@ class UserAdministration:
         first_name = user_info['first_name']
         last_name = user_info['last_name']
 
-        await self.bot.send_message(user_id, get_response('admin.user.info', user_info['user_id'], user_info['id'],
-                                                          user_info['nickname'], joined_at, username, first_name,
-                                                          last_name, chats_count,
-                                                          blocks_count),
-                                    parse_mode='Markdown')
+        user_data = {
+            "user_id": user_id,
+            "joined_at": joined_at,
+            "chats_count": chats_count,
+            "blocks_count": blocks_count,
+            "username": username,
+            "first_name": first_name,
+            "last_name": last_name,
+            "nickname": user_info['nickname'],
+            "anon_id": user_anon_id,
+        }
+
+        await self.bot.send_message(user_id, get_response('admin.user.info', **user_data),parse_mode='Markdown')
 
     @staticmethod
     def _get_chats_count(chats):

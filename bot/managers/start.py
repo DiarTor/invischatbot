@@ -4,16 +4,18 @@ from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.managers.account import AccountManager
-from bot.managers.nickname import NicknameManager
-from bot.database.database import users_collection
-from bot.common.keyboard import KeyboardMarkupGenerator
-from bot.languages.response import get_response
 from bot.common.chat_utils import close_chats
 from bot.common.database_utils import save_user_data, fetch_user_data_by_id, user_exists, update_user_fields, \
     get_user_anon_id
+from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.common.user import is_bot_status_off
+from bot.database.database import users_collection
+from bot.languages.response import get_response
+from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
+from bot.managers.nickname import NicknameManager
+
+
 class StartBot:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
@@ -21,12 +23,12 @@ class StartBot:
     async def start(self, msg: Message, default_target_anon_id=None):
         try:
             user_id = msg.chat.id
-            user_nickname = NicknameManager(self.bot).generate_random_nickname()
+            nickname = NicknameManager(self.bot).generate_random_nickname()
             target_anon_id = default_target_anon_id or await self._get_target_user_id(msg)
 
             # If the user doesn't exist in the database, store their data
             if not user_exists(user_id):
-                save_user_data(user_id, nickname=user_nickname, username=msg.from_user.username or None,
+                save_user_data(user_id, nickname=nickname, username=msg.from_user.username or None,
                                first_name=msg.from_user.first_name or None, last_name=msg.from_user.last_name or None)
 
             # if not await is_subscribed_to_channel(self.bot, user_id):
@@ -36,12 +38,12 @@ class StartBot:
             # Retrieve user data from the database
             user_data = users_collection.find_one({"user_id": user_id})
             if not target_anon_id and user_data.get('first_time'):
-                parts = msg.text.split()[1:]
-                if str(parts[0]).startswith('ref_'):
+                parts = msg.text.split()[1:]  # Get arguments after /start
+                if parts and str(parts[0]).startswith('ref_'):  # Check if parts is not empty before accessing index 0
                     await AccountManager(self.bot).referral(msg)
                 await self.bot.send_message(
                     msg.chat.id,
-                    get_response('greeting.first_time', user_nickname),
+                    get_response('greeting.first_time', nickname=nickname),
                     reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
                     parse_mode='Markdown',
                 )
@@ -58,7 +60,7 @@ class StartBot:
             if user_data.get('first_time'):
                 await self.bot.send_message(
                     msg.chat.id,
-                    get_response('greeting.first_time', user_nickname),
+                    get_response('greeting.first_time', nickname=nickname),
                     reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
                     parse_mode='Markdown',
                 )
@@ -186,8 +188,8 @@ class StartBot:
     async def _send_welcome_message(self, msg: Message):
         """Send a welcome message to the user."""
         nickname = fetch_user_data_by_id(msg.chat.id).get('nickname')
-        await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', nickname),
-                                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons())
+        await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', nickname=nickname),
+                                    reply_markup=KeyboardMarkupGenerator().main_buttons())
 
     async def _send_error_message(self, msg: Message, error_key: str):
         """Send an error message to the user."""

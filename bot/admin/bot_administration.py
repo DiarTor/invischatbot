@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.database.database import users_collection
+from bot.database.database import users_collection, bot_collection
 from bot.languages.response import get_response
 
 
@@ -21,6 +21,7 @@ class BotAdministration:
             "chat_month": chat_counts["this_month"],
             "chat_year": chat_counts["this_year"],
             "chat_all_time": chat_counts["all_time"],
+            "total_messages": self.get_total_messages(),
         }
 
         # Send the status message
@@ -119,3 +120,7 @@ class BotAdministration:
                         counts['today'] += 1
 
         return counts
+
+    @staticmethod
+    def get_total_messages():
+        return bot_collection.find_one({"_id": "bot_config"}).get('total_messages', None)

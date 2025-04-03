@@ -8,7 +8,8 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.common.chat_utils import close_chats
-from bot.common.database_utils import fetch_user_data_by_id, update_user_fields, get_user_anon_id, get_user_id
+from bot.common.database_utils import fetch_user_data_by_id, update_user_fields, get_user_anon_id, get_user_id, \
+    update_total_messages
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
 from bot.common.threads import delete_message
@@ -177,6 +178,7 @@ class ChatHandler:
                 parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons(),
                 reply_to_message_id=msg.id
             )
+            await update_total_messages(1)
             tools_message = await self.bot.send_message(msg.chat.id, get_response('texting.tools.announce'),
                                                         reply_markup=KeyboardMarkupGenerator().sender_buttons(
                                                             target_message.id,

@@ -3,7 +3,7 @@ from datetime import datetime
 from decouple import config
 
 from bot.common.utils import create_unique_id
-from bot.database.database import users_collection
+from bot.database.database import users_collection, bot_collection
 
 
 def user_exists(user_id: int) -> bool:
@@ -103,3 +103,14 @@ def update_user_fields(user_id: int, fields: dict | str, value: any = None, push
     except Exception as e:
         print(f"Failed to update user fields: {e}")
         return False
+
+
+def is_admin(user_id: int) -> bool:
+    if bot_collection.find_one({"admin": user_id}) is None:
+        return False
+    return True
+
+
+async def update_total_messages(count: int):
+    bot_collection.update_one({"_id": "bot_config"}, {
+        "$inc": {"total_messages": count}}, upsert=True)
