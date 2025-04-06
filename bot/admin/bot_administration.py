@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
@@ -22,6 +23,7 @@ class BotAdministration:
             "chat_year": chat_counts["this_year"],
             "chat_all_time": chat_counts["all_time"],
             "total_messages": self.get_total_messages(),
+            "stats_date": datetime.now(ZoneInfo("Asia/Tehran")).strftime("%Y/%d/%m - %H:%M:%S"),
         }
 
         # Send the status message
@@ -39,7 +41,7 @@ class BotAdministration:
             "month": user_counts["this_month"],
             "year": user_counts["this_year"],
             "all_time": user_counts["all_time"],
-
+            "stats_date": datetime.now(ZoneInfo("Asia/Tehran")).strftime("%Y/%d/%m - %H:%M:%S"),
         }
         # Send the status message
         await self.bot.send_message(
