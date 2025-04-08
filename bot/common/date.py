@@ -3,7 +3,7 @@ from datetime import datetime
 import jdatetime
 
 
-def convert_timestamp_to_date(timestamp, show="date", calendar_type="jalali"):
+def convert_timestamp_to_date(timestamp, show="date", calendar_type="gregorian"):
     """
     Convert a timestamp to Jalali (Persian) or Gregorian date and time format.
 

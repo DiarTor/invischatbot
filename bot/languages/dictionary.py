@@ -327,6 +327,15 @@ translations = {
         
         📅 تاریخ این آمار: {stats_date}
         """),
+                'new_user': dedent("""
+                🎉 *کاربر جدید* 🎉
+                
+                👤 {first_name} {last_name} (@{username})
+                🪪 {nickname}
+                🆔 `{user_id}` `{id}`
+                📅 {joined_at}
+                ---------------------------------
+                """),
             },
             'user': {
                 'info': dedent("""

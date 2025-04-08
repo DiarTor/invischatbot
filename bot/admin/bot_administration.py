@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
+from bot.admin.keyboard import Keyboard
 from bot.database.database import users_collection, bot_collection
 from bot.languages.response import get_response
 
@@ -14,7 +15,7 @@ class BotAdministration:
 
     async def get_chats_stats(self, msg: Message):
         chat_counts = self.get_chat_counts()
-
+        print(self.get_new_users_data())
         # Prepare formatted response data
         stats_data = {
             "chat_today": chat_counts["today"],
@@ -47,7 +48,9 @@ class BotAdministration:
         await self.bot.send_message(
             msg.chat.id,
             get_response("admin.stats.users", **stats_data),
-            parse_mode="Markdown")
+            parse_mode="Markdown",
+            reply_markup=Keyboard().new_users_panel()
+        )
 
     @staticmethod
     def get_users_count():

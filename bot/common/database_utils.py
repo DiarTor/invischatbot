@@ -111,6 +111,10 @@ def is_admin(user_id: int) -> bool:
     return True
 
 
+def get_admins() -> list:
+    return bot_collection.find_one({"_id": "bot_config"}).get('admin', 0)
+
+
 async def update_total_messages(count: int):
     bot_collection.update_one({"_id": "bot_config"}, {
         "$inc": {"total_messages": count}}, upsert=True)

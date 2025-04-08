@@ -27,7 +27,7 @@ def get_response(address: str, locale: str = 'fa', **kwargs) -> str | None:
         except KeyError as e:
             missing_key = str(e).strip("'")
             print(f"Error: Missing placeholder '{missing_key}' in the format string.")
-            return f"Missing placeholder: {missing_key}"
+            return None
 
     print(f"Error: Final data is not a string. Found: {type(data)}")
     return None

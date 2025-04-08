@@ -4,6 +4,7 @@ from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
+from bot.admin.adminstration import Admin
 from bot.common.chat_utils import close_chats
 from bot.common.database_utils import save_user_data, fetch_user_data_by_id, user_exists, update_user_fields, \
     get_user_anon_id
@@ -47,6 +48,7 @@ class StartBot:
                     reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
                     parse_mode='Markdown',
                 )
+                await Admin(self.bot).announce_new_user(msg, user_id)
                 # Update the user field to mark them as not first time
                 update_user_fields(user_id, 'first_time', False)
                 return
@@ -64,6 +66,7 @@ class StartBot:
                     reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
                     parse_mode='Markdown',
                 )
+                await Admin(self.bot).announce_new_user(msg, user_id)
                 update_user_fields(user_id, 'first_time', False)
             # Retrieve target user data
             target_user_data = users_collection.find_one({"id": target_anon_id})
