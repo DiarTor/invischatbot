@@ -15,7 +15,6 @@ class BotAdministration:
 
     async def get_chats_stats(self, msg: Message):
         chat_counts = self.get_chat_counts()
-        print(self.get_new_users_data())
         # Prepare formatted response data
         stats_data = {
             "chat_today": chat_counts["today"],
@@ -49,7 +48,6 @@ class BotAdministration:
             msg.chat.id,
             get_response("admin.stats.users", **stats_data),
             parse_mode="Markdown",
-            reply_markup=Keyboard().new_users_panel()
         )
 
     @staticmethod
