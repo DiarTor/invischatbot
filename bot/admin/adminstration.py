@@ -20,7 +20,7 @@ class Admin:
         await self.bot.send_message(msg.chat.id, get_response('admin.panel', name=msg.from_user.first_name),
                                     reply_markup=Keyboard().main_panel(), parse_mode='Markdown')
 
-    async def announce_new_user(self, msg: Message, user_id):
+    async def announce_new_user(self, msg: Message, user_id: int):
         user_data = users_collection.find_one({'user_id': user_id})
         stats_data = {
             "first_name": user_data['first_name'],
@@ -32,7 +32,7 @@ class Admin:
             "joined_at": convert_timestamp_to_date(user_data['joined_at'], "datetime"),
 
         }
-        for admin in get_admins():
+        for admin in await get_admins():
             await self.bot.send_message(
                 admin,
                 get_response('admin.stats.new_user',

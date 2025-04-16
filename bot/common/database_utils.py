@@ -111,7 +111,7 @@ def is_admin(user_id: int) -> bool:
     return True
 
 
-def get_admins() -> list:
+async def get_admins() -> list:
     return bot_collection.find_one({"_id": "bot_config"}).get('admin', 0)
 
 
