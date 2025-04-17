@@ -1,3 +1,12 @@
+"""
+    This file contains the translations for the bot's messages.
+    The translations are stored in a dictionary format, where the keys are the language codes
+    and the values are dictionaries containing the translations for various messages.
+    The translations are organized into categories such as 'greeting', 'nickname', 'texting', etc...
+    Each category contains subcategories for different types of messages, such as 'welcome', etc...
+    The translations are written in a format that allows for easy formatting with variables,
+    such as using curly braces {} to indicate where variables should be inserted into the message.
+"""
 from textwrap import dedent
 
 translations = {
@@ -260,7 +269,17 @@ translations = {
                     ✋ متاسفانه شخص مورد نظر ربات رو خاموش کرده.
                     """)
                 }
-            }
+            },
+            'ban': {
+                'banned': dedent("""
+                                 شما بن شدید و دیگر نمی‌توانید از ربات استفاده کنید.
+                                 برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.
+                """),
+                'unbanned': dedent("""
+                                 شما از بن خارج شدید و می‌توانید دوباره از ربات استفاده کنید.
+                                 برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.
+                """),
+            },
         },
         'errors': {
             'wrong_id': dedent("""
@@ -357,7 +376,44 @@ translations = {
         🔴 تعداد کاربران بلاک شده: *{blocks_count}*
 
         📈 _با آرزوی بهترین‌ها برای شما!_
-        """)
+        """),
+                'ban': {
+                    'success': dedent("""
+        ✅ کاربر با موفقیت بن شد.
+        👤 شناسه کاربر بن شده: `{user_id}`
+        🟢 شناسه ناشناس: `{anon_id}`
+        🔴 نام کاربر: {first_name}
+        🔴 فامیلی کاربر: {last_name}
+        🔵 نام کاربری: {username}
+        🪪 نام مستعار: *{nickname}*
+        📅 تاریخ عضویت: *{joined_at}*
+        📅 تاریخ بن شدن: *{banned_at}*
+        """),
+                },
+                'unban': {
+                    'success': dedent("""
+        ✅ کاربر با موفقیت آنبن شد.
+        👤 شناسه کاربر آنبن شده: `{user_id}`
+        🟢 شناسه ناشناس: `{anon_id}`
+        🔴 نام کاربر: {first_name}
+        🔴 فامیلی کاربر: {last_name}
+        🔵 نام کاربری: {username}
+        🪪 نام مستعار: *{nickname}*
+        📅 تاریخ عضویت: *{joined_at}*
+        📅 تاریخ آنبن شدن: *{unbanned_at}*
+        """),
+                },
+                'ban_list': {
+                    'empty': dedent("""
+        🚫 لیست کاربران بن شده خالی است.
+        """),
+                    'list': dedent("""
+        *📋 لیست کاربران بن شده:*
+        ❗️ این شناسه‌ها برای ربات منحصر به فرد هستند.
+                                   {ban_list}
+        🔓 برای آنبن کردن روی شناسه مورد نظر کلیک کن
+        .
+        """),
             },
             'errors': {
                 'info': {
@@ -368,6 +424,33 @@ translations = {
                     "not_found": dedent("""
                 ❌ No User Found, Make Sure The Anonymous Id Is Correct.
                 """)
+                },
+                'ban': {
+                    "wrong_format": dedent("""
+                ❌ Wrong Format
+                ^ Correct Format: /ban <anon_id>
+                """),
+                    "not_found": dedent("""
+                ❌ No User Found, Make Sure The Anonymous Id Is Correct.
+                """),
+                    "already_banned": dedent("""
+                ❌ User Already Banned
+                """),
+                    "admin_ban": dedent("""
+                ❌ You Can't Ban An Admin
+                """)
+                },
+                'unban': {
+                    "wrong_format": dedent("""
+                ❌ Wrong Format
+                ^ Correct Format: /unban <anon_id>
+                """),
+                    "not_found": dedent("""
+                ❌ No User Found, Make Sure The Anonymous Id Is Correct.
+                """),
+                    "not_banned": dedent("""
+                ❌ User Not Banned
+                """),
                 }
             }
         },
@@ -384,4 +467,5 @@ translations = {
         }
     },
     'en': {}
+}
 }

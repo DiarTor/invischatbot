@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from decouple import config
+import pymongo
 
 from bot.common.utils import create_unique_id
 from bot.database.database import users_collection, bot_collection
@@ -42,9 +43,12 @@ def save_user_data(user_id: int, nickname: str = None, username=None, first_name
             "referred": False,
             "referred_by": '',
             "referrals": [],
+            "is_banned": False,
+            "banned_by": None,
+            "banned_at": None,
         }
         users_collection.insert_one(user_data)
-    except Exception as e:
+    except pymongo.errors.PyMongoError as e:
         print(f"Failed to store user data: {e}")
 
 
@@ -100,7 +104,7 @@ def update_user_fields(user_id: int, fields: dict | str, value: any = None, push
 
         result = users_collection.update_one({"user_id": user_id}, update_operation, upsert=True)
         return result.modified_count > 0
-    except Exception as e:
+    except pymongo.errors.PyMongoError as e:
         print(f"Failed to update user fields: {e}")
         return False
 

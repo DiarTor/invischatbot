@@ -1,10 +1,13 @@
+"""
+    This is the main file for the bot.
+    It initializes the bot and registers all the handlers.
+"""
 import asyncio
 
 from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 
 from bot.admin.adminstration import Admin
-from bot.admin.bot_administration import BotAdministration
 from bot.admin.user_administration import UserAdministration
 from bot.managers.block import BlockUserManager
 from bot.managers.callback import CallbackHandler
@@ -31,11 +34,13 @@ bot.register_message_handler(start_bot.start, commands=['start'])
 # Admin Commands
 bot.register_message_handler(administration_handler.main, commands=['admin'])
 bot.register_message_handler(user_administration_handler.get_user_info, commands=['info'])
+bot.register_message_handler(user_administration_handler.ban_user, commands=['ban'])
+bot.register_message_handler(user_administration_handler.unban_user, commands=['unban'])
 
 # Content Type Handlers
 bot.register_message_handler(chat_handler.anonymous_chat,
-                             content_types=['text', 'audio', 'photo', 'voice', 'document', 'video', 'animation',
-                                            'sticker', 'video_note'])
+                             content_types=['text', 'audio', 'photo', 'voice', 'document',
+                                            'video', 'animation', 'sticker', 'video_note'])
 
 # CallBack Handlers
 bot.register_callback_query_handler(callback_handler.handle_callback, func=lambda call: True)
