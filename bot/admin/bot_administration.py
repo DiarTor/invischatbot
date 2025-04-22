@@ -4,7 +4,6 @@ from zoneinfo import ZoneInfo
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.admin.keyboard import Keyboard
 from bot.database.database import users_collection, bot_collection
 from bot.languages.response import get_response
 

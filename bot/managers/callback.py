@@ -15,6 +15,8 @@ from bot.common.database_utils import fetch_user_data_by_id, update_user_fields,
 from bot.common.user import is_subscribed_to_channel, is_bot_status_off
 from bot.common.utils import generate_anon_link
 from bot.admin.callback import AdminCallbackHandler
+from bot.common.database_utils import is_user_banned
+
 class CallbackHandler:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
@@ -22,6 +24,10 @@ class CallbackHandler:
     async def handle_callback(self, callback: CallbackQuery):
         """Main method to handle callbacks from the user."""
         callback_data = callback.data
+        if is_user_banned(callback.from_user.id):
+            await self.bot.send_message(callback.message.chat.id, get_response('account.ban.banned'),
+                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
+            return
         if callback_data.startswith('reply'):
             await self._process_reply_callback(callback)
         # elif callback_data.startswith('edit_message'):

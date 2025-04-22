@@ -6,7 +6,7 @@ from telebot.types import Message
 
 from bot.admin.adminstration import Admin
 from bot.common.chat_utils import close_chats
-from bot.common.database_utils import save_user_data, fetch_user_data_by_id, user_exists, update_user_fields, \
+from bot.common.database_utils import is_user_banned, save_user_data, fetch_user_data_by_id, user_exists, update_user_fields, \
     get_user_anon_id
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.common.user import is_bot_status_off
@@ -28,9 +28,12 @@ class StartBot:
             target_anon_id = default_target_anon_id or await self._get_target_user_id(msg)
 
             # If the user doesn't exist in the database, store their data
-            if not user_exists(user_id):
+            if not await user_exists(user_id):
                 save_user_data(user_id, nickname=nickname, username=msg.from_user.username or None,
                                first_name=msg.from_user.first_name or None, last_name=msg.from_user.last_name or None)
+            if is_user_banned(user_id):
+                await self.bot.send_message(user_id, get_response('account.ban.banned'))
+                return
 
             # if not await is_subscribed_to_channel(self.bot, user_id):
             #     await self.bot.send_message(user_id, get_response('ad.force_join'),
@@ -48,7 +51,7 @@ class StartBot:
                     reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
                     parse_mode='Markdown',
                 )
-                await Admin(self.bot).announce_new_user(msg, user_id)
+                await Admin(self.bot).announce_new_user(user_id)
                 # Update the user field to mark them as not first time
                 update_user_fields(user_id, 'first_time', False)
                 return
@@ -66,11 +69,12 @@ class StartBot:
                     reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
                     parse_mode='Markdown',
                 )
-                await Admin(self.bot).announce_new_user(msg, user_id)
+                await Admin(self.bot).announce_new_user(user_id)
                 update_user_fields(user_id, 'first_time', False)
             # Retrieve target user data
             target_user_data = users_collection.find_one({"id": target_anon_id})
             if not target_user_data:
+                print("salam")
                 await self.bot.send_message(user_id, get_response('errors.no_user_found'))
                 return
 
@@ -111,7 +115,8 @@ class StartBot:
             close_chats(user_id, True)
             await self._manage_chats(user_data, target_user_data)
 
-        except (ValueError, IndexError):
+        except (ValueError, IndexError) as e:
+            print("Error in start method:", str(e))
             await self._send_error_message(msg, 'errors.wrong_id')
 
     @staticmethod
@@ -149,7 +154,7 @@ class StartBot:
                 }
             }
         )
-        await self.bot.send_message(user_id, get_response('texting.sending.text.send', target_user_nickname),
+        await self.bot.send_message(user_id, get_response('texting.sending.text.send', nickname=target_user_nickname),
                                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
@@ -185,7 +190,7 @@ class StartBot:
             },
             upsert=True
         )
-        await self.bot.send_message(user_id, get_response('texting.sending.text.send', target_user_nickname),
+        await self.bot.send_message(user_id, get_response('texting.sending.text.send', nickname=target_user_nickname),
                                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def _send_welcome_message(self, msg: Message):

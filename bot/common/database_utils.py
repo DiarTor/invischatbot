@@ -7,7 +7,7 @@ from bot.common.utils import create_unique_id
 from bot.database.database import users_collection, bot_collection
 
 
-def user_exists(user_id: int) -> bool:
+async def user_exists(user_id: int) -> bool:
     """
     Check if the user exists in the database.
     :param user_id: User ID to check.
@@ -16,7 +16,7 @@ def user_exists(user_id: int) -> bool:
     return bool(users_collection.find_one({'user_id': user_id}))
 
 
-def save_user_data(user_id: int, nickname: str = None, username=None, first_name=None, last_name=None) -> None:
+async def save_user_data(user_id: int, nickname: str = None, username=None, first_name=None, last_name=None) -> None:
     """
     Store user data in the database.
     :param first_name:
@@ -84,7 +84,7 @@ def fetch_user_data_by_query(query: dict) -> dict | None:
     return users_collection.find_one(query)
 
 
-def update_user_fields(user_id: int, fields: dict | str, value: any = None, push: bool = False) -> bool:
+async def update_user_fields(user_id: int, fields: dict | str, value: any = None, push: bool = False) -> bool:
     """
     Update user fields, either one field or multiple fields.
 
@@ -108,6 +108,54 @@ def update_user_fields(user_id: int, fields: dict | str, value: any = None, push
         print(f"Failed to update user fields: {e}")
         return False
 
+def update_bot_fields(fields: dict | str, value: any = None) -> bool:
+    """
+    Update bot fields, either one field or multiple fields.
+
+    :param fields: A single field (str) to update, or a dictionary of fields to update.
+    :param value: New value for the field (only needed if updating a single field).
+    :return: True if updated successfully, False otherwise.
+    """
+    try:
+        if isinstance(fields, dict):
+            # Update multiple fields
+            update_operation = {"$set": fields}
+        else:
+            # Update a single field
+            update_operation = {"$set": {fields: value}}
+
+        result = bot_collection.update_one({"_id": "bot_config"}, update_operation, upsert=True)
+        return result.modified_count > 0
+    except pymongo.errors.PyMongoError as e:
+        print(f"Failed to update bot fields: {e}")
+        return False
+
+async def update_ban_list(user_id: int, action: str) -> bool:
+    """
+    Update the ban list in the database.
+
+    :param user_id: User ID to be banned or unbanned.
+    :param action: Action to perform ('ban' or 'unban').
+    :return: True if updated successfully, False otherwise.
+    """
+    try:
+        if action == 'ban':
+            bot_collection.update_one({"_id": "ban_list"}, {"$addToSet": {"banned_users": user_id}}, upsert=True)
+        elif action == 'unban':
+            bot_collection.update_one({"_id": "ban_list"}, {"$pull": {"banned_users": user_id}}, upsert=True)
+        return True
+    except pymongo.errors.PyMongoError as e:
+        print(f"Failed to update ban list: {e}")
+        return False
+def is_user_banned(user_id: int) -> bool:
+    """
+    Check if a user is banned.
+    :param user_id: User ID to check.
+    :return: True if user is banned, False otherwise.
+    """
+    if users_collection.find_one({"user_id": user_id}).get('is_banned'):
+        return True
+    return False
 
 def is_admin(user_id: int) -> bool:
     if bot_collection.find_one({"admin": user_id}) is None:

@@ -62,7 +62,7 @@ translations = {
             'sending': {
                 'text': {
                     'send': dedent("""
-            ✍️ در حال ارسال پیام ناشناس به *{}* هستی...
+            ✍️ در حال ارسال پیام ناشناس به *{nickname}* هستی...
                     """),
                     'sending': dedent("""
                 _⏳درحال ارسال_
@@ -73,9 +73,9 @@ translations = {
                     'recipient': dedent("""
                 💬 پیام ناشناس:
 
-                {}
+                {message}
 
-                👤 آیدی ناشناس کاربر: {}
+                👤 آیدی ناشناس کاربر: {sender_anon_id}
                     """),
                 },
                 'sticker': {
@@ -273,11 +273,9 @@ translations = {
             'ban': {
                 'banned': dedent("""
                                  شما بن شدید و دیگر نمی‌توانید از ربات استفاده کنید.
-                                 برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.
                 """),
                 'unbanned': dedent("""
                                  شما از بن خارج شدید و می‌توانید دوباره از ربات استفاده کنید.
-                                 برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.
                 """),
             },
         },
@@ -454,6 +452,36 @@ translations = {
                 }
             }
         },
+            'errors': {
+                'ban': {
+                    "wrong_format": dedent("""
+                ❌ Wrong Format
+                ^ Correct Format: /ban <anon_id>
+                """),
+                    "not_found": dedent("""
+                ❌ No User Found, Make Sure The Anonymous Id Is Correct.
+                """),
+                    "already_banned": dedent("""
+                ❌ User Already Banned
+                """),
+                    "admin_ban": dedent("""
+                ❌ You Can't Ban An Admin
+                """)
+                },
+                'unban': {
+                    "wrong_format": dedent("""
+                ❌ Wrong Format
+                ^ Correct Format: /unban <anon_id>
+                """),
+                    "not_found": dedent("""
+                ❌ No User Found, Make Sure The Anonymous Id Is Correct.
+                """),
+                    "not_banned": dedent("""
+                ❌ User Not Banned
+                """),
+                }
+            }
+        },
         'ad': {
             'force_join': dedent("""
         برای استفاده از ربات باید اول عضو کانال های زیر بشی 👇
@@ -467,5 +495,4 @@ translations = {
         }
     },
     'en': {}
-}
 }

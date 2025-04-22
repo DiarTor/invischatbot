@@ -8,7 +8,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.common.chat_utils import close_chats
-from bot.common.database_utils import fetch_user_data_by_id, update_user_fields, get_user_anon_id, get_user_id, \
+from bot.common.database_utils import fetch_user_data_by_id, is_user_banned, update_user_fields, get_user_anon_id, get_user_id, \
     update_total_messages
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
@@ -40,6 +40,10 @@ class ChatHandler:
         user_version = user_chat.get('version', 0.0)
         if user_version != self.current_version:
             await self._handle_version_mismatch(msg)
+            return
+        if is_user_banned(user_chat.get('user_id')):
+            await self.bot.send_message(msg.chat.id, get_response('account.ban.banned'),
+                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
             return
 
         # if not await is_subscribed_to_channel(self.bot, self.msg.chat.id):
@@ -138,7 +142,7 @@ class ChatHandler:
         caption = msg.caption if msg.caption else ""
         reply_markup = KeyboardMarkupGenerator().recipient_buttons(sender_anon_id, msg.id)
         base_kwargs = {
-            "caption": get_response('texting.sending.text.recipient', caption, sender_anon_id),
+            "caption": get_response('texting.sending.text.recipient', message=caption, sender_anon_id=sender_anon_id),
             "parse_mode": 'Markdown',
             "reply_markup": reply_markup,
         }
@@ -165,7 +169,7 @@ class ChatHandler:
                 target_message = await self.bot.send_document(recipient_id, msg.document.file_id, **base_kwargs)
             else:  # Default to text
                 target_message = await self.bot.send_message(
-                    recipient_id, get_response("texting.sending.text.recipient", msg.text, sender_anon_id),
+                    recipient_id, get_response("texting.sending.text.recipient", message=msg.text, sender_anon_id=sender_anon_id),
                     **strict_kwargs,
                 )
                 # await self.bot.send_message(

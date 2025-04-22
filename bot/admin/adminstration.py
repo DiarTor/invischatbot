@@ -1,5 +1,8 @@
+"""
+This file contains the main adminstration class and its methods.
+"""
 from telebot.async_telebot import AsyncTeleBot
-from telebot.async_telebot import AsyncTeleBot
+
 from telebot.types import Message
 
 from bot.admin.keyboard import Keyboard
@@ -10,17 +13,28 @@ from bot.languages.response import get_response
 
 
 class Admin:
+    """
+    Admin class to handle admin operations.
+    """
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
 
     async def main(self, msg: Message):
+        """
+        Main admin panel
+        :param msg: Message object
+        """
         if not is_admin(msg.from_user.id):
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
             return
         await self.bot.send_message(msg.chat.id, get_response('admin.panel', name=msg.from_user.first_name),
                                     reply_markup=Keyboard().main_panel(), parse_mode='Markdown')
 
-    async def announce_new_user(self, msg: Message, user_id: int):
+    async def announce_new_user(self, user_id: int):
+        """
+        Announce new user to all admins
+        :param user_id: ID of the new user
+        """
         user_data = users_collection.find_one({'user_id': user_id})
         stats_data = {
             "first_name": user_data['first_name'],
