@@ -22,7 +22,7 @@ class NicknameManager:
         current_first_name = msg.chat.first_name
         close_chats(msg.chat.id, True)
         await self.bot.send_message(msg.chat.id,
-                                    get_response('nickname.ask_nickname', user_data['nickname'], current_first_name),
+                                    get_response('nickname.ask_nickname', current_nickname=user_data['nickname'], current_firstname=current_first_name),
                                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def save_nickname(self, msg: Message):
@@ -56,7 +56,7 @@ class NicknameManager:
         user_data = users_collection.find_one_and_update({'user_id': msg.chat.id},
                                                          {'$set': {'awaiting_nickname': True}})
         current_first_name = msg.chat.first_name
-        return get_response('nickname.ask_nickname', user_data['nickname'], current_first_name)
+        return get_response('nickname.ask_nickname', current_nickname=user_data['nickname'], current_firstname=current_first_name)
 
     @staticmethod
     def generate_random_nickname():

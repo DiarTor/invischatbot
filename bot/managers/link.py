@@ -16,7 +16,7 @@ class LinkManager:
         link = generate_anon_link(user_bot_id)
         await self.bot.send_message(
             msg.chat.id,
-            get_response('greeting.link', link),
+            get_response('greeting.link', link=link),
             parse_mode='Markdown',
             reply_markup=KeyboardMarkupGenerator().share_link_buttons(get_response('greeting.share_link'))
         )

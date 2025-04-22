@@ -17,16 +17,13 @@ class AccountManager:
     async def account(self, msg: Message):
         """ send the response text"""
         user_data = fetch_user_data_by_id(msg.chat.id)
-        joined_at = convert_timestamp_to_date(user_data['joined_at'])
-        referrals = len(user_data.get('referrals'))
+        
         if user_data.get('is_bot_off'):
-            await self.bot.send_message(msg.chat.id, get_response('account.show', user_data['id'],
-                                                                  user_data['nickname'], joined_at, referrals),
+            await self.bot.send_message(msg.chat.id, self.get_account_response(msg),
                                         parse_mode='Markdown',
                                         reply_markup=KeyboardMarkupGenerator().account_buttons(is_bot_off=True))
         else:
-            await self.bot.send_message(msg.chat.id, get_response('account.show', user_data['id'],
-                                                                  user_data['nickname'], joined_at, referrals),
+            await self.bot.send_message(msg.chat.id, self.get_account_response(msg),
                                         parse_mode='Markdown',
                                         reply_markup=KeyboardMarkupGenerator().account_buttons())
 
@@ -69,5 +66,10 @@ class AccountManager:
         user_data = fetch_user_data_by_id(msg.chat.id)
         joined_at = convert_timestamp_to_date(user_data['joined_at'])
         referrals = len(user_data.get('referrals'))
-        return get_response('account.show', user_data['id'],
-                            user_data['nickname'], joined_at, referrals)
+        response_data = {
+            'anon_id': user_data['id'],
+            'nickname': user_data['nickname'],
+            'joined_at': joined_at,
+            'referrals': referrals
+        }
+        return get_response('account.show', **response_data)

@@ -236,7 +236,7 @@ class ChatHandler:
             await self.bot.edit_message_text(
                 chat_id=target_id,
                 message_id=int(user_chat.get('editing_target_message_id')),
-                text=get_response('texting.tools.editing.recipient', msg.text, get_user_anon_id(msg.chat.id), jdate),
+                text=get_response('texting.tools.editing.recipient', message=msg.text, anon_id=get_user_anon_id(msg.chat.id), edited_at=jdate),
                 reply_markup=KeyboardMarkupGenerator().recipient_buttons(get_user_anon_id(msg.chat.id), msg.id)
             )
 

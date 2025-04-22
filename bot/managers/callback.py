@@ -212,7 +212,7 @@ class CallbackHandler:
     async def _process_cancel(self, callback: CallbackQuery):
         action, task = callback.data.split('-')
         if task == "changing_nickname":
-            update_user_fields(callback.from_user.id, 'awaiting_nickname', False)
+            await update_user_fields(callback.from_user.id, 'awaiting_nickname', False)
             await self.bot.edit_message_text(AccountManager(self.bot).get_account_response(callback.message),
                                              callback.from_user.id, callback.message.id, parse_mode='Markdown',
                                              reply_markup=KeyboardMarkupGenerator().account_buttons())

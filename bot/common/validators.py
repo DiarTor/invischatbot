@@ -63,7 +63,7 @@ class NicknameValidator:
             "کشور", "استان", "شهر"
         ]
 
-    def validate_nickname(self, nickname: str) -> (bool, str):
+    def validate_nickname(self, nickname: str) -> bool| str:
         if len(nickname) < 3 or len(nickname) > 20:
             return False, "⛔️ نام مستعار باید بین ۳ تا ۲۰ کاراکتر باشد."
 

@@ -64,7 +64,7 @@ class BlockUserManager:
         """
         users_collection.update_one({'id': blocker_id}, {'$pull': {'blocklist': blocked_id}})
         chat_id = callback.message.chat.id
-        await self.bot.answer_callback_query(callback.id, get_response('blocking.unblock_confirm', blocked_id),
+        await self.bot.answer_callback_query(callback.id, get_response('blocking.unblock_confirm', anon_id=blocked_id),
                                              show_alert=True)
         blocklist = users_collection.find_one({'user_id': chat_id}).get('blocklist', None)
         if not blocklist:
@@ -97,7 +97,7 @@ class BlockUserManager:
         recipient_data = fetch_user_data_by_query({"user_id": recipient_id})
 
         if not sender_data or not recipient_data:
-             return False  # If data is missing, assume not blocked
+            return False  # If data is missing, assume not blocked
 
         sender_blocklist = sender_data.get('blocklist', [])
         recipient_blocklist = recipient_data.get('blocklist', [])

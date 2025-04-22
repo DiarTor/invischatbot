@@ -74,7 +74,6 @@ class StartBot:
             # Retrieve target user data
             target_user_data = users_collection.find_one({"id": target_anon_id})
             if not target_user_data:
-                print("salam")
                 await self.bot.send_message(user_id, get_response('errors.no_user_found'))
                 return
 
