@@ -15,7 +15,7 @@ class AccountManager:
         self.bot = bot
 
     async def account(self, msg: Message):
-        """ send the response text"""
+        """ send the response text """
         user_data = fetch_user_data_by_id(msg.chat.id)
         
         if user_data.get('is_bot_off'):
