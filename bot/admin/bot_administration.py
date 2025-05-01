@@ -11,6 +11,7 @@ from bot.languages.response import get_response
 class BotAdministration:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
+        self.max_message_length = 4096
 
     async def get_chats_stats(self, msg: Message):
         chat_counts = self.get_chat_counts()
@@ -126,3 +127,18 @@ class BotAdministration:
     @staticmethod
     def get_total_messages():
         return bot_collection.find_one({"_id": "bot_config"}).get('total_messages', None)
+
+    async def get_ban_list(self, msg: Message):
+        # Get the ban list from the database
+        ban_list = bot_collection.find_one({"_id": "ban_list"}).get('banned_user_ids', [])
+        # Prepare the response message
+        if len(ban_list) == 0:
+            await self.bot.send_message(msg.chat.id, get_response("admin.ban_list.empty"))
+            return
+        ban_list_str = "`\n`".join(map(str, ban_list))
+        header = get_response("admin.ban_list.list", ban_list="")  # Just to get the fixed part
+        max_chunk_size = self.max_message_length - len(header)
+        for i in range(0, len(ban_list_str), max_chunk_size):
+            chunk = ban_list_str[i:i + max_chunk_size]
+            response_message = get_response("admin.ban_list.list", ban_list=chunk)
+            await self.bot.send_message(msg.chat.id, response_message, parse_mode="Markdown")

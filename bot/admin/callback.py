@@ -13,3 +13,5 @@ class AdminCallbackHandler:
             await BotAdministration(self.bot).get_chats_stats(callback.message)
         elif 'users_stats' in callback_data:
             await BotAdministration(self.bot).get_users_stats(callback.message)
+        elif 'ban_list' in callback_data:
+            await BotAdministration(self.bot).get_ban_list(callback.message)
