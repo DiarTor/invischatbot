@@ -3,6 +3,8 @@
     It initializes the bot and registers all the handlers.
 """
 import asyncio
+import logging
+import colorlog
 
 from decouple import config
 from telebot.async_telebot import AsyncTeleBot
@@ -14,6 +16,27 @@ from bot.managers.callback import CallbackHandler
 from bot.managers.chat import ChatHandler
 from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
+
+# Logging Configuration
+def setup_logger():
+    """Sets up the logger with color support."""
+    handler = colorlog.StreamHandler()
+    handler.setFormatter(colorlog.ColoredFormatter(
+        "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        log_colors={
+            'DEBUG': 'cyan',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'bold_red',
+        }
+    ))
+    local_logger = colorlog.getLogger()
+    local_logger.addHandler(handler)
+    local_logger.setLevel(logging.INFO)  # Set to DEBUG for detailed logs
+    return local_logger
+
+logger = setup_logger()
 
 bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True)
 
@@ -48,4 +71,10 @@ bot.register_callback_query_handler(callback_handler.handle_callback, func=lambd
 bot.register_inline_handler(callback_handler.handle_inline_query, func=lambda call: True)
 
 if __name__ == '__main__':
-    asyncio.run(bot.infinity_polling())
+    try:
+        # Start the bot
+        logger.info("Starting bot")
+        asyncio.run(bot.polling(none_stop=True))
+        logger.info("Bot Stopped")
+    except (asyncio.CancelledError, RuntimeError, ValueError) as e:
+        logger.error("Error: %s", e)
