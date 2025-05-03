@@ -53,3 +53,13 @@ class Admin:
                              **stats_data),
                 parse_mode='Markdown'
             )
+
+    async def ahelp(self, msg: Message):
+        """
+        Help command for admin
+        :param msg: Message object
+        """
+        if not is_admin(msg.from_user.id):
+            await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
+            return
+        await self.bot.send_message(msg.chat.id, get_response('admin.help'), parse_mode='Markdown')

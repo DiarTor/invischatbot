@@ -488,13 +488,20 @@ translations = {
                 'info': {
                     "wrong_format": dedent("""
                 ❌ Wrong Format
-                ^ Correct Format: /info <anon_id>
+                ^ Correct Format: /info <anon_id or user_id>
                 """),
                     "not_found": dedent("""
                 ❌ No User Found, Make Sure The Anonymous Id or User Id Is Correct.
                 """)
                 },
             },
+            'help': dedent("""
+                           /admin - Admin Panel
+                           /info - User Info
+                           /ban - Ban User
+                           /unban - Unban User
+                           """
+                           ),
             'ban_list': {
                 'empty': dedent("""
         🚫 لیست کاربران بن شده خالی است.

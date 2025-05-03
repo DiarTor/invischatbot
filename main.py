@@ -32,6 +32,7 @@ user_administration_handler = UserAdministration(bot)
 bot.register_message_handler(start_bot.start, commands=['start'])
 
 # Admin Commands
+bot.register_message_handler(administration_handler.ahelp, commands=['ahelp'])
 bot.register_message_handler(administration_handler.main, commands=['admin'])
 bot.register_message_handler(user_administration_handler.get_user_info, commands=['info'])
 bot.register_message_handler(user_administration_handler.ban_user, commands=['ban'])
