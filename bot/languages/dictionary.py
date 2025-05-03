@@ -367,7 +367,12 @@ translations = {
         🟢 نام کاربری: {username}
         🔵 نام کاربر: {first_name}
         🔵 فامیلی کاربر: {last_name}
-
+        🔴 وضعیت ربات: *{is_bot_off}*
+        🟢 وضعیت ادمین: *{is_admin}*
+        🔴 وضعیت بن: *{is_banned}*
+        🟠 بن شده توسط: *{banned_by}*
+        🟠 تاریخ بن شدن: *{banned_at}*
+                               
         💬 *چت‌ها و ارتباطات:*
 
         🟢 تعداد چت‌ها: *{chats_count}*
@@ -479,8 +484,26 @@ translations = {
                     "not_banned": dedent("""
                 ❌ User Not Banned
                 """),
-                }
-            }
+                },
+                'info': {
+                    "wrong_format": dedent("""
+                ❌ Wrong Format
+                ^ Correct Format: /info <anon_id>
+                """),
+                    "not_found": dedent("""
+                ❌ No User Found, Make Sure The Anonymous Id or User Id Is Correct.
+                """)
+                },
+            },
+            'ban_list': {
+                'empty': dedent("""
+        🚫 لیست کاربران بن شده خالی است.
+        """),
+                'list': dedent("""
+        *📋 لیست کاربران بن شده:*
+         ------------------------
+        `{ban_list}`
+        """),
         },
         'ad': {
             'force_join': dedent("""
@@ -495,4 +518,5 @@ translations = {
         }
     },
     'en': {}
+    }
 }

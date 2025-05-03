@@ -34,8 +34,11 @@ class UserAdministration:
         user_anon_id = parts[1]
         user_info = users_collection.find_one({"id": user_anon_id})
         if not user_info:
+            # If user_anon_id is not found, check if it's a user_id
+            user_info = users_collection.find_one({"user_id": int(user_anon_id)})
+        if not user_info:
             await self.bot.send_message(user_id, get_response('admin.errors.info.not_found'))
-
+            return
         joined_at = convert_timestamp_to_date(user_info['joined_at'])
         chats_count = self._get_chats_count(user_info['chats'])
         blocks_count = self._get_blocks_count(user_info['blocklist'])
@@ -54,6 +57,11 @@ class UserAdministration:
             "last_name": last_name,
             "nickname": user_info['nickname'],
             "anon_id": user_anon_id,
+            "is_banned": user_info.get('is_banned'),
+            "banned_by": user_info.get('banned_by'),
+            "banned_at": user_info.get('banned_at'),
+            "is_bot_off": user_info.get('is_bot_off'),
+            "is_admin": is_admin(user_info['user_id']),
         }
 
         await self.bot.send_message(user_id, get_response('admin.user.info', **user_data)

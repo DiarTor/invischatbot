@@ -29,7 +29,7 @@ class StartBot:
 
             # If the user doesn't exist in the database, store their data
             if not await user_exists(user_id):
-                save_user_data(user_id, nickname=nickname, username=msg.from_user.username or None,
+                await save_user_data(user_id, nickname=nickname, username=msg.from_user.username or None,
                                first_name=msg.from_user.first_name or None, last_name=msg.from_user.last_name or None)
             if is_user_banned(user_id):
                 await self.bot.send_message(user_id, get_response('account.ban.banned'))
@@ -53,7 +53,7 @@ class StartBot:
                 )
                 await Admin(self.bot).announce_new_user(user_id)
                 # Update the user field to mark them as not first time
-                update_user_fields(user_id, 'first_time', False)
+                await update_user_fields(user_id, 'first_time', False)
                 return
             # If no target user provided, close any open chats and send a general welcome message
             if not target_anon_id:
@@ -70,7 +70,7 @@ class StartBot:
                     parse_mode='Markdown',
                 )
                 await Admin(self.bot).announce_new_user(user_id)
-                update_user_fields(user_id, 'first_time', False)
+                await update_user_fields(user_id, 'first_time', False)
             # Retrieve target user data
             target_user_data = users_collection.find_one({"id": target_anon_id})
             if not target_user_data:
