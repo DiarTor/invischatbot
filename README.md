@@ -25,7 +25,7 @@
    git clone https://github.com/DiarTor/invischatbot.git
     ```
 
-2. **Navigate to the bot folder
+2. **Navigate to the bot folder**
     ```bash
     cd invischatbot
     ```
