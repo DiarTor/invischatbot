@@ -9,6 +9,15 @@
 - ⚡ **Lightweight**: Minimal dependencies and resource usage.
 - 🔧 **Simple Configuration**: Uses environment variables for easy setup.
 
+## Prerequisites
+
+- Python 3.10+
+- A Telegram bot from BotFather.
+- A mongodb database.
+- Required Python main libraries:
+    - `pyTelegramBotAPI` (telebot)
+    - `pymongo`
+
 ## 📦 Installation
 
 1. **Clone the repository**
