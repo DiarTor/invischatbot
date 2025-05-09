@@ -16,7 +16,7 @@ from bot.managers.callback import CallbackHandler
 from bot.managers.chat import ChatHandler
 from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
-
+from bot.database.database import init_bot_config
 # Logging Configuration
 def setup_logger():
     """Sets up the logger with color support."""
@@ -72,9 +72,11 @@ bot.register_inline_handler(callback_handler.handle_inline_query, func=lambda ca
 
 if __name__ == '__main__':
     try:
-        # Start the bot
+        init_bot_config()  # Ensure default config is set
+
         logger.info("Starting bot")
         asyncio.run(bot.polling(none_stop=True))
         logger.info("Bot Stopped")
     except (asyncio.CancelledError, RuntimeError, ValueError) as e:
         logger.error("Error: %s", e)
+
