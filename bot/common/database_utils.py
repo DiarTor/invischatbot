@@ -158,15 +158,18 @@ def is_user_banned(user_id: int) -> bool:
     return False
 
 def is_admin(user_id: int) -> bool:
+    """Check if a user is an admin."""
     if bot_collection.find_one({"admin": user_id}) is None:
         return False
     return True
 
 
 async def get_admins() -> list:
+    """Get the list of admin user IDs from the database."""
     return bot_collection.find_one({"_id": "bot_config"}).get('admin', 0)
 
 
 async def update_total_messages(count: int):
+    """Update the total messages count in the database."""
     bot_collection.update_one({"_id": "bot_config"}, {
         "$inc": {"total_messages": count}}, upsert=True)
