@@ -146,7 +146,7 @@ class KeyboardMarkupGenerator:
         buttons = [InlineKeyboardButton('✅ کاربر بلاک شد.', callback_data='placeholder')]
         return self._create_inline_keyboard(buttons)
 
-    def blocklist_buttons(self, blocker_id: str, blocked_list: list, message_id=None):
+    def blocklist_buttons(self, blocker_id: str, blocked_list: list):
         """ Block List InlineButtons
         :param blocker_id: blocker anonymous id
         :param blocked_list: the list of blocked anonymous ids
@@ -154,7 +154,7 @@ class KeyboardMarkupGenerator:
         """
         buttons = [
             [InlineKeyboardButton(text=str(blocked_id),
-                                  callback_data=f'unblock-{blocker_id}-{blocked_id}-{message_id}'), ]
+                                  callback_data=f'unblock-{blocker_id}-{blocked_id}'), ]
             for blocked_id in blocked_list
         ]
         return self._create_list_inline_keyboard(buttons)
@@ -165,7 +165,7 @@ class KeyboardMarkupGenerator:
                 InlineKeyboardButton(f"میخوای {blocked_id} رو آنبلاک کنی؟", callback_data='placeholder')
             ],
             [InlineKeyboardButton('بله 👍', callback_data=f'unblock_confirm-{blocker_id}-{blocked_id}'),
-             InlineKeyboardButton('خیر 👎', callback_data=f'unblock_cancel-{blocker_id}')]]
+             InlineKeyboardButton('خیر 👎', callback_data=f'unblock_cancel-{blocker_id}-placeholder')]]
         return self._create_list_inline_keyboard(buttons)
 
     def share_link_buttons(self, share_text: str):

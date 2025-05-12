@@ -33,10 +33,14 @@ class CallbackHandler:
             'joined': self._process_joined_channel,
             'delete_message': self._process_delete_message_callback,
             'seen': self._process_seen_callback,
-            'block': self._process_block_callback,
+            'block': self._process_block_callback, #naming problems
+            'block_cancel': self._process_block_callback, #naming problems
+            'block_confirm': self._process_block_callback, #naming problems
             'report': self._process_report_callback,
             'mark': self._process_mark_message,
             'unblock': self._process_unblock_callback,
+            'unblock_cancel': self._process_unblock_callback,
+            'unblock_confirm': self._process_unblock_callback,
             'change-nickname': self._process_change_nickname,
             'change-bot_status': self._process_change_bot_status,
             'cancel': self._process_cancel,
@@ -54,7 +58,9 @@ class CallbackHandler:
             return
 
         # Extract the action type from the callback data
+        print(callback_data.split('-'))
         action = callback_data.split('-')[0]
+        print(f"Callback action: {action}")
 
         # Find and execute the corresponding handler
         handler = self.callback_handlers.get(action)
@@ -164,7 +170,7 @@ class CallbackHandler:
             await self.blocker.unblock_user(blocker_anon_id, blocked_id, callback)
         elif action == 'unblock_cancel':
             blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-            await self.blocker.cancel_unblock_user(blocker_anon_id, blocker_id, callback.message.id)
+            await self.blocker.cancel_unblock_user(blocker_anon_id, callback.message.id)
 
     async def _process_delete_message_callback(self, callback: CallbackQuery):
         """Process the delete message callback"""
