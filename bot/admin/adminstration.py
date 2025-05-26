@@ -27,8 +27,9 @@ class Admin:
         if not is_admin(msg.from_user.id):
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
             return
-        await self.bot.send_message(msg.chat.id, get_response('admin.panel', name=msg.from_user.first_name),
-                                    reply_markup=Keyboard().main_panel(), parse_mode='Markdown')
+        await self.bot.send_message(msg.chat.id, get_response('admin.panel',
+                                                              name=msg.from_user.first_name),
+                                        reply_markup=Keyboard().main_panel(), parse_mode='Markdown')
 
     async def announce_new_user(self, user_id: int):
         """
