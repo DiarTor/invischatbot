@@ -17,7 +17,7 @@ class KeyboardMarkupGenerator:
         ReplyKeyboardMarkup object
         """
 
-        markup = ReplyKeyboardMarkup(resize_keyboard=True, input_field_placeholder="براتون چیکار کنم؟")
+        markup = ReplyKeyboardMarkup(resize_keyboard=True)
         for row in buttons:
             markup.row(*row)
         return markup
