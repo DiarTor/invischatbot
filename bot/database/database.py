@@ -13,10 +13,6 @@ bot_collection = db.get_collection(config('BOT_COLLECTION', cast=str))
 def init_bot_config():
     default_bot_config = {
         "_id": "bot_config",
-        "ad": {
-            "inline_ads": {},
-            "force_join": {}
-        },
         "admin": [],
         "total_messages": 0
     }
