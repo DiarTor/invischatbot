@@ -58,9 +58,7 @@ class CallbackHandler:
             return
 
         # Extract the action type from the callback data
-        print(callback_data.split('-'))
         action = callback_data.split('-')[0]
-        print(f"Callback action: {action}")
 
         # Find and execute the corresponding handler
         handler = self.callback_handlers.get(action)
