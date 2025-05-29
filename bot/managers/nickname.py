@@ -16,10 +16,10 @@ class NicknameManager:
         self.bot = bot
 
     async def set_nickname(self, msg: Message):
-        """Set a Nickname when the user sends /nickname command."""
+        """Set a Nickname for the user."""
         user_data = users_collection.find_one_and_update({'user_id': msg.chat.id},
                                                          {'$set': {'awaiting_nickname': True}})
-        current_first_name = msg.chat.first_name
+        current_first_name = msg.from_user.first_name
         close_chats(msg.chat.id, True)
         await self.bot.send_message(msg.chat.id,
                                     get_response('nickname.ask_nickname', current_nickname=user_data['nickname'], current_firstname=current_first_name),

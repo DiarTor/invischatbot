@@ -24,7 +24,7 @@ class StartBot:
     async def start(self, msg: Message, default_target_anon_id=None):
         try:
             user_id = msg.chat.id
-            nickname = NicknameManager(self.bot).generate_random_nickname()
+            nickname = msg.from_user.first_name
             target_anon_id = default_target_anon_id or await self._get_target_user_id(msg)
 
             # If the user doesn't exist in the database, store their data
