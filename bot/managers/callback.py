@@ -41,8 +41,8 @@ class CallbackHandler:
             'unblock': self._process_unblock_callback,
             'unblock_cancel': self._process_unblock_callback,
             'unblock_confirm': self._process_unblock_callback,
-            'change-nickname': self._process_change_nickname,
-            'change-bot_status': self._process_change_bot_status,
+            'change_nickname': self._process_change_nickname,
+            'change_bot_status': self._process_change_bot_status,
             'cancel': self._process_cancel,
             'admin': self._process_admin_callback,
         }
