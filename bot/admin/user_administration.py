@@ -48,7 +48,7 @@ class UserAdministration:
         last_name = user_info['last_name']
 
         user_data = {
-            "user_id": user_id,
+            "user_id": user_info.get('user_id'),
             "joined_at": joined_at,
             "chats_count": chats_count,
             "blocks_count": blocks_count,
@@ -56,7 +56,7 @@ class UserAdministration:
             "first_name": first_name,
             "last_name": last_name,
             "nickname": user_info['nickname'],
-            "anon_id": user_anon_id,
+            "anon_id": user_info.get('id'),
             "is_banned": user_info.get('is_banned'),
             "banned_by": user_info.get('banned_by'),
             "banned_at": user_info.get('banned_at'),
@@ -73,29 +73,30 @@ class UserAdministration:
         :param msg: Message object containing the command and user_anon_id.
         """
 
-        admin_user_id = msg.from_user.id
-        if not is_admin(admin_user_id):
-            await self.bot.send_message(admin_user_id, get_response('errors.no_active_chat'))
+        user_id = msg.from_user.id
+        if not is_admin(user_id):
+            await self.bot.send_message(user_id, get_response('errors.no_active_chat'))
             return
         parts = msg.text.split()
         if not len(parts) == 2:
-            await self.bot.send_message(admin_user_id,
+            await self.bot.send_message(user_id,
                                         get_response('admin.errors.ban.wrong_format'))
+            return
 
         user_anon_id = parts[1]
         user_info = users_collection.find_one({"id": user_anon_id})
         if not user_info:
-            await self.bot.send_message(admin_user_id,
+            await self.bot.send_message(user_id,
                                         get_response('admin.errors.ban.not_found'))
         if user_info.get('is_banned'):
-            await self.bot.send_message(admin_user_id,
+            await self.bot.send_message(user_id,
                                         get_response('admin.errors.ban.already_banned'))
             return
         if is_admin(user_info['user_id']):
-            await self.bot.send_message(admin_user_id, get_response('admin.errors.ban.admin_ban'))
+            await self.bot.send_message(user_id, get_response('admin.errors.ban.admin_ban'))
             return
         await update_user_fields(user_info['user_id'], {"is_banned": True,
-                                                    "banned_by": admin_user_id,
+                                                    "banned_by": user_id,
                                                    "banned_at": datetime.timestamp(datetime.now())})
         await update_ban_list(user_info['user_id'], 'ban')
         response_info = {

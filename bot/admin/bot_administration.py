@@ -130,7 +130,7 @@ class BotAdministration:
 
     async def get_ban_list(self, msg: Message):
         # Get the ban list from the database
-        ban_list = bot_collection.find_one({"_id": "ban_list"}).get('banned_user_ids', [])
+        ban_list = bot_collection.find_one({"_id": "ban_list"}).get('banned_users', [])
         # Prepare the response message
         if len(ban_list) == 0:
             await self.bot.send_message(msg.chat.id, get_response("admin.ban_list.empty"))

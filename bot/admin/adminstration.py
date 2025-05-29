@@ -8,9 +8,8 @@ from telebot.types import Message
 from bot.admin.keyboard import Keyboard
 from bot.common.database_utils import is_admin, get_admins
 from bot.common.date import convert_timestamp_to_date
-from bot.database.database import users_collection
 from bot.languages.response import get_response
-
+from bot.common.database_utils import fetch_user_data_by_id
 
 class Admin:
     """
@@ -36,14 +35,14 @@ class Admin:
         Announce new user to all admins
         :param user_id: ID of the new user
         """
-        user_data = users_collection.find_one({'user_id': user_id})
+        user_data = fetch_user_data_by_id(user_id)
         stats_data = {
-            "first_name": user_data['first_name'],
-            "last_name": user_data['last_name'],
-            "id": user_data['id'],
-            "username": user_data['username'],
-            "user_id": user_id,
-            "nickname": user_data['nickname'],
+            "first_name": user_data.get('first_name', 'N/A'),
+            "last_name": user_data.get('last_name', 'N/A'),
+            "id": str(user_data.get('id', 'N/A')),
+            "username": user_data.get('username', 'N/A'),
+            "user_id": int(user_data.get('user_id', 0)),
+            "nickname": user_data.get('nickname', 'N/A'),
             "joined_at": convert_timestamp_to_date(user_data['joined_at'], "datetime"),
 
         }

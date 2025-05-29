@@ -74,10 +74,10 @@ class KeyboardMarkupGenerator:
         bot_status = 'خاموش😴' if is_bot_off else 'روشن 😁'
         buttons = [
             [
-                InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data='change-nickname')
+                InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data='change_nickname'),
             ],
             [
-                InlineKeyboardButton(f'وضعیت ربات: {bot_status}', callback_data='change-bot_status')
+                InlineKeyboardButton(f'وضعیت ربات: {bot_status}', callback_data='change_bot_status')
             ]
         ]
 
