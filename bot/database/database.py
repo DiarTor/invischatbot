@@ -19,7 +19,7 @@ def init_bot_config():
 
     default_ban_list = {
         "_id": "ban_list",
-        "banned_user_ids": []
+        "banned_users": []
     }
 
     # Check and insert if not exists
