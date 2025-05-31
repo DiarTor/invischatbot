@@ -14,7 +14,6 @@ from bot.database.database import users_collection
 from bot.languages.response import get_response
 from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
-from bot.managers.nickname import NicknameManager
 
 
 class StartBot:

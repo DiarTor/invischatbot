@@ -65,11 +65,11 @@ class AccountManager:
         """ return the response text"""
         user_data = fetch_user_data_by_id(msg.chat.id)
         joined_at = convert_timestamp_to_date(user_data['joined_at'])
-        referrals = len(user_data.get('referrals'))
+        # referrals = len(user_data.get('referrals'))
         response_data = {
             'anon_id': user_data['id'],
             'nickname': user_data['nickname'],
             'joined_at': joined_at,
-            'referrals': referrals
+            # 'referrals': referrals
         }
         return get_response('account.show', **response_data)

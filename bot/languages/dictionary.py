@@ -8,6 +8,7 @@
     such as using curly braces {} to indicate where variables should be inserted into the message.
 """
 from textwrap import dedent
+from decouple import config
 
 translations = {
     'fa': {
@@ -241,11 +242,8 @@ translations = {
         'account': {
             'show': dedent("""
         👤 شناسه ناشناس: `{anon_id}`
-        🪪 نام نمایشی: {nickname}
+        🪪 نام نمایشی: *{nickname}*
         📅 تاریخ عضویت: {joined_at}
-        💌 افراد دعوت شده: {referrals} نفر
-
-        @InvisChatBot
         """),
             'referral': {
                 'invite_self': dedent("""

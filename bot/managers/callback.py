@@ -33,14 +33,14 @@ class CallbackHandler:
             'joined': self._process_joined_channel,
             'delete_message': self._process_delete_message_callback,
             'seen': self._process_seen_callback,
-            'block': self._process_block_callback, #naming problems
-            'block_cancel': self._process_block_callback, #naming problems
-            'block_confirm': self._process_block_callback, #naming problems
+            'block': self._process_block_action,
+            'block_cancel': self._process_block_action_cancel,
+            'block_confirm': self._process_block_action_confirm,
             'report': self._process_report_callback,
             'mark': self._process_mark_message,
-            'unblock': self._process_unblock_callback,
-            'unblock_cancel': self._process_unblock_callback,
-            'unblock_confirm': self._process_unblock_callback,
+            'unblock': self._process_unblock_action,
+            'unblock_cancel': self._proccess_unblock_action_cancel,
+            'unblock_confirm': self._process_unblock_action_confirm,
             'change_nickname': self._process_change_nickname,
             'change_bot_status': self._process_change_bot_status,
             'cancel': self._process_cancel,
@@ -56,13 +56,12 @@ class CallbackHandler:
         if is_user_banned(callback.from_user.id):
             await self._send_ban_message(callback)
             return
-
         # Extract the action type from the callback data
         action = callback_data.split('-')[0]
-
         # Find and execute the corresponding handler
         handler = self.callback_handlers.get(action)
         if handler:
+            callback.data = callback_data.split('-', 1)[-1]  # Remove action from data
             await handler(callback)
         else:
             await self.bot.answer_callback_query(callback.id,
@@ -99,7 +98,7 @@ class CallbackHandler:
 
     async def _process_reply_callback(self, callback: CallbackQuery):
         """Process the reply callback and set the replying state."""
-        _, sender_anon_id, message_id = callback.data.split('-')
+        sender_anon_id, message_id = callback.data.split('-')
         sender_user_id = get_user_id(sender_anon_id)
         if await self._check_bot_status(callback, sender_user_id):
             return
@@ -117,7 +116,7 @@ class CallbackHandler:
 
     async def _process_seen_callback(self, callback: CallbackQuery):
         """Process the seen callback."""
-        sender_anon_id, message_id = callback.data.split('-')[1:]
+        sender_anon_id, message_id = callback.data.split('-')
         sender_id = get_user_id(sender_anon_id)
 
         if await self._check_bot_status(callback, sender_id):
@@ -135,40 +134,95 @@ class CallbackHandler:
             reply_markup=self.keyboard.recipient_buttons(sender_anon_id, message_id, True)
         )
         await self.bot.answer_callback_query(callback.id, get_response('texting.seen.sent'))
+    
 
-    async def _process_block_callback(self, callback: CallbackQuery):
-        """Process the block callback."""
-        action, sender_id, message_id = callback.data.split('-')
+    async def _process_block_action(self, callback: CallbackQuery):
+        """Process the block action callback."""
+        sender_id, message_id = callback.data.split('-')
 
-        if action == 'block':
-            if await self._validate_block_action(callback, sender_id):
-                return
-            await self.bot.edit_message_reply_markup(
-                callback.message.chat.id,
-                callback.message.id,
+        if not await self._validate_block_action(callback, sender_id):
+            return
+        await self.bot.edit_message_reply_markup(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.id,
                 reply_markup=self.keyboard.block_confirmation_buttons(sender_id, message_id)
             )
-        elif action == 'block_confirm':
-            await self.blocker.block_user(callback.message.chat.id, sender_id, callback)
-        elif action == 'block_cancel':
-            await self.blocker.cancel_block(callback, message_id, sender_id)
 
-    async def _process_unblock_callback(self, callback: CallbackQuery):
+    async def _process_block_action_confirm(self, callback: CallbackQuery):
+        """Process the block confirmation callback."""
+        sender_id, _ = callback.data.split('-')
+        if not await self._validate_block_action(callback, sender_id):
+            return
+        await self.blocker.block_user(callback.message.chat.id, sender_id, callback)
+    async def _process_block_action_cancel(self, callback: CallbackQuery):
+        """Process the block cancellation callback."""
+        sender_id, message_id = callback.data.split('-')
+        if not await self._validate_block_action(callback, sender_id):
+            return
+        await self.blocker.cancel_block(callback, message_id, sender_id)
+    
+    # async def _process_block_callback(self, callback: CallbackQuery):
+    #     """Process the block callback."""
+    #     action, sender_id, message_id = callback.data.split('-')
+
+    #     if action == 'block':
+    #         if not await self._validate_block_action(callback, sender_id):
+    #             return
+    #         await self.bot.edit_message_reply_markup(
+    #             callback.message.chat.id,
+    #             callback.message.id,
+    #             reply_markup=self.keyboard.block_confirmation_buttons(sender_id, message_id)
+    #         )
+    #     elif action == 'block_confirm':
+    #         await self.blocker.block_user(callback.message.chat.id, sender_id, callback)
+    #     elif action == 'block_cancel':
+    #         await self.blocker.cancel_block(callback, message_id, sender_id)
+
+    async def _process_unblock_action(self, callback: CallbackQuery):
         """Process the unblock callback."""
-        action, blocker_id, blocked_id = callback.data.split('-')
+        blocker_id, blocked_id = callback.data.split('-')
+        if await self._check_bot_status(callback, callback.from_user.id):
+            return
 
-        if action == 'unblock':
-            await self.bot.edit_message_reply_markup(
+        await self.bot.edit_message_reply_markup(
                 chat_id=callback.message.chat.id,
                 message_id=callback.message.id,
                 reply_markup=self.keyboard.unblock_confirmation_buttons(blocker_id, blocked_id)
             )
-        elif action == 'unblock_confirm':
-            blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-            await self.blocker.unblock_user(blocker_anon_id, blocked_id, callback)
-        elif action == 'unblock_cancel':
-            blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-            await self.blocker.cancel_unblock_user(blocker_anon_id, callback.message.id)
+    async def _proccess_unblock_action_cancel(self, callback: CallbackQuery):
+        """Process the unblock cancel callback."""
+        blocker_id, _ = callback.data.split('-')
+
+        if await self._check_bot_status(callback, callback.from_user.id):
+            return
+
+        await self.blocker.cancel_unblock_user(blocker_id, callback.message.id)
+    async def _process_unblock_action_confirm(self, callback: CallbackQuery):
+        """Process the unblock confirmation callback."""
+        _, blocked_id = callback.data.split('-')
+
+        if await self._check_bot_status(callback, callback.from_user.id):
+            return
+
+        blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
+        await self.blocker.unblock_user(blocker_anon_id, blocked_id, callback)
+
+    # async def _process_unblock_callback(self, callback: CallbackQuery):
+    #     """Process the unblock callback."""
+    #     action, blocker_id, blocked_id = callback.data.split('-')
+
+    #     if action == 'unblock':
+    #         await self.bot.edit_message_reply_markup(
+    #             chat_id=callback.message.chat.id,
+    #             message_id=callback.message.id,
+    #             reply_markup=self.keyboard.unblock_confirmation_buttons(blocker_id, blocked_id)
+    #         )
+    #     elif action == 'unblock_confirm':
+    #         blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
+    #         await self.blocker.unblock_user(blocker_anon_id, blocked_id, callback)
+    #     elif action == 'unblock_cancel':
+    #         blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
+    #         await self.blocker.cancel_unblock_user(blocker_anon_id, callback.message.id)
 
     async def _process_delete_message_callback(self, callback: CallbackQuery):
         """Process the delete message callback"""
@@ -212,7 +266,7 @@ class CallbackHandler:
 
     async def _process_mark_message(self, callback: CallbackQuery):
         """Process the mark message callback."""
-        sender_anon_id, message_id = callback.data.split('-')[1:]
+        sender_anon_id, message_id = callback.data.split('-')
         seen = get_seen_status(user_id=callback.message.chat.id, message_id=callback.message.id)
 
         original_text, is_caption = self._get_message_text_or_caption(callback)
@@ -287,19 +341,19 @@ class CallbackHandler:
                                                              seen, marked)
             )
 
-    async def _check_bot_status(self, callback: CallbackQuery, sender_id: str):
-        """Check if the bot status is off for the user or recipient."""
+    async def _check_bot_status(self, callback: CallbackQuery, user_id: str):
+        """Verify if the bot status is disabled for the current user or the recipient."""
         if is_bot_status_off(callback.from_user.id):
             await self.bot.answer_callback_query(
                 callback.id,
-                get_response('account.bot_status.self.off'),
+                get_response('account.bot_status.self.disabled'),
                 show_alert=True
             )
             return True
-        if is_bot_status_off(sender_id):
+        if is_bot_status_off(user_id):
             await self.bot.answer_callback_query(
                 callback.id,
-                get_response('account.bot_status.recipient.off'),
+                get_response('account.bot_status.recipient.disabled'),
                 show_alert=True
             )
             return True
@@ -309,8 +363,8 @@ class CallbackHandler:
         """Validate block action to prevent blocking self or support."""
         if sender_id == fetch_user_data_by_id(callback.message.chat.id).get('id'):
             await self.bot.answer_callback_query(callback.id, get_response('blocking.self'))
-            return True
+            return False
         if sender_id == 'support':
             await self.bot.answer_callback_query(callback.id, get_response('blocking.support'))
-            return True
-        return False
+            return False
+        return True
