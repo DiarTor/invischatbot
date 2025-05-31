@@ -168,6 +168,9 @@ async def get_admins() -> list:
     """Get the list of admin user IDs from the database."""
     return bot_collection.find_one({"_id": "bot_config"}).get('admin', 0)
 
+async def get_support_group() -> str:
+    """Get the support channel ID from the database."""
+    return bot_collection.find_one({"_id": "bot_config"}).get('support_channel', 0)
 
 async def update_total_messages(count: int):
     """Update the total messages count in the database."""
