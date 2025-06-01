@@ -8,7 +8,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.common.chat_utils import close_chats
-from bot.common.database_utils import fetch_user_data_by_id, is_user_banned, update_user_fields, get_user_anon_id, get_user_id, \
+from bot.common.database_utils import fetch_user_data_by_id, is_user_banned, update_last_interaction_time, update_user_fields, get_user_anon_id, get_user_id, \
     update_total_messages
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
@@ -36,7 +36,6 @@ class ChatHandler:
         if not user_chat:
             await StartBot(self.bot).start(msg)
             return
-
         user_version = user_chat.get('version', 0.0)
         if user_version != self.current_version:
             await self._handle_version_mismatch(msg)
@@ -50,6 +49,8 @@ class ChatHandler:
         #     await self.bot.send_message(self.msg.chat.id, get_response('ad.force_join'),
         #                                 reply_markup=KeyboardMarkupGenerator().force_join_buttons())
         #     return
+        # store the last interaction time
+        await update_last_interaction_time(msg.from_user.id)
         # Handle commands from the keyboard
         keyboard_commands = {
             "⬅️ انصراف": self.handle_cancel,

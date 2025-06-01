@@ -16,7 +16,8 @@ async def user_exists(user_id: int) -> bool:
     return bool(users_collection.find_one({'user_id': user_id}))
 
 
-async def save_user_data(user_id: int, nickname: str = None, username=None, first_name=None, last_name=None) -> None:
+async def save_user_data(user_id: int, nickname: str = None,
+                         username=None, first_name=None, last_name=None) -> None:
     """
     Store user data in the database.
     :param first_name:
@@ -46,6 +47,7 @@ async def save_user_data(user_id: int, nickname: str = None, username=None, firs
             "is_banned": False,
             "banned_by": None,
             "banned_at": None,
+            "last_interaction_time": datetime.timestamp(datetime.now()),
         }
         users_collection.insert_one(user_data)
     except pymongo.errors.PyMongoError as e:
@@ -147,6 +149,7 @@ async def update_ban_list(user_id: int, action: str) -> bool:
     except pymongo.errors.PyMongoError as e:
         print(f"Failed to update ban list: {e}")
         return False
+
 def is_user_banned(user_id: int) -> bool:
     """
     Check if a user is banned.
@@ -176,3 +179,11 @@ async def update_total_messages(count: int):
     """Update the total messages count in the database."""
     bot_collection.update_one({"_id": "bot_config"}, {
         "$inc": {"total_messages": count}}, upsert=True)
+
+async def update_last_interaction_time(user_id: int):
+    """
+    Update the last interaction time for a user.
+    :param user_id: User ID to update.
+    """
+    users_collection.update_one({"user_id": user_id}, {
+        "$set": {"last_interaction_time": datetime.timestamp(datetime.now())}}, upsert=True)  

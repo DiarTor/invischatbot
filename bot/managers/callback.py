@@ -1,4 +1,5 @@
 """Callback handler for processing user interactions with the bot."""
+from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery, InputTextMessageContent,\
       InlineQueryResultArticle, InlineQuery
@@ -11,7 +12,7 @@ from bot.managers.start import StartBot
 from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
-from bot.common.database_utils import fetch_user_data_by_id, update_user_fields,\
+from bot.common.database_utils import fetch_user_data_by_id, update_last_interaction_time, update_user_fields,\
       get_user_id, get_user_anon_id
 from bot.common.user import is_subscribed_to_channel, is_bot_status_off
 from bot.common.utils import generate_anon_link
@@ -56,6 +57,8 @@ class CallbackHandler:
         if is_user_banned(callback.from_user.id):
             await self._send_ban_message(callback)
             return
+        # store the last interaction time
+        await update_last_interaction_time(callback.from_user.id)
         # Extract the action type from the callback data
         action = callback_data.split('-')[0]
         # Find and execute the corresponding handler

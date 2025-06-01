@@ -6,7 +6,7 @@ from telebot.types import Message
 
 from bot.admin.adminstration import Admin
 from bot.common.chat_utils import close_chats
-from bot.common.database_utils import is_user_banned, save_user_data, fetch_user_data_by_id, user_exists, update_user_fields, \
+from bot.common.database_utils import is_user_banned, save_user_data, fetch_user_data_by_id, update_last_interaction_time, user_exists, update_user_fields, \
     get_user_anon_id
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.common.user import is_bot_status_off
@@ -38,6 +38,8 @@ class StartBot:
             #     await self.bot.send_message(user_id, get_response('ad.force_join'),
             #                                 reply_markup=KeyboardMarkupGenerator().force_join_buttons())
             #     return
+            # save the last interaction time
+            await update_last_interaction_time(user_id)
             # Retrieve user data from the database
             user_data = users_collection.find_one({"user_id": user_id})
             if not target_anon_id and user_data.get('first_time'):
