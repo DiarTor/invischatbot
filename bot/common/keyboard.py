@@ -1,5 +1,6 @@
 from telebot.types import ReplyKeyboardMarkup, InlineKeyboardMarkup,\
       InlineKeyboardButton, KeyboardButton
+from telegram import CopyTextButton
 
 
 class KeyboardMarkupGenerator:
@@ -168,16 +169,22 @@ class KeyboardMarkupGenerator:
              InlineKeyboardButton('خیر 👎', callback_data=f'unblock_cancel-{blocker_id}-placeholder')]]
         return self._create_list_inline_keyboard(buttons)
 
-    def share_link_buttons(self, share_text: str):
+    def share_link_buttons(self, share_text: str, link: str = None):
         buttons = [
-            InlineKeyboardButton("📤 اشتراک‌گذاری با دیگران", switch_inline_query=share_text),
+            [
+                InlineKeyboardButton("کپی کردن لینک", copy_text=CopyTextButton(link)),
+                InlineKeyboardButton("📤 اشتراک‌گذاری", switch_inline_query=share_text),
+            ],
+            [
+                InlineKeyboardButton("🚫 ابطال لینک", callback_data='regenerate_link')
+            ]
         ]
 
-        return self._create_inline_keyboard(buttons)
+        return self._create_list_inline_keyboard(buttons)
 
     def inline_text_me_button(self, url: str):
         buttons = [
-            InlineKeyboardButton("📩 بهم ناشناس پیام بده", url=url),
+            InlineKeyboardButton("💬 ناشناس پیام بده!", url=url),
         ]
         return self._create_inline_keyboard(buttons)
 
@@ -188,4 +195,11 @@ class KeyboardMarkupGenerator:
             [
                 InlineKeyboardButton('✅ عضو شدم', callback_data='joined')
             ]]
+        return self._create_list_inline_keyboard(buttons)
+
+    def regenarate_link_buttons(self):
+        buttons = [[
+            InlineKeyboardButton("✅ بله مطمئنم", callback_data='confirm_regenerate_link'),
+            InlineKeyboardButton("❌ نهههه", callback_data='cancel_regenerate_link'),
+        ]]
         return self._create_list_inline_keyboard(buttons)

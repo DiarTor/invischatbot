@@ -38,7 +38,7 @@ def setup_logger():
 
 logger = setup_logger()
 
-bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True)
+bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True, parse_mode='HTML')
 
 # Bot Commands Classes
 start_bot = StartBot(bot)
