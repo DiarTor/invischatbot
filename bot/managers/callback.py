@@ -1,5 +1,4 @@
 """Callback handler for processing user interactions with the bot."""
-from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery, InputTextMessageContent,\
       InlineQueryResultArticle, InlineQuery
@@ -106,7 +105,13 @@ class CallbackHandler:
     async def _process_reply_callback(self, callback: CallbackQuery):
         """Process the reply callback and set the replying state."""
         sender_anon_id, message_id = callback.data.split('-')
-        sender_user_id = get_user_id(sender_anon_id)
+        try:
+            sender_user_id = get_user_id(sender_anon_id)
+        except AttributeError:
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('errors.user_not_found'), show_alert=True)
+            return
         if await self._check_bot_status(callback, sender_user_id):
             return
 
