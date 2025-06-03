@@ -129,7 +129,13 @@ class CallbackHandler:
     async def _process_seen_callback(self, callback: CallbackQuery):
         """Process the seen callback."""
         sender_anon_id, message_id = callback.data.split('-')
-        sender_id = get_user_id(sender_anon_id)
+        try:
+            sender_id = get_user_id(sender_anon_id)
+        except AttributeError:
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('errors.user_not_found'), show_alert=True)
+            return
 
         if await self._check_bot_status(callback, sender_id):
             return
