@@ -30,10 +30,11 @@ class CallbackHandler:
         """Initialize the CallbackHandler with the bot instance."""
         self.bot = bot
         self.callback_handlers = {
-            'reply': self._process_reply_callback,
-            'recipient_option': self._process_recipient_option_callback,
             'joined': self._process_joined_channel,
+            'reply': self._process_reply_callback,
             'delete_message': self._process_delete_message_callback,
+            'recipient_option': self._process_recipient_option_callback,
+            'reactions': self._process_reaction_callback,
             'seen': self._process_seen_callback,
             'block': self._process_block_action,
             'block_cancel': self._process_block_action_cancel,
@@ -151,6 +152,26 @@ class CallbackHandler:
             message_id=callback.message.id,
             reply_markup=self.keyboard.recipient_option_buttons(sender_anon_id, message_id,
                                                                  is_seen=seen, is_marked=marked)
+        )
+
+    async def _process_reaction_callback(self, callback: CallbackQuery):
+        """Process the reaction callback."""
+        sender_anon_id, message_id = callback.data.split('-')
+        try:
+            sender_user_id = get_user_id(sender_anon_id)
+        except AttributeError:
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('errors.user_not_found'), show_alert=True)
+            return
+
+        if await self._check_bot_status(callback, sender_user_id):
+            return
+
+        await self.bot.edit_message_reply_markup(
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.id,
+            reply_markup=self.keyboard.reaction_buttons(sender_anon_id, message_id)
         )
 
     async def _process_seen_callback(self, callback: CallbackQuery):

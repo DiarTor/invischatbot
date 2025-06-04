@@ -132,11 +132,47 @@ class KeyboardMarkupGenerator:
                                      callback_data=f'mark-{sender_id}-{message_id}'),
             ],
             [
-                InlineKeyboardButton('گزارش ⚠️', callback_data='report'),
-                InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_id}')
+                # InlineKeyboardButton('گزارش ⚠️', callback_data='report'),
+                InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_id}'),
+                InlineKeyboardButton('👍 ریاکشن ها', callback_data=f'reactions-{sender_id}-{message_id}')
             ],
             [
                 InlineKeyboardButton('↩️ بازگشت', callback_data=f'return_to_recipient_buttons-{sender_id}-{message_id}'),
+            ]
+        ]
+        return self._create_list_inline_keyboard(buttons)
+
+    def reaction_buttons(self, sender_id, message_id=None):
+        """
+        :param sender_id: anonymous id
+        :param message_id: message id
+        :return: buttons
+        """
+        buttons = [
+            [
+                InlineKeyboardButton('👍', callback_data=f'reaction-like-{sender_id}-{message_id}'),
+                InlineKeyboardButton('👎', callback_data=f'reaction-dislike-{sender_id}-{message_id}'),
+            ],
+            [
+                InlineKeyboardButton('❤️', callback_data=f'reaction-heart-{sender_id}-{message_id}'),
+                InlineKeyboardButton('🔥', callback_data=f'reaction-fire-{sender_id}-{message_id}'),
+                InlineKeyboardButton('😁', callback_data=f'reaction-smile-{sender_id}-{message_id}'),
+                InlineKeyboardButton('🤣', callback_data=f'reaction-laugh-{sender_id}-{message_id}'),
+            ],
+            [
+                InlineKeyboardButton('🙏', callback_data=f'reaction-thanks-{sender_id}-{message_id}'),
+                InlineKeyboardButton('👏', callback_data=f'reaction-clap-{sender_id}-{message_id}'),
+                InlineKeyboardButton('😢', callback_data=f'reaction-sad-{sender_id}-{message_id}'),
+                InlineKeyboardButton('😭', callback_data=f'reaction-cry-{sender_id}-{message_id}'),
+            ],
+            [
+                InlineKeyboardButton('😡', callback_data=f'reaction-angry-{sender_id}-{message_id}'),
+                InlineKeyboardButton('🤔', callback_data=f'reaction-thinking-{sender_id}-{message_id}'),
+                InlineKeyboardButton('🗿', callback_data=f'reaction-chad-{sender_id}-{message_id}'),
+                InlineKeyboardButton('🌚', callback_data=f'reaction-poop-{sender_id}-{message_id}'),
+            ],
+            [
+                InlineKeyboardButton('↩️ بازگشت', callback_data=f'return_to_recipient_buttons-{sender_id}-{message_id}')
             ]
         ]
         return self._create_list_inline_keyboard(buttons)
