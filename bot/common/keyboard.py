@@ -128,7 +128,7 @@ class KeyboardMarkupGenerator:
             [
                 InlineKeyboardButton('پیامتو دیدم 👀️' if not is_seen else 'قبلاً دیده شده ✅',
                                      callback_data=f'seen-{sender_id}-{message_id}' if not is_seen else 'placeholder'),
-                InlineKeyboardButton('📌 علامت گذاری' if not is_marked else '📍 علامت گذاری شده',
+                InlineKeyboardButton('📌 علامت گذاری' if not is_marked else '📍 حذف علامت گذاری',
                                      callback_data=f'mark-{sender_id}-{message_id}'),
             ],
             [
@@ -142,7 +142,7 @@ class KeyboardMarkupGenerator:
         ]
         return self._create_list_inline_keyboard(buttons)
 
-    def reaction_buttons(self, sender_id, message_id=None):
+    def reaction_buttons(self, sender_id, message_id=None, toggled_emoji='اگه قبلا ریاکشن دادین، همون مونده!'):
         """
         :param sender_id: anonymous id
         :param message_id: message id
@@ -175,6 +175,7 @@ class KeyboardMarkupGenerator:
                 InlineKeyboardButton('↩️ بازگشت', callback_data=f'return_to_recipient_buttons-{sender_id}-{message_id}')
             ]
         ]
+        buttons += [[InlineKeyboardButton(f'ریاکشن فعلی: {toggled_emoji}', callback_data='placeholder')]]
         return self._create_list_inline_keyboard(buttons)
 
     def block_confirmation_buttons(self, sender_id, message_id=None):

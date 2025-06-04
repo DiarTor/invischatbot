@@ -13,8 +13,9 @@ from bot.managers.start import StartBot
 from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
-from bot.common.database_utils import fetch_user_data_by_id, update_last_interaction_time, update_user_fields,\
-      get_user_id, get_user_anon_id
+from bot.common.database_utils import fetch_user_data_by_id,\
+        update_last_interaction_time, update_user_fields,\
+        get_user_id, get_user_anon_id
 from bot.common.user import is_subscribed_to_channel, is_bot_status_off
 from bot.common.utils import generate_anon_link
 from bot.admin.callback import AdminCallbackHandler
@@ -148,7 +149,7 @@ class CallbackHandler:
             return
 
         seen = get_seen_status(user_id=callback.message.chat.id, message_id=message_id)
-        marked = '#️⃣ #mark' in (callback.message.text or callback.message.caption or '')
+        marked = '📍 #نشان' in (callback.message.text or callback.message.caption or '')
         await self.bot.edit_message_reply_markup(
             chat_id=callback.message.chat.id,
             message_id=callback.message.id,
@@ -212,6 +213,13 @@ class CallbackHandler:
             is_big=False
         )
 
+        await self.bot.edit_message_reply_markup(
+            callback.message.chat.id,
+            message_id=callback.message.id,
+            reply_markup= self.keyboard.reaction_buttons(
+                sender_anon_id, message_id, toggled_emoji=emoji)
+        )
+
     async def _process_seen_callback(self, callback: CallbackQuery):
         """Process the seen callback."""
         sender_anon_id, message_id = callback.data.split('-')
@@ -264,7 +272,7 @@ class CallbackHandler:
         if not await self._validate_block_action(callback, sender_id):
             return
         await self.blocker.cancel_block(callback, message_id, sender_id)
-    
+
 
     async def _process_unblock_action(self, callback: CallbackQuery):
         """Process the unblock callback."""
@@ -346,6 +354,7 @@ class CallbackHandler:
             return
 
         new_text, marked = self._toggle_mark(original_text)
+
         await self._edit_message(callback, new_text, sender_anon_id,
                                   message_id, seen, marked, is_caption)
 
@@ -423,9 +432,19 @@ class CallbackHandler:
     @staticmethod
     def _toggle_mark(original_text: str):
         """Toggle the mark status of a message."""
-        if "#️⃣ #mark" in original_text.strip():
-            return original_text.replace("\n #️⃣ #mark", "").strip(), False
-        return f"{original_text}\n #️⃣ #mark", True
+        if "📍 #نشان" in original_text.strip():
+            return original_text.replace("\n📍 #نشان", "").strip(), False
+
+        # Split the text into lines
+        lines = original_text.strip().split("\n")
+        if len(lines) > 1:
+            # Insert the mark before the last line
+            lines.insert(-1, "📍 #نشان")
+        else:
+            # If there's only one line, append the mark
+            lines.append("📍 #نشان")
+
+        return "\n".join(lines), True
 
     async def _edit_message(self, callback, new_text, sender_anon_id,
                             message_id, seen, marked, is_caption):
