@@ -39,10 +39,11 @@ class NicknameManager:
             await update_user_fields(user_id, "awaiting_nickname", False)
             await self.bot.send_message(
                 msg.chat.id,
-                get_response('nickname.nickname_was_set', nickname),
+                get_response('nickname.nickname_was_set', nickname=nickname),
                 parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
+
         else:
             # Notify the user about the invalid nickname
             await self.bot.send_message(
