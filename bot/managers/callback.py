@@ -320,7 +320,7 @@ class CallbackHandler:
 
     async def _process_cancel(self, callback: CallbackQuery):
         """Process the cancel callback."""
-        _, task = callback.data.split('-')
+        task = callback.data
         if task == "changing_nickname":
             await update_user_fields(callback.from_user.id, 'awaiting_nickname', False)
             await self.bot.edit_message_text(

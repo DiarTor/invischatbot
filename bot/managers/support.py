@@ -2,6 +2,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 from bot.languages.response import get_response
 from bot.common.database_utils import get_support_group
+from bot.managers.start import StartBot
 
 class SupportManager:
     def __init__(self, bot: AsyncTeleBot):
@@ -10,7 +11,7 @@ class SupportManager:
 
     async def support(self, msg: Message):
         "Handle the support command to start a support session."
-        #TODO: Implement support session logic
+        StartBot(self.bot).start(msg, 'support')
 
 
     async def guide(self, msg: Message):
