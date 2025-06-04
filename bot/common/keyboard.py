@@ -108,7 +108,7 @@ class KeyboardMarkupGenerator:
         """
         buttons = [
                 [
-                    InlineKeyboardButton('🛠 بیشتر...',
+                    InlineKeyboardButton('🎈 بیشتر...',
                                           callback_data=f'recipient_option-{sender_id}-{message_id}'),
                     InlineKeyboardButton('↪️ پاسخ',
                                           callback_data=f'reply-{sender_id}-{message_id}'),
@@ -169,7 +169,7 @@ class KeyboardMarkupGenerator:
                 InlineKeyboardButton('😡', callback_data=f'reaction-angry-{sender_id}-{message_id}'),
                 InlineKeyboardButton('🤔', callback_data=f'reaction-thinking-{sender_id}-{message_id}'),
                 InlineKeyboardButton('🗿', callback_data=f'reaction-chad-{sender_id}-{message_id}'),
-                InlineKeyboardButton('🌚', callback_data=f'reaction-poop-{sender_id}-{message_id}'),
+                InlineKeyboardButton('🌚', callback_data=f'reaction-moon-{sender_id}-{message_id}'),
             ],
             [
                 InlineKeyboardButton('↩️ بازگشت', callback_data=f'return_to_recipient_buttons-{sender_id}-{message_id}')

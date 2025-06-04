@@ -2,6 +2,7 @@
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery, InputTextMessageContent,\
       InlineQueryResultArticle, InlineQuery
+from telegram import ReactionTypeEmoji
 from bot.common.chat_utils import close_chats, add_seen_message, get_seen_status
 from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
@@ -34,7 +35,8 @@ class CallbackHandler:
             'reply': self._process_reply_callback,
             'delete_message': self._process_delete_message_callback,
             'recipient_option': self._process_recipient_option_callback,
-            'reactions': self._process_reaction_callback,
+            'reactions': self._process_reactions_callback,
+            'reaction': self._process_reaction_action_callback,
             'seen': self._process_seen_callback,
             'block': self._process_block_action,
             'block_cancel': self._process_block_action_cancel,
@@ -154,7 +156,7 @@ class CallbackHandler:
                                                                  is_seen=seen, is_marked=marked)
         )
 
-    async def _process_reaction_callback(self, callback: CallbackQuery):
+    async def _process_reactions_callback(self, callback: CallbackQuery):
         """Process the reaction callback."""
         sender_anon_id, message_id = callback.data.split('-')
         try:
@@ -172,6 +174,42 @@ class CallbackHandler:
             chat_id=callback.message.chat.id,
             message_id=callback.message.id,
             reply_markup=self.keyboard.reaction_buttons(sender_anon_id, message_id)
+        )
+
+    async def _process_reaction_action_callback(self, callback: CallbackQuery):
+        """Process the reaction action callback."""
+        reaction, sender_anon_id, message_id = callback.data.split('-')
+        try:
+            sender_user_id = get_user_id(sender_anon_id)
+        except AttributeError:
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('errors.user_not_found'), show_alert=True)
+            return
+        if await self._check_bot_status(callback, sender_user_id):
+            return
+        emojies = {
+            'like': '👍',
+            'dislike': '👎',
+            'heart': '❤️',
+            'fire': '🔥',
+            'smile': '😁',
+            'laugh': '🤣',
+            'thanks': '🙏',
+            'clap': '👏',
+            'sad':'😢',
+            'cry':'😭',
+            'angry':'😡',
+            'thinking':'🤔',
+            'chad': '🗿',
+            'moon':'🌚',
+        }
+        emoji = emojies.get(reaction, '👍')
+        await self.bot.set_message_reaction(
+            chat_id=int(sender_user_id),
+            message_id=int(message_id),
+            reaction=[ReactionTypeEmoji(emoji=emoji)],
+            is_big=False
         )
 
     async def _process_seen_callback(self, callback: CallbackQuery):
