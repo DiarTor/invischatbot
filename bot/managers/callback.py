@@ -31,6 +31,7 @@ class CallbackHandler:
         self.bot = bot
         self.callback_handlers = {
             'reply': self._process_reply_callback,
+            'recipient_option': self._process_recipient_option_callback,
             'joined': self._process_joined_channel,
             'delete_message': self._process_delete_message_callback,
             'seen': self._process_seen_callback,
@@ -40,15 +41,17 @@ class CallbackHandler:
             'report': self._process_report_callback,
             'mark': self._process_mark_message,
             'unblock': self._process_unblock_action,
-            'unblock_cancel': self._proccess_unblock_action_cancel,
+            'unblock_cancel': self._process_unblock_action_cancel,
             'unblock_confirm': self._process_unblock_action_confirm,
+            'return_to_recipient_buttons': self._process_return_to_recipient_buttons,
             'change_nickname': self._process_change_nickname,
             'change_bot_status': self._process_change_bot_status,
             'cancel': self._process_cancel,
             'admin': self._process_admin_callback,
             'regenerate_link': self._process_regenarate_link,
-            'cancel_regenerate_link': self._proccess_cancel_regenerate_link,
-            'confirm_regenerate_link': self._proccess_confirm_regenerate_link,
+            'cancel_regenerate_link': self._process_cancel_regenerate_link,
+            'confirm_regenerate_link': self._process_confirm_regenerate_link,
+            'placeholder': self._process_placeholder,  # Placeholder for unknown actions
         }
         self.keyboard = KeyboardMarkupGenerator()
         self.blocker = BlockUserManager(self.bot)
@@ -79,8 +82,9 @@ class CallbackHandler:
     async def handle_inline_query(self, inline: InlineQuery):
         """Handle inline queries."""
         user_id = inline.from_user.id
+        anon_id = get_user_anon_id(user_id)
         text = inline.query.strip() or "حرفتو ناشناس بهم بزن 😉"  # Default text if empty
-        link = generate_anon_link(get_user_anon_id(user_id))
+        link = generate_anon_link(anon_id)
 
         content = InputTextMessageContent(f"{text}")
         result = InlineQueryResultArticle(
@@ -92,7 +96,7 @@ class CallbackHandler:
             reply_markup=self.keyboard.inline_text_me_button(link)
         )
 
-        await self.bot.answer_inline_query(inline.id, results=[result])
+        await self.bot.answer_inline_query(inline.id, results=[result], cache_time=0)
 
     async def _send_ban_message(self, callback: CallbackQuery):
         """Send a message to banned users."""
@@ -126,6 +130,29 @@ class CallbackHandler:
             reply_markup=self.keyboard.cancel_buttons()
         )
 
+    async def _process_recipient_option_callback(self, callback: CallbackQuery):
+        """Process the recipient option callback."""
+        sender_anon_id, message_id = callback.data.split('-')
+        try:
+            sender_user_id = get_user_id(sender_anon_id)
+        except AttributeError:
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('errors.user_not_found'), show_alert=True)
+            return
+
+        if await self._check_bot_status(callback, sender_user_id):
+            return
+
+        seen = get_seen_status(user_id=callback.message.chat.id, message_id=message_id)
+        marked = '#️⃣ #mark' in (callback.message.text or callback.message.caption or '')
+        await self.bot.edit_message_reply_markup(
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.id,
+            reply_markup=self.keyboard.recipient_option_buttons(sender_anon_id, message_id,
+                                                                 is_seen=seen, is_marked=marked)
+        )
+
     async def _process_seen_callback(self, callback: CallbackQuery):
         """Process the seen callback."""
         sender_anon_id, message_id = callback.data.split('-')
@@ -149,10 +176,10 @@ class CallbackHandler:
         await self.bot.edit_message_reply_markup(
             chat_id=callback.message.chat.id,
             message_id=callback.message.id,
-            reply_markup=self.keyboard.recipient_buttons(sender_anon_id, message_id, True)
+            reply_markup=self.keyboard.recipient_option_buttons(sender_anon_id, message_id,True)
         )
         await self.bot.answer_callback_query(callback.id, get_response('texting.seen.sent'))
-    
+
 
     async def _process_block_action(self, callback: CallbackQuery):
         """Process the block action callback."""
@@ -179,22 +206,6 @@ class CallbackHandler:
             return
         await self.blocker.cancel_block(callback, message_id, sender_id)
     
-    # async def _process_block_callback(self, callback: CallbackQuery):
-    #     """Process the block callback."""
-    #     action, sender_id, message_id = callback.data.split('-')
-
-    #     if action == 'block':
-    #         if not await self._validate_block_action(callback, sender_id):
-    #             return
-    #         await self.bot.edit_message_reply_markup(
-    #             callback.message.chat.id,
-    #             callback.message.id,
-    #             reply_markup=self.keyboard.block_confirmation_buttons(sender_id, message_id)
-    #         )
-    #     elif action == 'block_confirm':
-    #         await self.blocker.block_user(callback.message.chat.id, sender_id, callback)
-    #     elif action == 'block_cancel':
-    #         await self.blocker.cancel_block(callback, message_id, sender_id)
 
     async def _process_unblock_action(self, callback: CallbackQuery):
         """Process the unblock callback."""
@@ -207,7 +218,7 @@ class CallbackHandler:
                 message_id=callback.message.id,
                 reply_markup=self.keyboard.unblock_confirmation_buttons(blocker_id, blocked_id)
             )
-    async def _proccess_unblock_action_cancel(self, callback: CallbackQuery):
+    async def _process_unblock_action_cancel(self, callback: CallbackQuery):
         """Process the unblock cancel callback."""
         blocker_id, _ = callback.data.split('-')
 
@@ -224,23 +235,6 @@ class CallbackHandler:
 
         blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
         await self.blocker.unblock_user(blocker_anon_id, blocked_id, callback)
-
-    # async def _process_unblock_callback(self, callback: CallbackQuery):
-    #     """Process the unblock callback."""
-    #     action, blocker_id, blocked_id = callback.data.split('-')
-
-    #     if action == 'unblock':
-    #         await self.bot.edit_message_reply_markup(
-    #             chat_id=callback.message.chat.id,
-    #             message_id=callback.message.id,
-    #             reply_markup=self.keyboard.unblock_confirmation_buttons(blocker_id, blocked_id)
-    #         )
-    #     elif action == 'unblock_confirm':
-    #         blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-    #         await self.blocker.unblock_user(blocker_anon_id, blocked_id, callback)
-    #     elif action == 'unblock_cancel':
-    #         blocker_anon_id = users_collection.find_one({"user_id": callback.message.chat.id})['id']
-    #         await self.blocker.cancel_unblock_user(blocker_anon_id, callback.message.id)
 
     async def _process_delete_message_callback(self, callback: CallbackQuery):
         """Process the delete message callback"""
@@ -296,6 +290,16 @@ class CallbackHandler:
         await self._edit_message(callback, new_text, sender_anon_id,
                                   message_id, seen, marked, is_caption)
 
+    async def _process_return_to_recipient_buttons(self, callback: CallbackQuery):
+        """Process the return to recipient buttons callback."""
+        sender_anon_id, message_id = callback.data.split('-')
+
+        await self.bot.edit_message_reply_markup(
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.id,
+            reply_markup=self.keyboard.recipient_buttons(sender_anon_id, message_id)
+        )
+
     async def _process_regenarate_link(self, callback: CallbackQuery):
         """Process the change link callback."""
         await self.bot.send_message(callback.message.chat.id,
@@ -303,14 +307,14 @@ class CallbackHandler:
                                    reply_markup=self.keyboard.regenarate_link_buttons(),
                                    parse_mode='Markdown')
 
-    async def _proccess_cancel_regenerate_link(self, callback: CallbackQuery):
+    async def _process_cancel_regenerate_link(self, callback: CallbackQuery):
         """Process the cancel regenerate link callback."""
         await self.bot.answer_callback_query(callback.id,
                                              get_response('link.regenerate_link.cancel'),
                                              show_alert=True)
         await self.bot.delete_message(callback.message.chat.id, callback.message.id)
 
-    async def _proccess_confirm_regenerate_link(self, callback: CallbackQuery):
+    async def _process_confirm_regenerate_link(self, callback: CallbackQuery):
         """Process the confirm regenerate link callback."""
         user_id = callback.message.chat.id
         link_manager = LinkManager(self.bot)
@@ -330,6 +334,10 @@ class CallbackHandler:
         """Delegate admin-related callbacks to the AdminCallbackHandler."""
         await AdminCallbackHandler(self.bot).handle_callback(callback)
 
+    async def _process_placeholder(self, callback: CallbackQuery):
+        """Handle unknown or placeholder actions."""
+        await self.bot.answer_callback_query(callback.id,
+                                             get_response('errors.placeholder'))
     @staticmethod
     def _set_replying_state(user_id: int, message_id: str, sender_anon_id: str):
         """Set the replying state in the database."""
@@ -368,16 +376,16 @@ class CallbackHandler:
                 chat_id=callback.message.chat.id,
                 message_id=callback.message.id,
                 caption=new_text,
-                reply_markup=self.keyboard.recipient_buttons(sender_anon_id, message_id,
-                                                             seen, marked)
+                reply_markup=self.keyboard.recipient_option_buttons(sender_anon_id, message_id,
+                                                             is_seen=seen, is_marked=marked),
             )
         else:
             await self.bot.edit_message_text(
                 new_text,
                 callback.message.chat.id,
                 callback.message.id,
-                reply_markup=self.keyboard.recipient_buttons(sender_anon_id, message_id,
-                                                             seen, marked)
+                reply_markup=self.keyboard.recipient_option_buttons(sender_anon_id, message_id,
+                                                             is_seen=seen, is_marked=marked),
             )
 
     async def _check_bot_status(self, callback: CallbackQuery, user_id: str):

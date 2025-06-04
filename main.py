@@ -72,11 +72,10 @@ bot.register_inline_handler(callback_handler.handle_inline_query, func=lambda ca
 
 if __name__ == '__main__':
     try:
-        init_bot_config()  # Ensure default config is set
+        asyncio.run(init_bot_config())  # Ensure default config is set
 
         logger.info("Starting bot")
         asyncio.run(bot.polling(none_stop=True))
         logger.info("Bot Stopped")
     except (asyncio.CancelledError, RuntimeError, ValueError) as e:
         logger.error("Error: %s", e)
-

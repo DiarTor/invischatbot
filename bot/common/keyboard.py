@@ -100,7 +100,23 @@ class KeyboardMarkupGenerator:
         ]
         return self._create_inline_keyboard(buttons)
 
-    def recipient_buttons(self, sender_id, message_id=None, is_seen=False, is_marked=False):
+    def recipient_buttons(self, sender_id, message_id=None):
+        """
+        :param sender_id: anonymous id
+        :param message_id: message id
+        :return: buttons
+        """
+        buttons = [
+                [
+                    InlineKeyboardButton('🛠 بیشتر...',
+                                          callback_data=f'recipient_option-{sender_id}-{message_id}'),
+                    InlineKeyboardButton('↪️ پاسخ',
+                                          callback_data=f'reply-{sender_id}-{message_id}'),
+                ]
+        ]
+        return self._create_list_inline_keyboard(buttons)
+
+    def recipient_option_buttons(self, sender_id, message_id=None, is_seen=False, is_marked=False):
         """
         :param sender_id: anonymous id
         :param message_id: message id
@@ -110,17 +126,17 @@ class KeyboardMarkupGenerator:
         """
         buttons = [
             [
-                InlineKeyboardButton('دیدم 👀️' if not is_seen else 'قبلاً دیده شده ✅',
+                InlineKeyboardButton('پیامتو دیدم 👀️' if not is_seen else 'قبلاً دیده شده ✅',
                                      callback_data=f'seen-{sender_id}-{message_id}' if not is_seen else 'placeholder'),
-                InlineKeyboardButton('پاسخ ↪️', callback_data=f'reply-{sender_id}-{message_id}'),
-            ],
-            [
-                InlineKeyboardButton('☐ علامت گذاری' if not is_marked else '☑ علامت گذاری شده',
+                InlineKeyboardButton('📌 علامت گذاری' if not is_marked else '📍 علامت گذاری شده',
                                      callback_data=f'mark-{sender_id}-{message_id}'),
             ],
             [
                 InlineKeyboardButton('گزارش ⚠️', callback_data='report'),
                 InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_id}')
+            ],
+            [
+                InlineKeyboardButton('↩️ بازگشت', callback_data=f'return_to_recipient_buttons-{sender_id}-{message_id}'),
             ]
         ]
         return self._create_list_inline_keyboard(buttons)

@@ -13,7 +13,7 @@ from bot.common.database_utils import fetch_user_data_by_query, get_user_id
 class BlockUserManager:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
-
+        self.keyboard = KeyboardMarkupGenerator()
     async def block_list(self, msg: telebot.types.Message):
         """ Show user blocklist"""
         user_id = msg.chat.id
@@ -21,10 +21,9 @@ class BlockUserManager:
         if not blocklist:
             await self.bot.send_message(text=get_response('blocking.blocklist_empty'), chat_id=user_id)
             return
-        keyboard = KeyboardMarkupGenerator()
         user_anon_id = users_collection.find_one({'user_id': user_id}).get('id', None)
         await self.bot.send_message(chat_id=user_id, text=get_response("blocking.blocklist"), parse_mode='Markdown',
-                                    reply_markup=keyboard.blocklist_buttons(user_anon_id, blocklist))
+                                    reply_markup=self.keyboard.blocklist_buttons(user_anon_id, blocklist))
 
     async def block_user(self, blocker_id: int, blocked_id: str, callback: CallbackQuery):
         """ Block user
@@ -41,7 +40,7 @@ class BlockUserManager:
             {"$addToSet": {"blocklist": blocked_id}}, upsert=True
         )
         await self.bot.edit_message_reply_markup(blocker_id, callback.message.id,
-                                                 reply_markup=KeyboardMarkupGenerator().blocked_buttons())
+                                                 reply_markup=self.keyboard.blocked_buttons())
 
     async def cancel_block(self, callback: CallbackQuery, reply_message_id, sender_id):
         """ Cancel blocking operation
@@ -52,10 +51,13 @@ class BlockUserManager:
         chat_id = callback.message.chat.id
         seen = get_seen_status(user_id=chat_id, message_id=reply_message_id)
         marked = get_marked_status(callback.message.text)
-        await self.bot.edit_message_reply_markup(callback.message.chat.id, callback.message.id,
-                                                 reply_markup=KeyboardMarkupGenerator().recipient_buttons(sender_id,
-                                                                                                          reply_message_id,
-                                                                                                          seen, marked))
+        await self.bot.edit_message_reply_markup(callback.message.chat.id,
+                                                callback.message.id,
+                                                reply_markup=self.keyboard.recipient_option_buttons(
+                                                    sender_id,
+                                                    reply_message_id,
+                                                    seen,
+                                                    marked))
 
     async def unblock_user(self, blocker_id: str, blocked_id: str, callback: CallbackQuery):
         """ Unblock user
@@ -74,7 +76,7 @@ class BlockUserManager:
             return
         user_anon_id = users_collection.find_one({'user_id': chat_id}).get('id', None)
         await self.bot.edit_message_reply_markup(chat_id, callback.message.message_id,
-                                                 reply_markup=KeyboardMarkupGenerator().blocklist_buttons(user_anon_id,
+                                                 reply_markup=self.keyboard.blocklist_buttons(user_anon_id,
                                                                                                           blocklist))
 
     async def cancel_unblock_user(self, blocker_anon_id, bot_message_id):
@@ -82,7 +84,7 @@ class BlockUserManager:
         blocklist = blocker_data.get('blocklist', None)
         chat_id = get_user_id(blocker_anon_id)
         await self.bot.edit_message_reply_markup(chat_id, bot_message_id,
-                                                 reply_markup=KeyboardMarkupGenerator().blocklist_buttons(blocker_anon_id,
+                                                 reply_markup=self.keyboard.blocklist_buttons(blocker_anon_id,
                                                                                                           blocklist))
     @staticmethod
     async def is_user_blocked(sender_id: str, recipient_id: int) -> bool:

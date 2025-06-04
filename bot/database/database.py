@@ -10,7 +10,7 @@ db = client.get_database(config('DATABASE_NAME', cast=str))
 users_collection = db.get_collection(config('USERS_COLLECTION', cast=str))
 bot_collection = db.get_collection(config('BOT_COLLECTION', cast=str))
 
-def init_bot_config():
+async def init_bot_config():
     default_bot_config = {
         "_id": "bot_config",
         "admin": [],
