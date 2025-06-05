@@ -2,7 +2,6 @@
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery, InputTextMessageContent,\
       InlineQueryResultArticle, InlineQuery
-from telebot.apihelper import ApiTelegramException
 from telegram import ReactionTypeEmoji
 from bot.common.chat_utils import close_chats, add_seen_message, get_seen_status
 from bot.managers.account import AccountManager
@@ -14,7 +13,7 @@ from bot.managers.start import StartBot
 from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
-from bot.common.database_utils import fetch_user_data_by_id,\
+from bot.common.database_utils import add_reaction, fetch_user_data_by_id, get_reactions,\
         update_last_interaction_time, update_user_fields,\
         get_user_id, get_user_anon_id
 from bot.common.user import is_subscribed_to_channel, is_bot_status_off
@@ -49,6 +48,7 @@ class CallbackHandler:
             'unblock_cancel': self._process_unblock_action_cancel,
             'unblock_confirm': self._process_unblock_action_confirm,
             'return_to_recipient_buttons': self._process_return_to_recipient_buttons,
+            'return_to_recipient_option_buttons': self._process_return_to_recipient_option_buttons,
             'change_nickname': self._process_change_nickname,
             'change_bot_status': self._process_change_bot_status,
             'cancel': self._process_cancel,
@@ -171,11 +171,13 @@ class CallbackHandler:
 
         if await self._check_bot_status(callback, sender_user_id):
             return
-
         await self.bot.edit_message_reply_markup(
             chat_id=callback.message.chat.id,
             message_id=callback.message.id,
-            reply_markup=self.keyboard.reaction_buttons(sender_anon_id, message_id)
+            reply_markup=self.keyboard.reaction_buttons(sender_anon_id,
+                                                message_id,
+                                                toggled_emoji=await get_reactions(sender_user_id,
+                                                                                    message_id))
         )
 
     async def _process_reaction_action_callback(self, callback: CallbackQuery):
@@ -188,8 +190,10 @@ class CallbackHandler:
                 callback.id,
                 get_response('errors.user_not_found'), show_alert=True)
             return
+
         if await self._check_bot_status(callback, sender_user_id):
             return
+
         emojies = {
             'like': '👍',
             'dislike': '👎',
@@ -206,25 +210,53 @@ class CallbackHandler:
             'chad': '🗿',
             'moon':'🌚',
         }
-        emoji = emojies.get(reaction, '👍')
+        reaction = emojies.get(reaction, reaction)
+        # Check if the user has already reacted to the message
+        existing_reaction = await get_reactions(sender_user_id, message_id)
+        if existing_reaction and existing_reaction != 'هیج ریاکشنی ندادی':
+            # If the reaction is the same as the existing one, dont do anything
+            try:
+                # Update the reaction but do not send a notification
+                await self.bot.edit_message_reply_markup(
+                    callback.message.chat.id,
+                    message_id=callback.message.id,
+                    reply_markup=self.keyboard.reaction_buttons(sender_anon_id,
+                                                                message_id,
+                                                                toggled_emoji=reaction)
+                )
+                await self.bot.set_message_reaction(
+                chat_id=int(sender_user_id),
+                message_id=int(message_id),
+                reaction=[ReactionTypeEmoji(emoji=reaction)],
+                is_big=False
+            )
+                await add_reaction(sender_user_id, message_id, emoji=reaction)
+            except Exception:
+                await self.bot.answer_callback_query(callback.id,
+                                                    get_response('errors.same_reaction'))                             
+            return
+
+        # Update the reaction and send a notification
+        await add_reaction(sender_user_id, message_id, emoji=reaction)
         await self.bot.set_message_reaction(
             chat_id=int(sender_user_id),
             message_id=int(message_id),
-            reaction=[ReactionTypeEmoji(emoji=emoji)],
+            reaction=[ReactionTypeEmoji(emoji=reaction)],
             is_big=False
         )
-        try:
-            await self.bot.edit_message_reply_markup(
-                callback.message.chat.id,
-                message_id=callback.message.id,
-                reply_markup= self.keyboard.reaction_buttons(
-                    sender_anon_id, message_id, toggled_emoji=emoji)
-            )
-        except Exception:
-            await self.bot.answer_callback_query(
-                callback.id,
-                get_response('errors.same_reaction'),
-            )
+        await self.bot.send_message(
+            chat_id=sender_user_id,
+            reply_to_message_id=int(message_id),
+            text=get_response('texting.reaction.recipient'),
+            parse_mode='Markdown'
+        )
+
+        await self.bot.edit_message_reply_markup(
+            callback.message.chat.id,
+            message_id=callback.message.id,
+            reply_markup=self.keyboard.reaction_buttons(sender_anon_id, message_id,
+                                                        toggled_emoji=reaction)
+        )
 
     async def _process_seen_callback(self, callback: CallbackQuery):
         """Process the seen callback."""
@@ -372,6 +404,19 @@ class CallbackHandler:
             chat_id=callback.message.chat.id,
             message_id=callback.message.id,
             reply_markup=self.keyboard.recipient_buttons(sender_anon_id, message_id)
+        )
+
+    async def _process_return_to_recipient_option_buttons(self, callback: CallbackQuery):
+        """Process the return to recipient option buttons callback."""
+        sender_anon_id, message_id = callback.data.split('-')
+        seen = get_seen_status(user_id=callback.message.chat.id, message_id=message_id)
+        marked = '📍 #نشان' in (callback.message.text or callback.message.caption or '')
+
+        await self.bot.edit_message_reply_markup(
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.id,
+            reply_markup=self.keyboard.recipient_option_buttons(sender_anon_id, message_id,
+                                                                 is_seen=seen, is_marked=marked)
         )
 
     async def _process_regenarate_link(self, callback: CallbackQuery):

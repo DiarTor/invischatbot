@@ -187,3 +187,18 @@ async def update_last_interaction_time(user_id: int):
     """
     users_collection.update_one({"user_id": user_id}, {
         "$set": {"last_interaction_time": datetime.timestamp(datetime.now())}}, upsert=True)  
+
+async def add_reaction(user_id: int, message_id: int, emoji: str):
+    """Store the emoji reaction in the database.
+    :param user_id: User ID who reacted.
+    :param message_id: Message ID to which the reaction was added.
+    :param emoji: Emoji used in the reaction."""
+    bot_collection.update_one(
+        {"_id":"reactions"},
+        {"$set": {f"reactions.{user_id}.{message_id}": emoji}},
+        upsert=True
+    )
+async def get_reactions(user_id: int, message_id: int):
+    """Retrieve reactions for a specific message."""
+    reactions = bot_collection.find_one({"_id":"reactions"})
+    return reactions.get("reactions", {}).get(str(user_id), {}).get(str(message_id), 'هیج ریاکشنی ندادی')

@@ -172,7 +172,7 @@ class KeyboardMarkupGenerator:
                 InlineKeyboardButton('🌚', callback_data=f'reaction-moon-{sender_id}-{message_id}'),
             ],
             [
-                InlineKeyboardButton('↩️ بازگشت', callback_data=f'return_to_recipient_buttons-{sender_id}-{message_id}')
+                InlineKeyboardButton('↩️ بازگشت', callback_data=f'return_to_recipient_option_buttons-{sender_id}-{message_id}')
             ]
         ]
         buttons += [[InlineKeyboardButton(f'ریاکشن فعلی: {toggled_emoji}', callback_data='placeholder')]]
