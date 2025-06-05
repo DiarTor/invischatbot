@@ -2,6 +2,7 @@
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery, InputTextMessageContent,\
       InlineQueryResultArticle, InlineQuery
+from telebot.apihelper import ApiTelegramException
 from telegram import ReactionTypeEmoji
 from bot.common.chat_utils import close_chats, add_seen_message, get_seen_status
 from bot.managers.account import AccountManager
@@ -212,13 +213,18 @@ class CallbackHandler:
             reaction=[ReactionTypeEmoji(emoji=emoji)],
             is_big=False
         )
-
-        await self.bot.edit_message_reply_markup(
-            callback.message.chat.id,
-            message_id=callback.message.id,
-            reply_markup= self.keyboard.reaction_buttons(
-                sender_anon_id, message_id, toggled_emoji=emoji)
-        )
+        try:
+            await self.bot.edit_message_reply_markup(
+                callback.message.chat.id,
+                message_id=callback.message.id,
+                reply_markup= self.keyboard.reaction_buttons(
+                    sender_anon_id, message_id, toggled_emoji=emoji)
+            )
+        except Exception:
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('errors.same_reaction'),
+            )
 
     async def _process_seen_callback(self, callback: CallbackQuery):
         """Process the seen callback."""
