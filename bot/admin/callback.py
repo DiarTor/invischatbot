@@ -4,10 +4,12 @@ from bot.admin.bot_administration import BotAdministration
 
 
 class AdminCallbackHandler:
+    """Handles admin-related callbacks for the bot."""
     def __init__(self, bot):
         self.bot = bot
 
     async def handle_callback(self, callback: CallbackQuery):
+        """Handle admin-related callbacks."""
         callback_data = callback.data.split('-')[1:]
         if 'chats_stats' in callback_data:
             await BotAdministration(self.bot).get_chats_stats(callback.message)

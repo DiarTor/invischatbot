@@ -56,7 +56,7 @@ class ChatHandler:
             "⬅️ انصراف": self.handle_cancel,
             "🔗 لینک ناشناس من": self.handle_link,
             "🚫 بلاک لیست": self.handle_blocklist,
-            '🛠️ پشتیبانی': self.handle_support,
+            # '🛠️ پشتیبانی': self.handle_support,
             '📖 راهنما': self.handle_guide,
             '👤 حساب کاربری': self.handle_account
         }

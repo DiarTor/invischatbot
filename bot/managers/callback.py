@@ -3,6 +3,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery, InputTextMessageContent,\
       InlineQueryResultArticle, InlineQuery
 from telegram import ReactionTypeEmoji
+from bot.callbacks.guide import GuideCallbackHandler
 from bot.common.chat_utils import close_chats, add_seen_message, get_seen_status
 from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
@@ -22,7 +23,7 @@ from bot.admin.callback import AdminCallbackHandler
 from bot.common.database_utils import is_user_banned
 
 
-class CallbackHandler:
+class CallbackManager:
     """CallbackHandler is a class responsible for handling various callback queries &
     inline queries received by the bot.
     It processes user interactions and executes the appropriate actions based 
@@ -56,7 +57,8 @@ class CallbackHandler:
             'regenerate_link': self._process_regenarate_link,
             'cancel_regenerate_link': self._process_cancel_regenerate_link,
             'confirm_regenerate_link': self._process_confirm_regenerate_link,
-            'placeholder': self._process_placeholder,  # Placeholder for unknown actions
+            'placeholder': self._process_placeholder,
+            'guide': self._process_guide_callback,  # Placeholder for unknown actions
         }
         self.keyboard = KeyboardMarkupGenerator()
         self.blocker = BlockUserManager(self.bot)
@@ -457,6 +459,11 @@ class CallbackHandler:
         """Handle unknown or placeholder actions."""
         await self.bot.answer_callback_query(callback.id,
                                              get_response('errors.placeholder'))
+        
+    async def _process_guide_callback(self, callback: CallbackQuery):
+        """Handle guide-related callbacks."""
+        await GuideCallbackHandler(self.bot).handle_callbacks(callback)
+
     @staticmethod
     def _set_replying_state(user_id: int, message_id: str, sender_anon_id: str):
         """Set the replying state in the database."""

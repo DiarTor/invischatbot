@@ -56,7 +56,7 @@ class KeyboardMarkupGenerator:
     def main_buttons(self):
         buttons = [[KeyboardButton('🔗 لینک ناشناس من'), ],
                    [KeyboardButton('🚫 بلاک لیست'), KeyboardButton('👤 حساب کاربری')],
-                   [KeyboardButton('🛠️ پشتیبانی'), KeyboardButton('📖 راهنما')],
+                   [KeyboardButton('📖 راهنما')] #KeyboardButton('🛠️ پشتیبانی'), ,
                    ]
 
         return self._create_reply_keyboard(buttons)
@@ -251,8 +251,36 @@ class KeyboardMarkupGenerator:
         return self._create_list_inline_keyboard(buttons)
 
     def regenarate_link_buttons(self):
+        """Create buttons for regenerating the link."""
         buttons = [[
             InlineKeyboardButton("✅ بله مطمئنم", callback_data='confirm_regenerate_link'),
             InlineKeyboardButton("❌ نهههه", callback_data='cancel_regenerate_link'),
         ]]
         return self._create_list_inline_keyboard(buttons)
+
+    def guide_buttons(self):
+        """Create guide buttons for guide functionality."""
+        buttons = [
+            [
+                InlineKeyboardButton("📞 پشتیبانی", callback_data='guide-support'),
+                InlineKeyboardButton("❓ سوالات متداول", callback_data='guide-faq'),
+            ],
+        ]
+        return self._create_list_inline_keyboard(buttons)
+
+    def faq_buttons(self):
+        """Create FAQ buttons for FAQ functionality."""
+        buttons = [
+            InlineKeyboardButton("🤔 این ربات چیه؟ و چیکار میکنه؟", callback_data='guide-faq-what_is_invischat'),
+            InlineKeyboardButton("🛠️ چطور از ربات استفاده کنم؟", callback_data='guide-faq-how_to_use'),
+            InlineKeyboardButton("🚨 چطور کاربر رو گزارش بدم؟", callback_data='guide-faq-how_to_report_user'),
+            InlineKeyboardButton("🔗 چطور به کاربر خاصی وصل بشم؟", callback_data='guide-faq-how_to_connect_to_speceific_user'),
+            InlineKeyboardButton("🔙 صفحه راهنما", callback_data='guide-return_to_guide'),
+        ]
+        return self._create_inline_keyboard(buttons)
+    def return_to_faq_buttons(self):
+        """Create buttons to return to the FAQ main menu."""
+        buttons = [
+            InlineKeyboardButton("🔙 صفحه سوالات", callback_data='guide-faq')
+        ]
+        return self._create_inline_keyboard(buttons)
