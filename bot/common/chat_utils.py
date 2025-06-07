@@ -1,7 +1,7 @@
 from bot.database.database import users_collection
 
 
-def close_chats(user_id: int, reset_replying: bool = False) -> None:
+async def close_chats(user_id: int, reset_replying: bool = False) -> None:
     """
     Close all open chats for a user and optionally reset the replying state.
     :param user_id: User ID.

@@ -20,7 +20,7 @@ class NicknameManager:
         user_data = users_collection.find_one_and_update({'user_id': msg.chat.id},
                                                          {'$set': {'awaiting_nickname': True}})
         current_first_name = msg.from_user.first_name
-        close_chats(msg.chat.id, True)
+        # await close_chats(msg.chat.id, True)
         await self.bot.send_message(msg.chat.id,
                                     get_response('nickname.ask_nickname', current_nickname=user_data['nickname'], current_firstname=current_first_name),
                                     parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())

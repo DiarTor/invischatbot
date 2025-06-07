@@ -54,7 +54,7 @@ class KeyboardMarkupGenerator:
         return markup
 
     def main_buttons(self):
-        buttons = [[KeyboardButton('🔗 لینک ناشناس من'), ],
+        buttons = [[KeyboardButton('🕊 ارسال بدون لینک'), KeyboardButton('🔗 لینک ناشناس من'), ],
                    [KeyboardButton('🚫 بلاک لیست'), KeyboardButton('👤 حساب کاربری')],
                    [KeyboardButton('📖 راهنما')] #KeyboardButton('🛠️ پشتیبانی'), ,
                    ]

@@ -35,6 +35,7 @@ async def save_user_data(user_id: int, nickname: str = None,
             "first_name": first_name,
             "last_name": last_name,
             "awaiting_nickname": False,
+            "send_without_link": False,
             "joined_at": datetime.timestamp(datetime.now()),
             "chats": [],
             "blocklist": [],
@@ -202,3 +203,19 @@ async def get_reactions(user_id: int, message_id: int):
     """Retrieve reactions for a specific message."""
     reactions = bot_collection.find_one({"_id":"reactions"})
     return reactions.get("reactions", {}).get(str(user_id), {}).get(str(message_id), 'هیج ریاکشنی ندادی')
+
+async def get_user_anon_id_by_username(username: str) -> str | None:
+    """
+    Retrieve the anonymous ID of a user by their username.
+    :param username: Username of the user.
+    :return: User's anonymous ID or None if not found.
+    """
+    user = users_collection.find_one({"username": username})
+    return user['id'] if user else None
+
+async def close_metadata(user_id: int, field: str = None):
+    """Close all Metadata"""
+    if field:
+        await update_user_fields(user_id, field, False)
+        return
+    await update_user_fields(user_id, {'awaiting_nickname':False, 'send_without_link':False})

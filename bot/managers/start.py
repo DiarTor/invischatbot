@@ -6,7 +6,7 @@ from telebot.types import Message
 
 from bot.admin.adminstration import Admin
 from bot.common.chat_utils import close_chats
-from bot.common.database_utils import is_user_banned, save_user_data, fetch_user_data_by_id, update_last_interaction_time, user_exists, update_user_fields, \
+from bot.common.database_utils import close_metadata, is_user_banned, save_user_data, fetch_user_data_by_id, update_last_interaction_time, user_exists, update_user_fields, \
     get_user_anon_id
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.common.user import is_bot_status_off
@@ -28,7 +28,7 @@ class StartBot:
 
             # If the user doesn't exist in the database, store their data
             if not await user_exists(user_id):
-                await save_user_data(user_id, nickname=nickname, username=msg.from_user.username or None,
+                await save_user_data(user_id, nickname=nickname, username=msg.from_user.username.lower() or None,
                                first_name=msg.from_user.first_name or None, last_name=msg.from_user.last_name or None)
             if is_user_banned(user_id):
                 await self.bot.send_message(user_id, get_response('account.ban.banned'))
@@ -58,7 +58,7 @@ class StartBot:
                 return
             # If no target user provided, close any open chats and send a general welcome message
             if not target_anon_id:
-                close_chats(user_id)
+                await close_chats(user_id)
                 await self._send_welcome_message(msg)
                 return
 
@@ -112,7 +112,8 @@ class StartBot:
                 return
 
             # Manage chats if all checks pass
-            close_chats(user_id, True)
+            await close_chats(user_id, True)
+            await close_metadata(user_id)
             await self._manage_chats(user_data, target_user_data)
 
         except (ValueError, IndexError) as e:
@@ -136,7 +137,7 @@ class StartBot:
 
         # Close existing chats only if they are not with the target user
         if not any(chat['target_user_id'] == target_user_id and chat['open'] for chat in user_data.get('chats', [])):
-            close_chats(user_id)
+            await close_chats(user_id)
 
         # Check if there's already an open chat with the target user
         if any(chat['target_user_id'] == target_user_id for chat in user_data.get('chats', [])):

@@ -14,7 +14,7 @@ from bot.managers.start import StartBot
 from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
-from bot.common.database_utils import add_reaction, fetch_user_data_by_id, get_reactions,\
+from bot.common.database_utils import add_reaction, close_metadata, fetch_user_data_by_id, get_reactions,\
         update_last_interaction_time, update_user_fields,\
         get_user_id, get_user_anon_id
 from bot.common.user import is_subscribed_to_channel, is_bot_status_off
@@ -126,7 +126,8 @@ class CallbackManager:
         if await self._check_bot_status(callback, sender_user_id):
             return
 
-        close_chats(callback.from_user.id)
+        await close_chats(callback.from_user.id)
+        await close_metadata(callback.from_user.id)
         self._set_replying_state(callback.from_user.id, message_id, sender_anon_id)
 
         await self.bot.send_message(
@@ -357,6 +358,7 @@ class CallbackManager:
 
     async def _process_change_nickname(self, callback: CallbackQuery):
         """Process the change nickname callback."""
+        await close_chats(callback.message.chat.id, True)
         response = NicknameManager(self.bot).get_set_nickname_response(callback.message)
         await self.bot.edit_message_text(
             response,

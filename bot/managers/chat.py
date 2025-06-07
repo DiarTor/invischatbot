@@ -8,7 +8,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.common.chat_utils import close_chats
-from bot.common.database_utils import fetch_user_data_by_id, is_user_banned, update_last_interaction_time, update_user_fields, get_user_anon_id, get_user_id, \
+from bot.common.database_utils import close_metadata, fetch_user_data_by_id, is_user_banned, update_last_interaction_time, update_user_fields, get_user_anon_id, get_user_id, \
     update_total_messages
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
@@ -55,6 +55,7 @@ class ChatHandler:
         keyboard_commands = {
             "⬅️ انصراف": self.handle_cancel,
             "🔗 لینک ناشناس من": self.handle_link,
+            '🕊 ارسال بدون لینک': self.handle_without_link,
             "🚫 بلاک لیست": self.handle_blocklist,
             # '🛠️ پشتیبانی': self.handle_support,
             '📖 راهنما': self.handle_guide,
@@ -97,9 +98,9 @@ class ChatHandler:
         # Check if the user is in awaiting nickname state and trying to send a message, if so set the state to false
         # so the text they send serves as a message and doesn't set to their nickname.
         # this condition happens when someone is in awaiting nickname state and set their replying state to True or open a chat.
-        if open_chat or user_chat.get('replying') and user_chat.get('awaiting_nickname'):
-            users_collection.update_one({'user_id': msg.chat.id}, {'$set': {'awaiting_nickname': False}})
-            user_chat = fetch_user_data_by_id(msg.chat.id)
+        # if open_chat or user_chat.get('replying') and user_chat.get('awaiting_nickname'):
+        #     await close_metadata(msg.chat.id, 'awaiting_nickname')
+        user_chat = fetch_user_data_by_id(msg.chat.id)
         # Check if the user is in replying state, if so handle the text as reply message.
         if user_chat.get('replying'):
             await self._handle_reply(msg, user_chat)
@@ -108,10 +109,13 @@ class ChatHandler:
         if user_chat.get('awaiting_nickname'):
             await NicknameManager(self.bot).save_nickname(msg)
             return
-
-        if msg.reply_to_message and msg.reply_to_message.id == user_chat.get('editing_prompt_message_id'):
-            await self._handle_editing(msg, user_chat)
+        # Check if the user is in send_without_link state, if so handle the text as message without link.
+        if user_chat.get('send_without_link'):
+            await LinkManager(self.bot).connect_without_link(msg)
             return
+        # if msg.reply_to_message and msg.reply_to_message.id == user_chat.get('editing_prompt_message_id'):
+        #     await self._handle_editing(msg, user_chat)
+        #     return
         # Check if there is any open chat when the user sent the message
         if not open_chat:
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
@@ -120,12 +124,12 @@ class ChatHandler:
         # Check if the target user blocked the user
         target_user_id = open_chat.get('target_user_id')
         if await BlockUserManager.is_user_blocked(user_chat.get('id'), target_user_id):
-            close_chats(user_chat.get('user_id'))
+            await close_chats(user_chat.get('user_id'))
             await self.bot.send_message(msg.chat.id, get_response('blocking.blocked_by_user'),
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
         # check if the target user changed the bot status to off
         if is_bot_status_off(target_user_id):
-            close_chats(user_chat.get('user_id'))
+            await close_chats(user_chat.get('user_id'))
             await self.bot.send_message(msg.chat.id, get_response('account.bot_status.recipient.off'),
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
 
@@ -177,7 +181,7 @@ class ChatHandler:
                 #     msg.chat.id, get_response('texting.sending.text.sent'),
                 #     parse_mode='Markdown'
                 # )
-            close_chats(msg.from_user.id)
+            await close_chats(msg.from_user.id)
             await self.bot.send_message(
                 msg.chat.id, get_response('texting.sending.text.sent'),
                 parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons(),
@@ -209,7 +213,7 @@ class ChatHandler:
         recipient_user = users_collection.find_one({"id": recipient_id})
 
         if not recipient_user:
-            close_chats(msg.chat.id, True)
+            await close_chats(msg.chat.id, True)
             await self.bot.send_message(
                 msg.chat.id, get_response('errors.user_not_found'),
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -217,7 +221,7 @@ class ChatHandler:
             return
 
         if await BlockUserManager.is_user_blocked(user_chat.get("id"), recipient_user.get('user_id')):
-            close_chats(msg.chat.id, True)
+            await close_chats(msg.chat.id, True)
             await self.bot.send_message(
                 msg.chat.id, get_response('blocking.blocked_by_user'),
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -226,7 +230,7 @@ class ChatHandler:
 
         sender_anon_id = user_chat.get('id')
         await self._send_media(msg, recipient_user['user_id'], sender_anon_id, reply_to_message_id=original_message_id)
-        close_chats(msg.from_user.id, True)
+        await close_chats(msg.from_user.id, True)
 
     async def _handle_editing(self, msg: Message, user_chat):
         """Handle editing of a message."""
@@ -261,6 +265,10 @@ class ChatHandler:
     async def handle_link(self):
         await LinkManager(self.bot).link(self.msg)
 
+    async def handle_without_link(self):
+        """Handle the case where the user wants to send a message without a link."""
+        await LinkManager(self.bot).send_without_link(self.msg)
+
     async def handle_blocklist(self):
         await BlockUserManager(self.bot).block_list(self.msg)
 
@@ -281,7 +289,7 @@ class ChatHandler:
         open_chat = next((chat for chat in user_chat.get('chats', []) if chat.get('open')), None)
 
         if user_chat.get("replying"):
-            close_chats(msg.from_user.id, True)
+            await close_chats(msg.from_user.id, True)
             await self.bot.send_message(
                 msg.chat.id, get_response('texting.replying.cancelled'), parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
@@ -298,6 +306,12 @@ class ChatHandler:
             await self.bot.send_message(msg.from_user.id, get_response('nickname.cancelled'),
                                         parse_mode='Markdown',
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
+        elif user_chat.get('send_without_link'):
+            self._update_user_field(msg.from_user.id, "send_without_link", False)
+            await self.bot.send_message(
+                msg.chat.id, get_response('link.connect_without_link.cancel_send_without_link'), parse_mode='Markdown',
+                reply_markup=KeyboardMarkupGenerator().main_buttons()
+            )
         else:
             await self.bot.send_message(
                 msg.chat.id, get_response('errors.no_cancel'), parse_mode='Markdown'
@@ -311,8 +325,8 @@ class ChatHandler:
         )
         await StartBot(self.bot).start(msg)
 
-    def _handle_bot_blocked(self, msg: Message):
-        close_chats(msg.chat.id, True)
+    async def _handle_bot_blocked(self, msg: Message):
+        await close_chats(msg.chat.id, True)
         self.bot.send_message(msg.chat.id, get_response('errors.bot_blocked'),
                               reply_markup=KeyboardMarkupGenerator().main_buttons())
 
