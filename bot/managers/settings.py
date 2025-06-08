@@ -17,12 +17,16 @@ class SettingsManager:
         if is_bot_status_off(user_id):
             await update_user_fields(user_id, 'is_bot_off', False)
             await self.bot.answer_callback_query(callback_query_id=callback.id,
-                                                 text=get_response("account.bot_status.self.status_changed", status="روشن 😁"))
+                                                 text=get_response("account.bot_status.self.status_changed.on", status="روشن 😁"),
+                                                show_alert=True,
+                                                cache_time=0)
             await self.bot.edit_message_reply_markup(message_id=callback.message.id, chat_id=user_id,
                                                      reply_markup=KeyboardMarkupGenerator().account_buttons())
         else:
             await update_user_fields(user_id, 'is_bot_off', True)
             await self.bot.answer_callback_query(callback_query_id=callback.id,
-                                                 text=get_response("account.bot_status.self.status_changed", status="خاموش😴"))
+                                                text=get_response("account.bot_status.self.status_changed.off", status="خاموش😴"),
+                                                show_alert=True,
+                                                cache_time=0)
             await self.bot.edit_message_reply_markup(message_id=callback.message.id, chat_id=user_id,
                                                      reply_markup=KeyboardMarkupGenerator().account_buttons(is_bot_off=True))
