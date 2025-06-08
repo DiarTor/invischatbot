@@ -28,7 +28,8 @@ class StartBot:
 
             # If the user doesn't exist in the database, store their data
             if not await user_exists(user_id):
-                await save_user_data(user_id, nickname=nickname, username=msg.from_user.username.lower() or None,
+                username = msg.from_user.username.lower() if msg.from_user.username else None
+                await save_user_data(user_id, nickname=nickname, username=username,
                                first_name=msg.from_user.first_name or None, last_name=msg.from_user.last_name or None)
             if is_user_banned(user_id):
                 await self.bot.send_message(user_id, get_response('account.ban.banned'))
@@ -155,8 +156,13 @@ class StartBot:
                 }
             }
         )
-        await self.bot.send_message(user_id, get_response('texting.sending.text.send', nickname=target_user_nickname),
-                                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
+        response = ''
+        if get_user_anon_id(target_user_id) == 'support':
+            response = 'texting.sending.support'
+        else:
+            response = 'texting.sending.text.send'
+        await self.bot.send_message(user_id, get_response(response, nickname=target_user_nickname),
+                                    parse_mode='HTML', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
         target_user_bot_id = users_collection.find_one({"user_id": target_user_id})['id']
@@ -191,8 +197,13 @@ class StartBot:
             },
             upsert=True
         )
-        await self.bot.send_message(user_id, get_response('texting.sending.text.send', nickname=target_user_nickname),
-                                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
+        response = ''
+        if target_user_bot_id == 'support':
+            response = 'texting.sending.support'
+        else:
+            response = 'texting.sending.text.send'
+        await self.bot.send_message(user_id, get_response(response, nickname=target_user_nickname),
+                                    parse_mode='HTML', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def _send_welcome_message(self, msg: Message):
         """Send a welcome message to the user."""
