@@ -1,7 +1,9 @@
+import asyncio
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.common.chat_utils import close_chats
+from bot.common.threads import delete_message
 from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
@@ -75,4 +77,10 @@ class LinkManager:
             )
             return
         await close_metadata(user_id, 'send_without_link')
+        connecting = await self.bot.send_message(
+            user_id,
+            get_response('link.connect_without_link.found'),
+            parse_mode="HTML"
+        )
+        await delete_message(self.bot, user_id, connecting.id, 1.5)
         await StartBot(self.bot).start(msg, target_user_anon_id)

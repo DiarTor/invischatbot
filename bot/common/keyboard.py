@@ -274,7 +274,7 @@ class KeyboardMarkupGenerator:
             InlineKeyboardButton("🤔 این ربات چیه؟ و چیکار میکنه؟", callback_data='guide-faq-what_is_invischat'),
             InlineKeyboardButton("🛠️ چطور از ربات استفاده کنم؟", callback_data='guide-faq-how_to_use'),
             InlineKeyboardButton("🚨 چطور کاربر رو گزارش بدم؟", callback_data='guide-faq-how_to_report_user'),
-            InlineKeyboardButton("🔗 چطور به کاربر خاصی وصل بشم؟", callback_data='guide-faq-how_to_connect_to_speceific_user'),
+            # InlineKeyboardButton("🔗 چطور به کاربر خاصی وصل بشم؟", callback_data='guide-faq-how_to_connect_to_speceific_user'),
             InlineKeyboardButton("🔙 صفحه راهنما", callback_data='guide-return_to_guide'),
         ]
         return self._create_inline_keyboard(buttons)
