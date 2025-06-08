@@ -51,7 +51,7 @@ class StartBot:
                     msg.chat.id,
                     get_response('greeting.first_time', nickname=nickname),
                     reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
-                    parse_mode='Markdown',
+                    parse_mode='HTML',
                 )
                 await Admin(self.bot).announce_new_user(user_id)
                 # Update the user field to mark them as not first time
@@ -69,7 +69,7 @@ class StartBot:
                     msg.chat.id,
                     get_response('greeting.first_time', nickname=nickname),
                     reply_markup=KeyboardMarkupGenerator().main_buttons(),  # Inline keyboard for first time
-                    parse_mode='Markdown',
+                    parse_mode='HTML',
                 )
                 await Admin(self.bot).announce_new_user(user_id)
                 await update_user_fields(user_id, 'first_time', False)
@@ -207,9 +207,9 @@ class StartBot:
 
     async def _send_welcome_message(self, msg: Message):
         """Send a welcome message to the user."""
-        nickname = fetch_user_data_by_id(msg.chat.id).get('nickname')
-        await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', nickname=nickname),
-                                    reply_markup=KeyboardMarkupGenerator().main_buttons())
+        first_name = msg.from_user.first_name
+        await self.bot.send_message(msg.chat.id, get_response('greeting.welcome', first_name=first_name),
+                                    reply_markup=KeyboardMarkupGenerator().main_buttons(), parse_mode='HTML', disable_web_page_preview=True)
 
     async def _send_error_message(self, msg: Message, error_key: str):
         """Send an error message to the user."""
