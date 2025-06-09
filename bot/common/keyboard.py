@@ -229,7 +229,7 @@ class KeyboardMarkupGenerator:
                 InlineKeyboardButton("📤 اشتراک‌گذاری", switch_inline_query=share_text),
             ],
             [
-                InlineKeyboardButton("🚫 ابطال لینک", callback_data='regenerate_link')
+                InlineKeyboardButton("🚫 ابطال لینک", callback_data='revoke_link')
             ]
         ]
 
@@ -253,8 +253,8 @@ class KeyboardMarkupGenerator:
     def regenarate_link_buttons(self):
         """Create buttons for regenerating the link."""
         buttons = [[
-            InlineKeyboardButton("✅ بله مطمئنم", callback_data='confirm_regenerate_link'),
-            InlineKeyboardButton("❌ نهههه", callback_data='cancel_regenerate_link'),
+            InlineKeyboardButton("✅ بله مطمئنم", callback_data='confirm_revoke_link'),
+            InlineKeyboardButton("❌ نهههه", callback_data='cancel_revoke_link'),
         ]]
         return self._create_list_inline_keyboard(buttons)
 

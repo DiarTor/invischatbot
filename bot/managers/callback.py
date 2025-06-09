@@ -54,9 +54,9 @@ class CallbackManager:
             'change_bot_status': self._process_change_bot_status,
             'cancel': self._process_cancel,
             'admin': self._process_admin_callback,
-            'regenerate_link': self._process_regenarate_link,
-            'cancel_regenerate_link': self._process_cancel_regenerate_link,
-            'confirm_regenerate_link': self._process_confirm_regenerate_link,
+            'revoke_link': self._process_revoke_link,
+            'cancel_revoke_link': self._process_cancel_revoke_link,
+            'confirm_revoke_link': self._process_confirm_revoke_link,
             'placeholder': self._process_placeholder,
             'guide': self._process_guide_callback,  # Placeholder for unknown actions
         }
@@ -423,25 +423,25 @@ class CallbackManager:
                                                                  is_seen=seen, is_marked=marked)
         )
 
-    async def _process_regenarate_link(self, callback: CallbackQuery):
+    async def _process_revoke_link(self, callback: CallbackQuery):
         """Process the change link callback."""
         await self.bot.send_message(callback.message.chat.id,
-                                   get_response('link.regenerate_link.confirm'),
+                                   get_response('link.revoke_link.confirm'),
                                    reply_markup=self.keyboard.regenarate_link_buttons(),
-                                   parse_mode='Markdown')
+                                   parse_mode='HTML')
 
-    async def _process_cancel_regenerate_link(self, callback: CallbackQuery):
+    async def _process_cancel_revoke_link(self, callback: CallbackQuery):
         """Process the cancel regenerate link callback."""
         await self.bot.answer_callback_query(callback.id,
-                                             get_response('link.regenerate_link.cancel'),
+                                             get_response('link.revoke_link.cancel'),
                                              show_alert=True)
         await self.bot.delete_message(callback.message.chat.id, callback.message.id)
 
-    async def _process_confirm_regenerate_link(self, callback: CallbackQuery):
+    async def _process_confirm_revoke_link(self, callback: CallbackQuery):
         """Process the confirm regenerate link callback."""
         user_id = callback.message.chat.id
         link_manager = LinkManager(self.bot)
-        await link_manager.regenerate_link(callback.message)
+        await link_manager.revoke_link(callback.message)
         await self.bot.delete_message(user_id, callback.message.id)
 
     async def _process_joined_channel(self, callback: CallbackQuery):

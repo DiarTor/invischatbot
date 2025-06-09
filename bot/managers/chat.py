@@ -184,7 +184,7 @@ class ChatHandler:
             await close_chats(msg.from_user.id)
             await self.bot.send_message(
                 msg.chat.id, get_response('texting.sending.text.sent'),
-                parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().main_buttons(),
+                parse_mode='HTML', reply_markup=KeyboardMarkupGenerator().main_buttons(),
                 reply_to_message_id=msg.id
             )
             await update_total_messages(1)
@@ -291,14 +291,14 @@ class ChatHandler:
         if user_chat.get("replying"):
             await close_chats(msg.from_user.id, True)
             await self.bot.send_message(
-                msg.chat.id, get_response('texting.replying.cancelled'), parse_mode='Markdown',
+                msg.chat.id, get_response('texting.replying.cancelled'), parse_mode='HTML',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
         elif open_chat:
             self._update_chat_field(msg.from_user.id, "chats.$.open", False,
                                     {"user_id": msg.from_user.id, "chats.open": True})
             await self.bot.send_message(
-                msg.chat.id, get_response('texting.sending.cancelled'), parse_mode='Markdown',
+                msg.chat.id, get_response('texting.sending.cancelled'), parse_mode='HTML',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
         elif user_chat.get('awaiting_nickname'):
@@ -309,7 +309,7 @@ class ChatHandler:
         elif user_chat.get('send_without_link'):
             self._update_user_field(msg.from_user.id, "send_without_link", False)
             await self.bot.send_message(
-                msg.chat.id, get_response('link.connect_without_link.cancel_send_without_link'), parse_mode='Markdown',
+                msg.chat.id, get_response('link.connect_without_link.cancel'), parse_mode='HTML',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
         else:

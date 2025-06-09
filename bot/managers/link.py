@@ -28,7 +28,7 @@ class LinkManager:
             reply_markup=self.keyboard.share_link_buttons(
                 get_response('link.share_link'), link)
         )
-    async def regenerate_link(self, msg: Message):
+    async def revoke_link(self, msg: Message):
         """Regenerate the anonymous link for the user."""
         new_id = create_unique_id()
         await update_user_fields(
@@ -39,7 +39,7 @@ class LinkManager:
         new_link: str = generate_anon_link(new_id)
         await self.bot.send_message(
             msg.chat.id,
-            get_response('link.regenerate_link.regenerated', link=new_link),
+            get_response('link.revoke_link.revoked', link=new_link),
             parse_mode='HTML',
             reply_markup=self.keyboard.share_link_buttons(
                 get_response('link.share_link'), new_link)
