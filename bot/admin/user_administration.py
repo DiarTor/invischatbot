@@ -7,8 +7,8 @@ from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.common.database_utils import get_admins, is_admin, update_ban_list, update_user_fields
-from bot.database.database import users_collection
+from bot.common.database_utils import get_admins, get_user_id, is_admin, update_ban_list, update_user_fields
+from bot.common.database_utils import fetch_user_data_by_user_id
 from bot.common.date import convert_timestamp_to_date
 from bot.languages.response import get_response
 
@@ -32,10 +32,10 @@ class UserAdministration:
             await self.bot.send_message(user_id, get_response('admin.errors.info.wrong_format'))
 
         user_anon_id = parts[1]
-        user_info = users_collection.find_one({"id": user_anon_id})
+        user_info = fetch_user_data_by_id(get_user_id(user_anon_id))
         if not user_info:
             # If user_anon_id is not found, check if it's a user_id
-            user_info = users_collection.find_one({"user_id": int(user_anon_id)})
+            user_info = fetch_user_data_by_id(int(user_anon_id))
         if not user_info:
             await self.bot.send_message(user_id, get_response('admin.errors.info.not_found'))
             return
@@ -84,7 +84,7 @@ class UserAdministration:
             return
 
         user_anon_id = parts[1]
-        user_info = users_collection.find_one({"id": user_anon_id})
+        user_info = fetch_user_data_by_id(get_user_id(user_anon_id))
         if not user_info:
             await self.bot.send_message(user_id,
                                         get_response('admin.errors.ban.not_found'))
@@ -135,7 +135,7 @@ class UserAdministration:
                                         get_response('admin.errors.unban.wrong_format'))
 
         user_anon_id = parts[1]
-        user_info = users_collection.find_one({"id": user_anon_id})
+        user_info = fetch_user_data_by_id(get_user_id(user_anon_id))
         if not user_info:
             await self.bot.send_message(admin_user_id, get_response('admin.errors.unban.not_found'))
             return

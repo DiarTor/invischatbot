@@ -3,11 +3,10 @@ import telebot
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery
 
-from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
 from bot.common.chat_utils import get_seen_status, get_marked_status
-from bot.common.database_utils import fetch_user_data_by_query, get_user_id
+from bot.common.database_utils import fetch_user_data_by_query, get_user_anon_id, get_user_id, fetch_user_data_by_user_id, update_user_fields
 
 
 class BlockUserManager:
@@ -17,11 +16,11 @@ class BlockUserManager:
     async def block_list(self, msg: telebot.types.Message):
         """ Show user blocklist"""
         user_id = msg.chat.id
-        blocklist = users_collection.find_one({'user_id': user_id}).get('blocklist', None)
+        blocklist = fetch_user_data_by_user_id(user_id).get('blocklist', None)
         if not blocklist:
             await self.bot.send_message(text=get_response('blocking.blocklist_empty'), chat_id=user_id)
             return
-        user_anon_id = users_collection.find_one({'user_id': user_id}).get('id', None)
+        user_anon_id = get_user_anon_id(user_id)
         await self.bot.send_message(chat_id=user_id, text=get_response("blocking.blocklist"), parse_mode='Markdown',
                                     reply_markup=self.keyboard.blocklist_buttons(user_anon_id, blocklist))
 
@@ -31,14 +30,11 @@ class BlockUserManager:
         :param blocked_id: Blocked anonymous ID
         :param callback: Callback query
         """
-        blocklist = users_collection.find_one({'user_id': blocker_id}).get('blocklist', None)
+        blocklist = fetch_user_data_by_user_id(blocker_id).get('blocklist', None)
         if blocked_id in blocklist:
             await self.bot.answer_callback_query(callback.id, get_response('blocking.already_blocked'))
             return
-        users_collection.update_one(
-            {"user_id": blocker_id},
-            {"$addToSet": {"blocklist": blocked_id}}, upsert=True
-        )
+        update_user_fields(blocker_id, {"$addToSet": {"blocklist": blocked_id}})
         await self.bot.edit_message_reply_markup(blocker_id, callback.message.id,
                                                  reply_markup=self.keyboard.blocked_buttons())
 

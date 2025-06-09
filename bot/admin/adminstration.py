@@ -9,7 +9,7 @@ from bot.admin.keyboard import Keyboard
 from bot.common.database_utils import is_admin, get_admins
 from bot.common.date import convert_timestamp_to_date
 from bot.languages.response import get_response
-from bot.common.database_utils import fetch_user_data_by_id
+from bot.common.database_utils import fetch_user_data_by_user_id
 
 class Admin:
     """

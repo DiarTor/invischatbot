@@ -1,14 +1,14 @@
 import uuid
 from urllib.parse import quote
-from bot.database.database import users_collection
+from bot.database.database import mongo
 from decouple import config
 
 
-def create_unique_id() -> str:
+async def create_unique_id() -> str:
     """Generate a unique 10-character ID."""
     while True:
         anon_id = f"{str(uuid.uuid4())[:5]}{str(uuid.uuid4().int)[-5:]}"
-        if anon_id not in users_collection.distinct("id"):
+        if anon_id not in await mongo.users_collection.distinct("id"):
             return anon_id
 
 

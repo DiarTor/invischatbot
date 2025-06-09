@@ -8,6 +8,7 @@ import colorlog
 
 from decouple import config
 from telebot.async_telebot import AsyncTeleBot
+from bot.database.database import mongo, init_bot_config
 
 from bot.admin.adminstration import Admin
 from bot.admin.user_administration import UserAdministration
@@ -16,7 +17,6 @@ from bot.managers.callback import CallbackManager
 from bot.managers.chat import ChatHandler
 from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
-from bot.database.database import init_bot_config
 # Logging Configuration
 def setup_logger():
     """Sets up the logger with color support."""
@@ -70,12 +70,17 @@ bot.register_message_handler(chat_handler.anonymous_chat,
 bot.register_callback_query_handler(callback_manager.handle_callback, func=lambda call: True)
 bot.register_inline_handler(callback_manager.handle_inline_query, func=lambda call: True)
 
+async def main():
+    await mongo.connect()
+    await init_bot_config(mongo.bot_collection)  # ✅ Pass actual collection
+
+    logger.info("🤖 Starting bot...")
+    await bot.polling(none_stop=True)
+    logger.info("🛑 Bot stopped.")
+
+
 if __name__ == '__main__':
     try:
-        asyncio.run(init_bot_config())  # Ensure default config is set
-
-        logger.info("Starting bot")
-        asyncio.run(bot.polling(none_stop=True))
-        logger.info("Bot Stopped")
+        asyncio.run(main())
     except (asyncio.CancelledError, RuntimeError, ValueError) as e:
-        logger.error("Error: %s", e)
+        logger.error("🚨 Error: %s", e)
