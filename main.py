@@ -9,7 +9,7 @@ import colorlog
 from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from bot.database.database import mongo, init_bot_config
-
+from bot.common.utils import logger
 from bot.admin.adminstration import Admin
 from bot.admin.user_administration import UserAdministration
 from bot.managers.block import BlockUserManager
@@ -18,25 +18,6 @@ from bot.managers.chat import ChatHandler
 from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
 # Logging Configuration
-def setup_logger():
-    """Sets up the logger with color support."""
-    handler = colorlog.StreamHandler()
-    handler.setFormatter(colorlog.ColoredFormatter(
-        "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        log_colors={
-            'DEBUG': 'cyan',
-            'INFO': 'green',
-            'WARNING': 'yellow',
-            'ERROR': 'red',
-            'CRITICAL': 'bold_red',
-        }
-    ))
-    local_logger = colorlog.getLogger()
-    local_logger.addHandler(handler)
-    local_logger.setLevel(logging.INFO)  # Set to DEBUG for detailed logs
-    return local_logger
-
-logger = setup_logger()
 
 bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True, parse_mode='HTML')
 

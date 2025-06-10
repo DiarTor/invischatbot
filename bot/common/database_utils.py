@@ -12,14 +12,207 @@ Key Features:
 - Ban management: Add or remove users from the ban list.
 """
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, Optional
 
 from decouple import config
 import pymongo.errors
-
+from motor.motor_asyncio import AsyncIOMotorCollection
 from bot.common.utils import create_unique_id
-from bot.database.database import mongo  # Your async mongo instance
+from bot.common.utils import logger
+from bot.database.database import mongo
 
+
+class UserDataManager:
+    """Manages the user data"""
+    def __init__(self, user_id: int, collection: AsyncIOMotorCollection):
+        self.user_id = user_id
+        self.now = datetime.now().timestamp()
+        self.collection = collection
+        self.version = config('VERSION', default=1.0, cast=float)
+
+    async def save_user(self, **profile_data):
+        """Stores the user data on join"""
+        update_data = {
+                "$setOnInsert": {
+                    "anon_id": create_unique_id(),
+                    "user_id": self.user_id,
+                    "flags": {
+                        "awaiting_nickname": False,
+                        "send_without_link": False,
+                        "is_bot_off": False,
+                        "first_time": True,
+                        "replying": False,
+                    },
+                    "ban_info": {
+                        "is_banned": False,
+                        "banned_by": None,
+                        "banned_at": None,
+                        },
+                    "metadata": {
+                        "joined_at": self.now,
+                        "last_interaction_time": self.now,
+                        "version": float(config('VERSION', default=1.0)),
+                    },
+                    "referral_info": {
+                        "referred": False,
+                        "referred_by": '',
+                        "referrals": [],
+                    },
+                    "chatting": {
+                        "chats": [],
+                        "replying": {
+                            "reply_target_message_id": '',
+                            "reply_target_user_id": int(),
+                        },
+                        "blocklist": [],
+                    },
+                },
+                "$set":{
+                    "profile": self._normalize_profile(profile_data),
+                    "metadata.updated_at": self.now,
+                    "metadata.last_intraction": self.now,
+                }
+            }
+        try:
+            result = await self.collection.update_one(
+                {'user_id': self.user_id},
+                update_data,
+                upsert=True
+            )
+            return result.modified_count > 0
+        except pymongo.errors.DuplicateKeyError:
+            # handle race condition
+            return await self.fetch_user(self.user_id)
+
+    async def update_profile(self, **changes) -> bool:
+        """
+        Updates only profile fields.
+        Returns True if modifications were made.
+        """
+        valid_fields = {
+            "username", 
+            "first_name", "last_name"
+        }
+
+        updates = {
+            f"profile.{k}": v
+            for k, v in changes.items()
+            if k in valid_fields and v is not None
+        }
+
+        if not updates:
+            return False
+
+        updates["profile.updated_at"] = self.now
+
+        result = await self.collection.update_one(
+            {"user_id": self.user_id},
+            {"$set": updates}
+        )
+        return result.modified_count > 0
+
+    async def toggle_flag(self, flag_name: str, value: Optional[bool] = None) -> bool:
+        """
+        Sets or toggles boolean flags.
+        Returns True if changes were made.
+        """
+        valid_flags = {
+            "awaiting_nickname", 
+            "send_without_link",
+            "is_bot_off",
+            "first_time"
+        }
+
+        if flag_name not in valid_flags:
+            return False
+
+        update = {"$set" if value is not None else "$bit": {
+            f"flags.{flag_name}": value if value is not None else {"xor": 1}
+        }}
+
+        result = await self.collection.update_one(
+            {"user_id": self.user_id},
+            update
+        )
+        return result.modified_count > 0
+
+    async def update_metadata(self, **updates) -> bool:
+        """
+        Updates metadata fields for the user.
+        Only allows updates to specific metadata fields with proper validation.
+        
+        Args:
+            updates: Dictionary of metadata fields to update
+                    (last_interaction, version, etc.)
+        
+        Returns:
+            bool: True if updates were applied, False if no changes were made
+        
+        Example:
+            await user_manager.update_metadata(
+                last_interaction=datetime.utcnow(),
+                active=True
+            )
+        """
+        allowed_fields = {
+            "last_interaction": datetime,
+            "version": (float, int),
+        }
+
+        # Filter and validate updates
+        valid_updates = {}
+
+        for field, value in updates.items():
+            if field in allowed_fields:
+                expected_type = allowed_fields[field]
+
+                # Special handling for datetime fields
+                if expected_type is datetime and not isinstance(value, datetime):
+                    if isinstance(value, (int, float)):
+                        value = datetime.fromtimestamp(value)
+                    else:
+                        continue  # Skip invalid datetime
+
+                # Type checking
+                elif not isinstance(value, expected_type):
+                    if not (isinstance(expected_type, tuple) and isinstance(value, expected_type)):
+                        continue
+
+                valid_updates[f"metadata.{field}"] = value
+
+        if not valid_updates:
+            return False
+
+        try:
+            result = await self.collection.update_one(
+                {"user_id": self.user_id},
+                {"$set": valid_updates}
+            )
+            return result.modified_count > 0
+
+        except pymongo.errors.PyMongoError as e:
+            logger.error("Failed to update metadata for user %s: %s", self.user_id, e)
+            return False
+
+    async def fetch_user(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Retrieves full user document"""
+        return await self.collection.find_one({"user_id": user_id})
+    
+    @staticmethod
+    def _normalize_profile(data: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensures consistent profile structure"""
+        return {
+            "nickname": data.get("nickname", ""),
+            "username": data.get("username", ""),
+            "first_name": data.get("first_name", ""),
+            "last_name": data.get("last_name", ""),
+            "updated_at": data.get("updated_at", ""),
+        }
+
+    async def is_user_exists(self) -> bool:
+        """Check if the user exists in the database"""
+        user = await self.collection.find_one({'user_id': self.user_id})
+        return user is not None
 
 async def user_exists(user_id: int) -> bool:
     """
