@@ -246,7 +246,6 @@ class UserDataManager:
         user = await collection.find_one({"profile.username": username})
         return user.get("anon_id") if user else None
 
-
 class BotDataManager:
     """Manages bot-wide operations and configurations"""
     def __init__(self, collection: AsyncIOMotorCollection):
@@ -295,7 +294,7 @@ class BotDataManager:
                     {"_id": "ban_list"}, {"$pull": {"banned_users": user_id}}, upsert=True)
             return True
         except pymongo.errors.PyMongoError as e:
-            logger.error(f"Failed to update ban list: {e}")
+            logger.error("Failed to update ban list: %s", e)
             return False
 
 class ChatDataManager:
@@ -403,7 +402,7 @@ class AdManager:
                 )
                 if chat_member.status not in ["member", "administrator", "creator"]:
                     return False
-            except Exception as e:
+            except (pymongo.errors.PyMongoError, AttributeError) as e:
                 logger.error("Failed to check subscription for %s: %s", user_id, e)
                 return False
         return True
