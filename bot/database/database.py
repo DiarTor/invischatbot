@@ -18,8 +18,8 @@ class AsyncMongoConnection:
 
     @property
     def is_connected(self) -> bool:
-        """Thread-safe connection status check"""
-        return self._client is not None and not self._client.is_closed
+        return self._client is not None and self._db is not None
+
 
     async def connect(self) -> Tuple[bool, Optional[Exception]]:
         """
