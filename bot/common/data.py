@@ -14,21 +14,25 @@ Key Features:
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from decouple import config
 import pymongo.errors
+from decouple import config
+from telebot.async_telebot import AsyncTeleBot
 from motor.motor_asyncio import AsyncIOMotorCollection
 from bot.common.utils import create_unique_id
 from bot.common.utils import logger
 from bot.database.database import mongo
-from telebot.async_telebot import AsyncTeleBot
 
 class UserDataManager:
     """Manages the user data"""
-    def __init__(self, user_id: int, collection: AsyncIOMotorCollection):
+    def __init__(self, collection: AsyncIOMotorCollection, user_id: int=None):
         self.user_id = user_id
         self.now = datetime.now().timestamp()
         self.collection = collection
         self.version = config('VERSION', default=1.0, cast=float)
+
+    async def bind_user(self, user_id: int):
+        """Bind the user_id so it can be used in the rest methods"""
+        self.user_id = user_id
 
     async def save_user(self, **profile_data):
         """Stores the user data on join"""
@@ -50,7 +54,7 @@ class UserDataManager:
                         },
                     "metadata": {
                         "joined_at": self.now,
-                        "last_intraction": self.now,
+                        "last_interaction": self.now,
                         "version": float(config('VERSION', default=1.0)),
                     },
                     "referral_info": {
@@ -65,6 +69,8 @@ class UserDataManager:
                             "reply_target_user_id": 0,
                         },
                         "blocklist": [],
+                        "reactions": {},
+                        "seen_messages": [],
                     },
                     "profile": self.normalize_profile(profile_data)
                 },
@@ -116,7 +122,8 @@ class UserDataManager:
             "awaiting_nickname", 
             "send_without_link",
             "is_bot_off",
-            "first_time"
+            "first_time",
+            "replying"
         }
 
         if flag_name not in valid_flags:
@@ -149,7 +156,7 @@ class UserDataManager:
 
                 if expected_type is datetime and not isinstance(value, datetime):
                     if isinstance(value, (int, float)):
-                        value = datetime.fromtimestamp(value)
+                        value = datetime.now().timestamp()
                     else:
                         continue
 
@@ -178,7 +185,8 @@ class UserDataManager:
 
     async def exists(self) -> bool:
         """Check if the user exists in the database"""
-        return await self.fetch_user() is not None
+        user = await self.fetch_user()  # fetch_user must be awaited
+        return bool(user is not None)
 
     async def is_banned(self) -> bool:
         """Check if the user is banned."""
@@ -190,12 +198,18 @@ class UserDataManager:
         return await self.update_metadata(last_interaction=self.now)
 
     async def update_fields(self, fields: dict | str, value: Any = None,
-                            push: bool = False) -> bool:
-        """Update user fields. Supports single key & full dict. Use push=True to append to array."""
+                             push: bool = False, pull: bool = False):
+        """Update user fields. Supports $set, $push, $pull."""
         if isinstance(fields, dict):
-            update = {"$set": fields}
+            if any(key.startswith("$") for key in fields):  # Allow raw MongoDB operators
+                update = fields  # e.g., {'$pull': {'blocklist': blocked_id}}
+            else:
+                update = {"$set": fields}  # Default: $set
         else:
-            update = {"$push" if push else "$set": {fields: value}}
+            if pull:
+                update = {"$pull": {fields: value}}  # New: Handle $pull
+            else:
+                update = {"$push" if push else "$set": {fields: value}}
 
         result = await self.collection.update_one(
             {"user_id": self.user_id},
@@ -224,7 +238,8 @@ class UserDataManager:
 
     async def get_anon_id(self) -> str:
         """Get user anon_id with their user_id"""
-        return await self.fetch_user().get('anon_id', '')
+        user = await self.fetch_user()
+        return user.get('anon_id', '')
 
     def normalize_profile(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Ensures consistent profile structure"""
@@ -272,10 +287,11 @@ class BotDataManager:
     async def get_admins(self) -> list:
         """Retrieve the list of admin user IDs from config."""
         bot_config = await self.collection.find_one({"_id": "bot_config"})
-        return bot_config.get("admin", []) if bot_config else []
+        return bot_config.get("admin_user_ids", []) if bot_config else []
 
     async def is_admin(self, user_id: int) -> bool:
         """Check if the user is an admin."""
+        print(user_id in await self.get_admins())
         return user_id in await self.get_admins()
 
     async def get_support_group(self) -> str | None:
@@ -288,10 +304,10 @@ class BotDataManager:
         try:
             if action == 'ban':
                 await self.collection.update_one(
-                    {"_id": "ban_list"}, {"$addToSet": {"banned_users": user_id}}, upsert=True)
+                    {"_id": "bot_bans"}, {"$addToSet": {"banned_user_ids": user_id}}, upsert=True)
             elif action == 'unban':
                 await self.collection.update_one(
-                    {"_id": "ban_list"}, {"$pull": {"banned_users": user_id}}, upsert=True)
+                    {"_id": "bot_bans"}, {"$pull": {"banned_user_ids": user_id}}, upsert=True)
             return True
         except pymongo.errors.PyMongoError as e:
             logger.error("Failed to update ban list: %s", e)
@@ -299,7 +315,8 @@ class BotDataManager:
 
 class ChatDataManager:
     """Handles all chat-related data including reactions and chat states"""
-    def __init__(self, user_collection: AsyncIOMotorCollection, bot_collection: AsyncIOMotorCollection):
+    def __init__(self, user_collection: AsyncIOMotorCollection,
+                bot_collection: AsyncIOMotorCollection):
         self.user_collection = user_collection
         self.bot_collection = bot_collection
 
@@ -313,7 +330,7 @@ class ChatDataManager:
         if reset_replying:
             update_fields.update({
                 "chatting.replying.reply_target_message_id": "",
-                "chatting.replying.reply_target_user_id": 0
+                "chatting.replying.reply_target_user_id": 0,
             })
 
         result = await self.user_collection.update_one(
@@ -337,38 +354,29 @@ class ChatDataManager:
         """Check if a user has seen a specific message"""
         user_data = await self.user_collection.find_one(
             {"user_id": user_id},
-            {"metadata.seen_messages": 1}
+            {"chatting.seen_messages": 1}
         )
         return int(message_id) in user_data.get("metadata", {}).get("seen_messages", []) if user_data else False
 
     # ----- Reaction Management -----
-    async def add_reaction(
-        self,
-        user_id: int,
-        message_id: int,
-        emoji: str,
-    ) -> None:
-        """Store a user's reaction to a message"""
-        await self.bot_collection.update_one(
-            {"_id": "reactions"},
-            {"$set": {f"reactions.{user_id}.{message_id}": emoji}},
-            upsert=True
+    async def add_reaction(self, user_id: int, message_id: int, emoji: str) -> None:
+        """Store a user's reaction to a message inside their user document"""
+        await self.user_collection.update_one(
+            {"user_id": user_id},
+            {"$set": {f"chatting.reactions.{message_id}": emoji}}
         )
 
-    async def get_reaction(
-        self,
-        user_id: int,
-        message_id: int,
-        default_response: str = 'هیچ ریاکشنی ندادی'
-    ) -> str:
+    async def get_reaction(self, user_id: int, message_id: int,
+                        default_response: str = 'هیچ ریاکشنی ندادی') -> str:
         """Retrieve a user's reaction to a specific message"""
-        reactions = await self.bot_collection.find_one({"_id": "reactions"})
-        if not reactions:
+        user_doc = await self.user_collection.find_one({"user_id": user_id})
+        if not user_doc:
             return default_response
-            
-        return reactions.get("reactions", {})\
-                       .get(str(user_id), {})\
-                       .get(str(message_id), default_response)
+
+        return user_doc.get("chatting", {})\
+                    .get("reactions", {})\
+                    .get(str(message_id), default_response)
+
 
     # ----- Utility Methods -----
     @staticmethod
@@ -415,6 +423,10 @@ class AdManager:
 async def find_one(collection, query: dict) -> dict | None:
     """Generic async wrapper to find one document."""
     return await collection.find_one(query)
+
+async def find_many(collection, query: dict) -> dict | None:
+    """Generic async wrapper to find many documents"""
+    return await collection.find(query)
 
 async def update_one(collection, query: dict, update: dict) -> bool:
     """Generic async wrapper to update one document."""

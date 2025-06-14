@@ -204,7 +204,6 @@ class KeyboardMarkupGenerator:
         """ Block List InlineButtons
         :param blocker_id: blocker anonymous id
         :param blocked_list: the list of blocked anonymous ids
-        :param message_id: message id
         """
         buttons = [
             [InlineKeyboardButton(text=str(blocked_id),

@@ -10,12 +10,12 @@ from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from bot.database.database import mongo, init_bot_config
 from bot.common.utils import logger
-from bot.admin.adminstration import Admin
-from bot.admin.user_administration import UserAdministration
-from bot.managers.block import BlockUserManager
-from bot.managers.callback import CallbackManager
-from bot.managers.chat import ChatHandler
-from bot.managers.nickname import NicknameManager
+# from bot.admin.adminstration import Admin
+# from bot.admin.user_administration import UserAdministration
+# from bot.managers.block import BlockUserManager
+# from bot.managers.callback import CallbackManager
+# from bot.managers.chat import ChatHandler
+# from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
 # Logging Configuration
 
@@ -23,37 +23,36 @@ bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True, pars
 
 # Bot Commands Classes
 start_bot = StartBot(bot)
-chat_handler = ChatHandler(bot)
-callback_manager = CallbackManager(bot)
-nickname_handler = NicknameManager(bot)
-block_user_handler = BlockUserManager(bot)
+# chat_handler = ChatHandler(bot)
+# callback_manager = CallbackManager(bot)
+# nickname_handler = NicknameManager(bot)
+# block_user_handler = BlockUserManager(bot)
 
 # Admin Commands Classes
-administration_handler = Admin(bot)
-user_administration_handler = UserAdministration(bot)
+# administration_handler = Admin(bot)
+# user_administration_handler = UserAdministration(bot)
 
 # Bot Commands
 bot.register_message_handler(start_bot.start, commands=['start'])
 
 # Admin Commands
-bot.register_message_handler(administration_handler.ahelp, commands=['ahelp'])
-bot.register_message_handler(administration_handler.main, commands=['admin'])
-bot.register_message_handler(user_administration_handler.get_user_info, commands=['info'])
-bot.register_message_handler(user_administration_handler.ban_user, commands=['ban'])
-bot.register_message_handler(user_administration_handler.unban_user, commands=['unban'])
+# bot.register_message_handler(administration_handler.ahelp, commands=['ahelp'])
+# bot.register_message_handler(administration_handler.main, commands=['admin'])
+# bot.register_message_handler(user_administration_handler.get_user_info, commands=['info'])
+# bot.register_message_handler(user_administration_handler.ban_user, commands=['ban'])
+# bot.register_message_handler(user_administration_handler.unban_user, commands=['unban'])
 
 # Content Type Handlers
-bot.register_message_handler(chat_handler.anonymous_chat,
-                             content_types=['text', 'audio', 'photo', 'voice', 'document',
-                                            'video', 'animation', 'sticker', 'video_note'])
+# bot.register_message_handler(chat_handler.anonymous_chat,
+#                              content_types=['text', 'audio', 'photo', 'voice', 'document',
+#                                             'video', 'animation', 'sticker', 'video_note'])
 
 # CallBack Handlers
-bot.register_callback_query_handler(callback_manager.handle_callback, func=lambda call: True)
-bot.register_inline_handler(callback_manager.handle_inline_query, func=lambda call: True)
+# bot.register_callback_query_handler(callback_manager.handle_callback, func=lambda call: True)
+# bot.register_inline_handler(callback_manager.handle_inline_query, func=lambda call: True)
 
 async def main():
-    await mongo.connect()
-    await init_bot_config(mongo.bot_collection)  # ✅ Pass actual collection
+    await init_bot_config(mongo.bot_collection)
 
     logger.info("🤖 Starting bot...")
     await bot.polling(none_stop=True)

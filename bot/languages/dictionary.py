@@ -448,7 +448,7 @@ translations = {
                 
                 👤 {first_name} {last_name} (@{username})
                 🪪 {nickname}
-                🆔 `{user_id}` `{id}`
+                🆔 `{user_id}` `{anon_id}`
                 📅 {joined_at}
                 ---------------------------------
                 """),

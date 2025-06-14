@@ -11,6 +11,7 @@ class SupportManager:
         self.bot = bot
         # self.suppurt_group = get_support_group()
         self.keyboard = KeyboardMarkupGenerator()
+
     async def guide(self, msg: Message):
         """Handle the guide command to provide support instructions."""
         await self.bot.send_message(msg.chat.id, get_response('support.guide'), parse_mode='HTML',
