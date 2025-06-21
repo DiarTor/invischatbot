@@ -169,7 +169,6 @@ class StartBot:
             print(f"Error in start method: {str(e)}")
             await self._send_error_message(msg, 'errors.wrong_id')
 
-
     async def _manage_chats(self, user_data, target_user_data):
         user_id = user_data['user_id']
         target_user_id = target_user_data['user_id']
