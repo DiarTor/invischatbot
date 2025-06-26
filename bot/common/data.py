@@ -24,10 +24,10 @@ from bot.database.database import mongo
 
 class UserDataManager:
     """Manages the user data"""
-    def __init__(self, collection: AsyncIOMotorCollection, user_id: int=None):
+    def __init__(self, user_id: int=None):
         self.user_id = user_id
         self.now = datetime.now().timestamp()
-        self.collection = collection
+        self.collection = mongo.users_collection
         self.version = config('VERSION', default=1.0, cast=float)
 
     async def bind_user(self, user_id: int):
@@ -242,6 +242,7 @@ class UserDataManager:
         return user.get('anon_id', '')
 
     def normalize_profile(self, data: Dict[str, Any]) -> Dict[str, Any]:
+
         """Ensures consistent profile structure"""
         return {
             "nickname": data.get("nickname", ""),
@@ -250,21 +251,10 @@ class UserDataManager:
             "last_name": data.get("last_name", ""),
             "updated_at": data.get("updated_at", self.now)
         }
-
-    @classmethod
-    async def get_anon_id_by_username(
-        cls,
-        collection: AsyncIOMotorCollection,
-        username: str
-    ) -> Optional[str]:
-        """Retrieve anonymous ID of a user by their username."""
-        user = await collection.find_one({"profile.username": username})
-        return user.get("anon_id") if user else None
-
 class BotDataManager:
     """Manages bot-wide operations and configurations"""
-    def __init__(self, collection: AsyncIOMotorCollection):
-        self.collection = collection
+    def __init__(self):
+        self.collection = mongo.bot_collection
 
     async def update_fields(self, fields: dict | str, value: Any = None) -> bool:
         """Update bot configuration fields."""
@@ -291,7 +281,6 @@ class BotDataManager:
 
     async def is_admin(self, user_id: int) -> bool:
         """Check if the user is an admin."""
-        print(user_id in await self.get_admins())
         return user_id in await self.get_admins()
 
     async def get_support_group(self) -> str | None:
@@ -313,14 +302,31 @@ class BotDataManager:
             logger.error("Failed to update ban list: %s", e)
             return False
 
+    async def get_bot_version(self) -> float:
+        """Retrieve the current bot version from config."""
+        bot_config = await self.collection.find_one({"_id": "bot_config"})
+        return bot_config.get("version", 1.0) if bot_config else 1.0
 class ChatDataManager:
     """Handles all chat-related data including reactions and chat states"""
-    def __init__(self, user_collection: AsyncIOMotorCollection,
-                bot_collection: AsyncIOMotorCollection):
-        self.user_collection = user_collection
-        self.bot_collection = bot_collection
+    def __init__(self):
+        self.user_collection = mongo.users_collection
+        self.bot_collection = mongo.bot_collection
 
     # ----- Chat State Management -----
+    async def get_open_chat(self, user_id: int) -> Optional[dict]:
+        """Retrieve the first open chat for a user."""
+        query = {
+            "user_id": user_id,
+            "chatting.chats": {
+                "$elemMatch": {"open": True}
+            }
+        }
+        projection = {"chatting.chats.$": 1}  # Fetch only the matching chat
+        result = await self.user_collection.find_one(query, projection)
+        if result and "chatting" in result and "chats" in result["chatting"]:
+            return result["chatting"]["chats"][0]  # Return the first matching chat
+        return None
+
     async def close_chats(self, user_id: int, reset_replying: bool = False) -> bool:
         """
         Close all open chats for a user and optionally reset the replying state.
@@ -358,7 +364,6 @@ class ChatDataManager:
         )
         return int(message_id) in user_data.get("metadata", {}).get("seen_messages", []) if user_data else False
 
-    # ----- Reaction Management -----
     async def add_reaction(self, user_id: int, message_id: int, emoji: str) -> None:
         """Store a user's reaction to a message inside their user document"""
         await self.user_collection.update_one(
@@ -377,8 +382,6 @@ class ChatDataManager:
                     .get("reactions", {})\
                     .get(str(message_id), default_response)
 
-
-    # ----- Utility Methods -----
     @staticmethod
     def is_text_marked(text: str) -> bool:
         """Check if text contains marking indicator"""
@@ -390,7 +393,6 @@ class ChatDataManager:
         if '📍 #نشان' in text:
             return text.split('📍 #نشان', 1)[1].strip()
         return text
-
 class AdManager:
     """Handles all advertising-related functionality including channel promotions and links"""
     def __init__(self, bot: AsyncTeleBot, channel_ids: list[int]):
@@ -440,3 +442,13 @@ async def update_one(collection, query: dict, update: dict) -> bool:
 async def get_user_id(user_anon_id: str) -> Any:
     """Retrieve user ID from anonymous ID."""
     return await find_one(mongo.users_collection, {'anon_id': user_anon_id}).get('user_id', '')
+
+async def get_anon_id_by_username(username: str) -> Optional[str]:
+    """Retrieve anonymous ID of a user by their username."""
+    user = await mongo.users_collection.find_one({"profile.username": username})
+    return user.get("anon_id") if user else None
+
+async def get_user_anon_id(user_id: int) -> Optional[str]:
+    """Retrieve anonymous ID of a user by their user ID."""
+    user = await mongo.users_collection.find_one({"user_id": user_id})
+    return user.get("anon_id") if user else None

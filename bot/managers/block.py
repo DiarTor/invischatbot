@@ -14,8 +14,8 @@ class BlockUserManager:
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
         self.keyboard = KeyboardMarkupGenerator()
-        self.chat_manager = ChatDataManager(mongo.users_collection, mongo.bot_collection)
-        self.user_manager = UserDataManager(mongo.users_collection)
+        self.chat_manager = ChatDataManager()
+        self.user_manager = UserDataManager()
     
     async def block_list(self, msg: telebot.types.Message):
         """Show user blocklist using only anon_ids"""
@@ -28,7 +28,7 @@ class BlockUserManager:
         
         if not blocklist:
             await self.bot.send_message(
-                text=get_response('blocking.blocklist_empty'), 
+                text=get_response('blocking.blocklist_empty'),
                 chat_id=user_id
             )
             return

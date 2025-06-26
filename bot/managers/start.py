@@ -24,8 +24,8 @@ class StartBot:
     """
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
-        self.user_manager = UserDataManager(mongo.users_collection)
-        self.chat_manager = ChatDataManager(mongo.users_collection, mongo.bot_collection)
+        self.user_manager = UserDataManager()
+        self.chat_manager = ChatDataManager()
 
     async def start(self, msg: Message, default_target_anon_id: str=None) -> None:
         """
@@ -55,10 +55,6 @@ class StartBot:
                 await self.bot.send_message(user_id, get_response('account.ban.banned'))
                 return
 
-            # if not await is_subscribed_to_channel(self.bot, user_id):
-            #     await self.bot.send_message(user_id, get_response('ad.force_join'),
-            #                           reply_markup=KeyboardMarkupGenerator().force_join_buttons())
-            #     return
             # save the last interaction time
             await self.user_manager.update_last_interaction()
             # Retrieve user data from the database
@@ -67,22 +63,7 @@ class StartBot:
                 await self.chat_manager.close_chats(user_id)
                 await self._send_welcome_message(msg)
                 return
-            # if not target_anon_id and user_data.get('flags', []).get('first_time', None):
-            #     # parts = msg.text.split()[1:]  # Get arguments after /start
-            #     # if parts and str(parts[0]).startswith('ref_'):
-            #     #     await AccountManager(self.bot).referral(msg)
-            #     await self.bot.send_message(
-            #         msg.chat.id,
-            #         get_response('greeting.first_time', nickname=nickname),
-            #         reply_markup=KeyboardMarkupGenerator().main_buttons(),
-            #         parse_mode='HTML',
-            #     )
-            #     await Admin(self.bot).announce_new_user(user_id)
 
-            #     # Update the user field to mark them as not first time
-            #     await self.user_manager.toggle_flag('first_time', False)
-
-            #     return
             if user_data.get('flags', []).get('first_time', None):
                 if not target_anon_id:
                     await self.bot.send_message(
@@ -105,22 +86,7 @@ class StartBot:
                     )
                     await Admin(self.bot).announce_new_user(user_id)
                     await self.user_manager.toggle_flag('first_time', False)
-            # If no target user provided, close any open chats and send a general welcome message
-            # if not target_anon_id:
-            #     await self.chat_manager.close_chats(user_id)
-            #     await self._send_welcome_message(msg)
-            #     return
 
-            # If it's the user's first time and have a target, show a welcome message and proceed
-            # if user_data.get('flags', []).get('first_time', None):
-            #     await self.bot.send_message(
-            #         msg.chat.id,
-            #         get_response('greeting.first_time', nickname=nickname),
-            #         reply_markup=KeyboardMarkupGenerator().main_buttons(),
-            #         parse_mode='HTML',
-            #     )
-            #     await Admin(self.bot).announce_new_user(user_id)
-            #     await self.user_manager.toggle_flag('first_time', False)
             # Retrieve target user data
             target_user_data = await find_one(mongo.users_collection, {'anon_id': target_anon_id})
             if not target_user_data:
@@ -161,7 +127,6 @@ class StartBot:
                 )
                 return
             # Manage chats if all checks pass
-            # await self.chat_manager.close_chats(user_id, True)
             await self.user_manager.close_metadata()
             await self._manage_chats(user_data, target_user_data)
 
