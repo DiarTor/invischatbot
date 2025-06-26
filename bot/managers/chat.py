@@ -11,7 +11,7 @@ from bot.common.data import BotDataManager, ChatDataManager, UserDataManager
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
 # from bot.common.threads import delete_message
-# from bot.managers.account import AccountManager
+from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager
 from bot.managers.link import LinkManager
 # from bot.managers.nickname import NicknameManager
@@ -56,7 +56,7 @@ class ChatHandler:
             "🚫 بلاک لیست": self.handle_blocklist,
             # '🛠️ پشتیبانی': self.handle_support,
             # '📖 راهنما': self.handle_guide,
-            # '👤 حساب کاربری': self.handle_account
+            '👤 حساب کاربری': self.handle_account
         }
 
         if msg.text in keyboard_commands:
@@ -281,13 +281,13 @@ class ChatHandler:
     # async def handle_guide(self, msg: Message):
     #     await SupportManager(self.bot).guide(msg)
 
-    # async def handle_account(self, msg: Message):
-    #     await AccountManager(self.bot).account(msg)
+    async def handle_account(self, msg: Message):
+        """Handle the case where the user wants to manage their account."""
+        await AccountManager(self.bot).account(msg)
 
     async def cancel_keyboard_button(self, msg: Message):
         """Handle the case where the user pressed cancel button from the bot keyboard."""
         await self.user_manager.bind_user(msg.from_user.id)
-        user_data = await self.user_manager.fetch_user()
         open_chat = await self.chat_manager.get_open_chat(msg.from_user.id)
 
         if await self.user_manager.get_flag_state("replying") is True:
