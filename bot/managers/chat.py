@@ -16,7 +16,7 @@ from bot.managers.block import BlockUserManager
 from bot.managers.link import LinkManager
 # from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
-# from bot.managers.support import SupportManager
+from bot.managers.support import SupportManager
 
 
 class ChatHandler:
@@ -55,7 +55,7 @@ class ChatHandler:
             '🕊 ارسال بدون لینک': self.handle_without_link,
             "🚫 بلاک لیست": self.handle_blocklist,
             # '🛠️ پشتیبانی': self.handle_support,
-            # '📖 راهنما': self.handle_guide,
+            '📖 راهنما': self.handle_guide,
             '👤 حساب کاربری': self.handle_account
         }
 
@@ -278,8 +278,9 @@ class ChatHandler:
     # async def handle_support(self, msg: Message):
     #     await SupportManager(self.bot).support(msg)
 
-    # async def handle_guide(self, msg: Message):
-    #     await SupportManager(self.bot).guide(msg)
+    async def handle_guide(self, msg: Message):
+        """Handle the case where the user wants to see the guide."""
+        await SupportManager(self.bot).guide(msg)
 
     async def handle_account(self, msg: Message):
         """Handle the case where the user wants to manage their account."""
