@@ -32,7 +32,7 @@ class BlockUserManager:
                 chat_id=user_id
             )
             return
-        blocklist_anon_ids = await self.get_blocked_users_anon_ids()
+        blocklist_anon_ids = [anon_id async for anon_id in self.get_blocked_users_anon_ids()]
         user_anon_id = await self.user_manager.get_anon_id()
         await self.bot.send_message(
             chat_id=user_id,

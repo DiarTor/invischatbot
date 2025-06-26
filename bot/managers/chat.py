@@ -12,7 +12,7 @@ from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
 # from bot.common.threads import delete_message
 # from bot.managers.account import AccountManager
-# from bot.managers.block import BlockUserManager
+from bot.managers.block import BlockUserManager
 from bot.managers.link import LinkManager
 # from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
@@ -47,13 +47,13 @@ class ChatHandler:
             return
 
         # store the last interaction time
-        await self.user_manager.update_metadata(**{"last_interaction": datetime.now().timestamp()})
+        await self.user_manager.update_last_interaction()
         # Handle commands from the keyboard
         keyboard_commands = {
-            # "⬅️ انصراف": self.handle_cancel,
+            "⬅️ انصراف": self.cancel_keyboard_button,
             "🔗 لینک ناشناس من": self.handle_link,
             '🕊 ارسال بدون لینک': self.handle_without_link,
-            # "🚫 بلاک لیست": self.handle_blocklist,
+            "🚫 بلاک لیست": self.handle_blocklist,
             # '🛠️ پشتیبانی': self.handle_support,
             # '📖 راهنما': self.handle_guide,
             # '👤 حساب کاربری': self.handle_account
@@ -271,11 +271,9 @@ class ChatHandler:
         """Handle the case where the user wants to send a message without a link."""
         await LinkManager(self.bot).send_without_link(msg)
 
-    # async def handle_blocklist(self, msg: Message):
-    #     await BlockUserManager(self.bot).block_list(msg)
-
-    # async def handle_cancel(self, msg: Message):
-    #     await self.cancel_chat_or_reply(msg)
+    async def handle_blocklist(self, msg: Message):
+        """Handle the case where the user wants to see their blocklist."""
+        await BlockUserManager(self.bot).block_list(msg)
 
     # async def handle_support(self, msg: Message):
     #     await SupportManager(self.bot).support(msg)
@@ -286,38 +284,42 @@ class ChatHandler:
     # async def handle_account(self, msg: Message):
     #     await AccountManager(self.bot).account(msg)
 
-    # async def cancel_chat_or_reply(self, msg: Message):
-    #     user_data = fetch_user_data_by_id(msg.from_user.id)
-    #     open_chat = self.chat_manager.get_open_chat(msg.from_user.id)
+    async def cancel_keyboard_button(self, msg: Message):
+        """Handle the case where the user pressed cancel button from the bot keyboard."""
+        await self.user_manager.bind_user(msg.from_user.id)
+        user_data = await self.user_manager.fetch_user()
+        open_chat = await self.chat_manager.get_open_chat(msg.from_user.id)
 
-    #     if user_data.get("replying"):
-    #         await close_chats(msg.from_user.id, True)
-    #         await self.bot.send_message(
-    #             msg.chat.id, get_response('texting.replying.cancelled'), parse_mode='HTML',
-    #             reply_markup=KeyboardMarkupGenerator().main_buttons()
-    #         )
-    #     elif open_chat:
-    #         self._update_chat_field(msg.from_user.id, "chats.$.open", False,
-    #                                 {"user_id": msg.from_user.id, "chats.open": True})
-    #         await self.bot.send_message(
-    #             msg.chat.id, get_response('texting.sending.cancelled'), parse_mode='HTML',
-    #             reply_markup=KeyboardMarkupGenerator().main_buttons()
-    #         )
-    #     elif user_data.get('awaiting_nickname'):
-    #         self._update_user_field(msg.from_user.id, "awaiting_nickname", False)
-    #         await self.bot.send_message(msg.from_user.id, get_response('nickname.cancelled'),
-    #                                     parse_mode='Markdown',
-    #                                     reply_markup=KeyboardMarkupGenerator().main_buttons())
-    #     elif user_data.get('send_without_link'):
-    #         self._update_user_field(msg.from_user.id, "send_without_link", False)
-    #         await self.bot.send_message(
-    #             msg.chat.id, get_response('link.connect_without_link.cancel'), parse_mode='HTML',
-    #             reply_markup=KeyboardMarkupGenerator().main_buttons()
-    #         )
-    #     else:
-    #         await self.bot.send_message(
-    #             msg.chat.id, get_response('errors.no_cancel'), parse_mode='Markdown'
-    #         )
+        if await self.user_manager.get_flag_state("replying") is True:
+            await self.chat_manager.close_chats(msg.from_user.id, True)
+            await self.bot.send_message(
+                msg.chat.id, get_response('texting.replying.cancelled'), parse_mode='HTML',
+                reply_markup=KeyboardMarkupGenerator().main_buttons()
+            )
+        elif open_chat:
+            await self.chat_manager.close_chats(msg.from_user.id)
+            await self.bot.send_message(
+                msg.chat.id, get_response('texting.sending.cancelled'), parse_mode='HTML',
+                reply_markup=KeyboardMarkupGenerator().main_buttons()
+            )
+
+        elif await self.user_manager.get_flag_state('awaiting_nickname'):
+            await self.user_manager.toggle_flag("awaiting_nickname", False)
+            await self.bot.send_message(msg.from_user.id, get_response('nickname.cancelled'),
+                                        parse_mode='Markdown',
+                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
+
+        elif await self.user_manager.get_flag_state('send_without_link'):
+            await self.user_manager.toggle_flag("send_without_link", False)
+            await self.bot.send_message(
+                msg.chat.id, get_response('link.connect_without_link.cancel'), parse_mode='HTML',
+                reply_markup=KeyboardMarkupGenerator().main_buttons()
+            )
+
+        else:
+            await self.bot.send_message(
+                msg.chat.id, get_response('errors.no_cancel'), parse_mode='Markdown'
+            )
 
     async def _handle_version_mismatch(self, msg: Message):
         """Handle version mismatch by prompting a restart and updating the version."""

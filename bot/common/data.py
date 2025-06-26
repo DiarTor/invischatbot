@@ -241,6 +241,14 @@ class UserDataManager:
         user = await self.fetch_user()
         return user.get('anon_id', '')
 
+    async def get_flag_state(self, flag_name: str) -> bool:
+        """
+        Retrieve the state of a specific boolean flag.
+        Returns True if the flag is set, False otherwise.
+        """
+        user = await self.fetch_user()
+        return user.get('flags', {}).get(flag_name, False) if user else False
+
     def normalize_profile(self, data: Dict[str, Any]) -> Dict[str, Any]:
 
         """Ensures consistent profile structure"""
