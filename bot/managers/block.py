@@ -85,12 +85,12 @@ class BlockUserManager:
         :param callback: Callback Query
         """
         chat_id = callback.message.chat.id
-        blocked_user_id = get_user_id(blocked_id)
+        blocked_user_id = await get_user_id(blocked_id)
         await self.user_manager.bind_user(chat_id)
         await self.user_manager.update_fields({'$pull': {'chatting.blocklist': blocked_user_id}})
         await self.bot.answer_callback_query(callback.id, get_response('blocking.unblock_confirm', anon_id=blocked_id),
                                              show_alert=True)
-        blocklist = await self.user_manager.fetch_user().get('chatting').get('blocklist')
+        blocklist = [anon_id async for anon_id in self.get_blocked_users_anon_ids()]
         if not blocklist:
             await self.bot.edit_message_text(text=get_response('blocking.blocklist_empty'), chat_id=chat_id,
                                              message_id=callback.message.message_id)
@@ -100,9 +100,10 @@ class BlockUserManager:
                                                                                         blocklist))
 
     async def cancel_unblock_user(self, blocker_anon_id: str, bot_message_id):
-        chat_id = get_user_id(blocker_anon_id)
+        """ Cancel unblock user operation """
+        chat_id = await get_user_id(blocker_anon_id)
         await self.user_manager.bind_user(chat_id)
-        blocked_users = await self.get_blocked_users_anon_ids()
+        blocked_users = [anon_id async for anon_id in self.get_blocked_users_anon_ids()]
         await self.bot.edit_message_reply_markup(chat_id, bot_message_id,
                                                  reply_markup=self.keyboard.blocklist_buttons(blocker_anon_id,
                                                                                                           blocked_users))

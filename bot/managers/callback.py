@@ -346,12 +346,12 @@ class CallbackManager:
     async def _process_change_nickname(self, callback: CallbackQuery):
         """Process the change nickname callback."""
         await self.chat_manager.close_chats(callback.message.chat.id, True)
-        response = NicknameManager(self.bot).get_set_nickname_response(callback.message)
+        response = await NicknameManager(self.bot).get_set_nickname_response(callback.message)
         await self.bot.edit_message_text(
             response,
             callback.message.chat.id,
             callback.message.id,
-            parse_mode='Markdown',
+            parse_mode='MarkDown',
             reply_markup=self.keyboard.cancel_changing_nickname()
         )
 
@@ -362,7 +362,7 @@ class CallbackManager:
             await self.user_manager.bind_user(callback.from_user.id)
             await self.user_manager.toggle_flag('awaiting_nickname', False)
             await self.bot.edit_message_text(
-                AccountManager(self.bot).get_account_response(callback.message),
+                await AccountManager(self.bot).get_account_response(callback.message),
                 callback.from_user.id,
                 callback.message.id,
                 parse_mode='Markdown',
@@ -476,7 +476,7 @@ class CallbackManager:
                 show_alert=True
             )
             return True
-        elif self.user_manager.is_bot_disabled(user_id):
+        elif await self.user_manager.is_bot_disabled(user_id):
             await self.bot.answer_callback_query(
                 callback.id,
                 get_response('account.bot_status.recipient.disabled'),

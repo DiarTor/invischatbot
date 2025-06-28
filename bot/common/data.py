@@ -93,7 +93,7 @@ class UserDataManager:
         """
         valid_fields = {
             "username", 
-            "first_name", "last_name"
+            "first_name", "last_name", "nickname"
         }
 
         updates = {
@@ -254,7 +254,7 @@ class UserDataManager:
             user = await find_one(mongo.users_collection, {"user_id": user_id})
         else:
             user = await self.fetch_user()
-        return user.get('flags', {}).get('is_bot_off', False) if user else False
+        return user.get('flags', {}).get('is_bot_off', False)
 
     async def get_anon_id(self) -> str:
         """Get user anon_id with their user_id"""
@@ -354,6 +354,37 @@ class ChatDataManager:
         if result and "chatting" in result and "chats" in result["chatting"]:
             return result["chatting"]["chats"][0]  # Return the first matching chat
         return None
+
+    async def create_chat(self, user_id: int, target_user_id: int,
+                          target_user_anon_id: str, open_chat: bool = True) -> bool:
+        """
+        Create a new chat for the user with the target user.
+        Returns True if a new chat was created.
+        """
+        chat_data = {
+            "target_user_id": target_user_id,
+            "target_user_anon_id": target_user_anon_id,
+            "open": open_chat,
+            "chat_started_at": datetime.now().timestamp(),
+            "chat_created_at": datetime.now().timestamp(),
+        }
+        result = await self.user_collection.update_one(
+            {"user_id": user_id},
+            {"$push": {"chatting.chats": chat_data}}, upsert=True
+        )
+        return result.modified_count > 0
+
+    async def reopen_chat(self, user_id: int, target_user_id: int) -> bool:
+        """
+        Reopen an existing chat for the user with the target user.
+        Returns True if the chat was reopened.
+        """
+        result = await self.user_collection.update_one(
+            {"user_id": user_id, "chatting.chats.target_user_id": target_user_id},
+            {"$set": {"chatting.chats.$.open": True,
+                      "chatting.chats.$.chat_started_at": datetime.now().timestamp()}}
+        )
+        return result.modified_count > 0
 
     async def close_chats(self, user_id: int, reset_replying: bool = False) -> bool:
         """
@@ -470,7 +501,8 @@ async def update_one(collection, query: dict, update: dict) -> bool:
 
 async def get_user_id(user_anon_id: str) -> int:
     """Retrieve user ID from anonymous ID."""
-    return await find_one(mongo.users_collection, {'anon_id': user_anon_id}).get('user_id', '')
+    user = await find_one(mongo.users_collection, {'anon_id': user_anon_id})  # Await the result
+    return user.get('user_id', '') if user else ''
 
 async def get_anon_id_by_username(username: str) -> Optional[str]:
     """Retrieve anonymous ID of a user by their username."""

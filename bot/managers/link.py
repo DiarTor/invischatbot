@@ -35,9 +35,9 @@ class LinkManager:
 
     async def revoke_link(self, msg: Message):
         """Regenerate the anonymous link for the user."""
-        self.user_manager.bind_user(msg.chat.id)
-        new_anon_id = create_unique_id()
-        await self.user_manager.update_fields('id', new_anon_id)
+        await self.user_manager.bind_user(msg.chat.id)
+        new_anon_id = await create_unique_id()
+        await self.user_manager.update_fields('anon_id', new_anon_id)
         new_link: str = generate_anon_link(new_anon_id)
         await self.bot.send_message(
             msg.chat.id,

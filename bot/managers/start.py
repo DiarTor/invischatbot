@@ -162,84 +162,40 @@ class StartBot:
             await self._create_new_chat(user_id, target_user_id, nickname)
 
     async def _reopen_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
-        mongo.users_collection.update_one(
-            {"user_id": user_id, "chatting.chats.target_user_id": target_user_id},
-            {
-                "$set": {
-                    "chats.$.open": True,
-                    "chats.$.chat_started_at": datetime.now().timestamp(),
-                }
-            }
-        )
+        await self.chat_manager.reopen_chat(user_id, target_user_id)
+
         if await self.user_manager.get_anon_id() == 'support':
             response = 'texting.sending.support'
         else:
             response = 'texting.sending.text.send'
+
         await self.bot.send_message(user_id, get_response(response, nickname=target_user_nickname),
                                     parse_mode='HTML',
                                     reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str):
         target_user_anon_id = await self.user_manager.get_anon_id()
+        # Create a single chat instance for the user
         if user_id == target_user_id:
-            # Create a single chat instance for the user
-            await mongo.users_collection.update_one(
-                {"user_id": user_id},
-                {
-                    "$push": {
-                        "chatting.chats": {
-                            "target_user_anon_id": target_user_anon_id,
-                            "target_user_id": target_user_id,
-                            "chat_created_at": datetime.timestamp(datetime.now()),
-                            "chat_started_at": datetime.timestamp(datetime.now()),
-                            "open": True
-                        }
-                    }
-                },
-                upsert=True
-            )
+            await self.chat_manager.create_chat(user_id, target_user_id, target_user_anon_id)
             await self.bot.send_message(user_id, get_response('texting.sending.text.send',
                                             nickname=target_user_nickname),
                                             parse_mode='HTML',
                                             reply_markup=KeyboardMarkupGenerator().cancel_buttons())
             return
-        await mongo.users_collection.update_one(
-            {"user_id": user_id},
-            {
-                "$push": {
-                    "chatting.chats": {
-                        "target_user_anon_id": target_user_anon_id,
-                        "target_user_id": target_user_id,
-                        "chat_created_at": datetime.timestamp(datetime.now()),
-                        "chat_started_at": datetime.timestamp(datetime.now()),
-                        "open": True
-                    }
-                }
-            },
-            upsert=True
-        )
+        # create a chat instance for the sender.
+        await self.chat_manager.create_chat(user_id, target_user_id, target_user_anon_id)
+
         # create the chat for the target user with the sender information
         await self.user_manager.bind_user(user_id)
         user_anon_id = await self.user_manager.get_anon_id()
-        await mongo.users_collection.update_one(
-            {"user_id": target_user_id},
-            {
-                "$push": {
-                    "chatting.chats": {
-                        "target_user_anon_id": user_anon_id,
-                        "target_user_id": user_id,
-                        "chat_created_at": datetime.timestamp(datetime.now()),
-                        "chat_started_at": datetime.timestamp(datetime.now()),
-                        "open": False
-                    }
-                }
-            },
-            upsert=True
-        )
+        await self.chat_manager.create_chat(target_user_id, user_id, user_anon_id, open_chat=False)
+
         if target_user_anon_id == 'support':
             response = 'texting.sending.support'
         else:
             response = 'texting.sending.text.send'
+
         await self.bot.send_message(user_id, get_response(response, nickname=target_user_nickname),
                                     parse_mode='HTML',
                                     reply_markup=KeyboardMarkupGenerator().cancel_buttons())
