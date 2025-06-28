@@ -78,7 +78,7 @@ class BlockUserManager:
                                                     seen,
                                                     marked))
 
-    async def unblock_user(self, blocker_id: str, blocked_id: str, callback: CallbackQuery):
+    async def unblock_user(self, callback: CallbackQuery, blocker_id: str, blocked_id: str):
         """ Unblock user
         :param blocker_id: Blocker anonymous ID
         :param blocked_id: Blocked anonymous ID
@@ -106,7 +106,7 @@ class BlockUserManager:
         await self.bot.edit_message_reply_markup(chat_id, bot_message_id,
                                                  reply_markup=self.keyboard.blocklist_buttons(blocker_anon_id,
                                                                                                           blocked_users))
-    
+
     async def get_blocked_users_anon_ids(self) -> AsyncGenerator[str, None]:
         """Lazily yield anon_ids (memory-efficient for large blocklists)."""
         user_data = await self.user_manager.fetch_user()
@@ -118,7 +118,29 @@ class BlockUserManager:
         ):
             if user.get("anon_id"):
                 yield user["anon_id"]
-    
+
+    async def validate_block_action(self, callback: CallbackQuery, blocked_anon_id: str) -> bool:
+        """
+        Validate if the block action can be performed.
+        :param callback: Callback query
+        :return: True if valid, False otherwise
+        """
+        blocker_user_id = callback.from_user.id
+        blocked_user_id = await get_user_id(blocked_anon_id)
+        if not blocked_user_id:
+            await self.bot.answer_callback_query(callback.id,
+                                                get_response('blocking.user_not_found'))
+            return False
+        if blocker_user_id == blocked_user_id:
+            await self.bot.answer_callback_query(callback.id,
+                                                 get_response('blocking.self_block_error'))
+            return False
+        if await self.is_user_blocked(sender_id=blocked_anon_id, recipient_id=blocker_user_id):
+            await self.bot.answer_callback_query(callback.id,
+                                                 get_response('blocking.already_blocked'))
+            return False
+        return True
+
     @staticmethod
     async def is_user_blocked(sender_id: str, recipient_id: int) -> bool:
         """
@@ -137,4 +159,3 @@ class BlockUserManager:
         recipient_blocklist = recipient_data.get('chatting', []).get('blocklist', [])
 
         return sender_data['anon_id'] in recipient_blocklist or recipient_data['anon_id'] in sender_blocklist
-    

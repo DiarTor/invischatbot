@@ -197,6 +197,23 @@ class UserDataManager:
         """Update user's last interaction timestamp."""
         return await self.update_metadata(last_interaction=self.now)
 
+    async def update_replying_state(self, message_id: str, sender_anon_id: str) -> bool:
+        """
+        Set the replying state for the user.
+        Stores the message ID and sender's anonymous ID.
+        Returns True if the state was updated.
+        """
+        update = {
+            "chatting.replying.reply_target_message_id": message_id,
+            "chatting.replying.reply_target_user_id": await get_user_id(sender_anon_id),
+            "flags.replying": True
+        }
+        result = await self.collection.update_one(
+            {"user_id": self.user_id},
+            {"$set": update}
+        )
+        return result.modified_count > 0
+    
     async def update_fields(self, fields: dict | str, value: Any = None,
                              push: bool = False, pull: bool = False):
         """Update user fields. Supports $set, $push, $pull."""
@@ -228,12 +245,15 @@ class UserDataManager:
                 "flags.replying": False,
             })
 
-    async def is_bot_disabled(self) -> bool:
+    async def is_bot_disabled(self, user_id: int = None) -> bool:
         """
         Check if the user has disabled the bot.
         Returns True if the bot is turned off for this user.
         """
-        user = await self.fetch_user()
+        if user_id:
+            user = await find_one(mongo.users_collection, {"user_id": user_id})
+        else:
+            user = await self.fetch_user()
         return user.get('flags', {}).get('is_bot_off', False) if user else False
 
     async def get_anon_id(self) -> str:
@@ -345,6 +365,7 @@ class ChatDataManager:
             update_fields.update({
                 "chatting.replying.reply_target_message_id": "",
                 "chatting.replying.reply_target_user_id": 0,
+                "flags.replying": False
             })
 
         result = await self.user_collection.update_one(
@@ -447,7 +468,7 @@ async def update_one(collection, query: dict, update: dict) -> bool:
         logger.error("Update error: %s", e)
         return False
 
-async def get_user_id(user_anon_id: str) -> Any:
+async def get_user_id(user_anon_id: str) -> int:
     """Retrieve user ID from anonymous ID."""
     return await find_one(mongo.users_collection, {'anon_id': user_anon_id}).get('user_id', '')
 
