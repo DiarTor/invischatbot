@@ -17,7 +17,6 @@ from typing import Any, Dict, Optional
 import pymongo.errors
 from decouple import config
 from telebot.async_telebot import AsyncTeleBot
-from motor.motor_asyncio import AsyncIOMotorCollection
 from bot.common.utils import create_unique_id
 from bot.common.utils import logger
 from bot.database.database import mongo
@@ -197,23 +196,6 @@ class UserDataManager:
         """Update user's last interaction timestamp."""
         return await self.update_metadata(last_interaction=self.now)
 
-    async def update_replying_state(self, message_id: str, sender_anon_id: str) -> bool:
-        """
-        Set the replying state for the user.
-        Stores the message ID and sender's anonymous ID.
-        Returns True if the state was updated.
-        """
-        update = {
-            "chatting.replying.reply_target_message_id": message_id,
-            "chatting.replying.reply_target_user_id": await get_user_id(sender_anon_id),
-            "flags.replying": True
-        }
-        result = await self.collection.update_one(
-            {"user_id": self.user_id},
-            {"$set": update}
-        )
-        return result.modified_count > 0
-    
     async def update_fields(self, fields: dict | str, value: Any = None,
                              push: bool = False, pull: bool = False):
         """Update user fields. Supports $set, $push, $pull."""
@@ -405,6 +387,39 @@ class ChatDataManager:
         )
         return result.modified_count > 0
 
+    async def update_replying_state(self, user_id: int, message_id: str, sender_anon_id: str) -> bool:
+        """
+        Set the replying state for the user.
+        Stores the message ID and sender's anonymous ID.
+        Returns True if the state was updated.
+        """
+        update = {
+            "chatting.replying.reply_target_message_id": message_id,
+            "chatting.replying.reply_target_user_id": await get_user_id(sender_anon_id),
+            "flags.replying": True
+        }
+        result = await self.user_collection.update_one(
+            {"user_id": user_id},
+            {"$set": update}
+        )
+        return result.modified_count > 0
+
+    async def get_replying_state(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve the replying state for the user.
+        Returns a dictionary with message ID and sender's anonymous ID.
+        """
+        user_data = await self.user_collection.find_one(
+            {"user_id": user_id},
+            {"chatting.replying": 1, "flags.replying": 1}
+        )
+        if user_data and user_data.get("flags", {}).get("replying", False):
+            return {
+                "reply_target_message_id": user_data["chatting"]["replying"].get("reply_target_message_id"),
+                "reply_target_user_id": user_data["chatting"]["replying"].get("reply_target_user_id")
+            }
+        return None
+
     async def mark_message_seen(self, user_id: int, message_id: int) -> bool:
         """
         Record that a user has seen a specific message.
@@ -412,7 +427,7 @@ class ChatDataManager:
         """
         result = await self.user_collection.update_one(
             {"user_id": user_id},
-            {"$addToSet": {"metadata.seen_messages": int(message_id)}}
+            {"$addToSet": {"chatting.seen_messages": int(message_id)}}
         )
         return result.modified_count > 0
 
@@ -422,7 +437,8 @@ class ChatDataManager:
             {"user_id": user_id},
             {"chatting.seen_messages": 1}
         )
-        return int(message_id) in user_data.get("metadata", {}).get("seen_messages", []) if user_data else False
+        return int(message_id) in user_data.get("chatting",
+                    {}).get("seen_messages", []) if user_data else False
 
     async def add_reaction(self, user_id: int, message_id: int, emoji: str) -> None:
         """Store a user's reaction to a message inside their user document"""

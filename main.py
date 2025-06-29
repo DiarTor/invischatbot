@@ -3,8 +3,6 @@
     It initializes the bot and registers all the handlers.
 """
 import asyncio
-import logging
-import colorlog
 
 from decouple import config
 from telebot.async_telebot import AsyncTeleBot
@@ -12,12 +10,9 @@ from bot.database.database import mongo, init_bot_config
 from bot.common.utils import logger
 # from bot.admin.adminstration import Admin
 # from bot.admin.user_administration import UserAdministration
-# from bot.managers.block import BlockUserManager
 from bot.managers.callback import CallbackManager
 from bot.managers.chat import ChatHandler
-# from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
-# Logging Configuration
 
 bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True, parse_mode='HTML')
 
@@ -25,8 +20,6 @@ bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True, pars
 start_bot = StartBot(bot)
 chat_handler = ChatHandler(bot)
 callback_manager = CallbackManager(bot)
-# nickname_handler = NicknameManager(bot)
-# block_user_handler = BlockUserManager(bot)
 
 # Admin Commands Classes
 # administration_handler = Admin(bot)

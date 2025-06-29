@@ -90,13 +90,10 @@ class KeyboardMarkupGenerator:
         ]
         return self._create_inline_keyboard(buttons)
 
-    def sender_buttons(self, recipient_message_id: int, recipient_anon_id):
-        # buttons = [
-        #     InlineKeyboardButton('ویرایش پیام', callback_data=f'edit_message-{recipient_message_id}-{recipient_anon_id}', ),
-        # ]
+    def sender_buttons(self, recipient_message_id: int, recipient_anon_id, sent_message_id: int, sent_announce_id: int):
         buttons = [
             InlineKeyboardButton('🗑 حذف پیام',
-                                 callback_data=f'delete_message-{recipient_message_id}-{recipient_anon_id}')
+                                 callback_data=f'delete_message-{recipient_message_id}-{recipient_anon_id}-{sent_message_id}-{sent_announce_id}'),
         ]
         return self._create_inline_keyboard(buttons)
 

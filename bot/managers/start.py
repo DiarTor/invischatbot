@@ -3,7 +3,6 @@ StartBot class is responsible for managing the bot's behavior when a user starts
 It handles user registration, chat management, and various checks to ensure proper functionality.
 """
 import re
-from datetime import datetime
 
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
@@ -59,12 +58,12 @@ class StartBot:
             await self.user_manager.update_last_interaction()
             # Retrieve user data from the database
             user_data = await self.user_manager.fetch_user()
-            if not target_anon_id and user_data.get('flags', []).get('first_time', None) is False:
+            if not target_anon_id and await self.user_manager.get_flag_state('first_time') is False:
                 await self.chat_manager.close_chats(user_id)
                 await self._send_welcome_message(msg)
                 return
 
-            if user_data.get('flags', []).get('first_time', None):
+            if await self.user_manager.get_flag_state('first_time') is True:
                 if not target_anon_id:
                     await self.bot.send_message(
                     msg.chat.id,

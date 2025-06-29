@@ -7,7 +7,6 @@ from telebot.types import Message
 
 from bot.admin.keyboard import Keyboard
 from bot.common.data import BotDataManager, UserDataManager
-from bot.database.database import mongo
 from bot.common.utils import convert_timestamp_to_date
 from bot.languages.response import get_response
 
@@ -17,8 +16,8 @@ class Admin:
     """
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
-        self.bot_manager = BotDataManager(mongo.bot_collection)
-        self.user_manager = UserDataManager(mongo.users_collection)
+        self.bot_manager = BotDataManager()
+        self.user_manager = UserDataManager()
 
     async def main(self, msg: Message):
         """
@@ -46,7 +45,9 @@ class Admin:
             "username": user_data.get('profile', 'N/A').get('username', 'N/A'),
             "user_id": int(user_data.get('user_id', 0)),
             "nickname": user_data.get('profile', 'N/A').get('nickname', 'N/A'),
-            "joined_at": convert_timestamp_to_date(user_data.get('metadata', []).get('joined_at', None), "datetime"),
+            "joined_at": convert_timestamp_to_date(user_data.get('metadata',
+                                                                []).get('joined_at', None),
+                                                                "datetime"),
 
         }
         for admin in await self.bot_manager.get_admins():

@@ -108,7 +108,7 @@ class CallbackManager:
         """Process the reply callback and set the replying state."""
         sender_anon_id, message_id = callback.data.split('-')
         try:
-            sender_user_id = get_user_id(sender_anon_id)
+            sender_user_id = await get_user_id(sender_anon_id)
         except AttributeError:
             await self.bot.answer_callback_query(
                 callback.id,
@@ -117,9 +117,16 @@ class CallbackManager:
         if await self._check_bot_status(callback, sender_user_id):
             return
 
+        if await self.blocker.is_user_blocked(sender_anon_id, callback.from_user.id):
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('blocking.blocked_by_user'),
+                show_alert=True)
+            return
+
         await self.chat_manager.close_chats(callback.from_user.id)
         await self.user_manager.close_metadata()
-        await self.user_manager.update_replying_state(message_id, sender_anon_id)
+        await self.chat_manager.update_replying_state(callback.message.chat.id, message_id, sender_anon_id)
 
         await self.bot.send_message(
             callback.from_user.id,
@@ -133,7 +140,7 @@ class CallbackManager:
         """Process the recipient option callback."""
         sender_anon_id, message_id = callback.data.split('-')
         try:
-            sender_user_id = get_user_id(sender_anon_id)
+            sender_user_id = await get_user_id(sender_anon_id)
         except AttributeError:
             await self.bot.answer_callback_query(
                 callback.id,
@@ -143,7 +150,7 @@ class CallbackManager:
         if await self._check_bot_status(callback, sender_user_id):
             return
 
-        seen = self.chat_manager.has_seen_message(callback.message.chat.id, message_id)
+        seen = await self.chat_manager.has_seen_message(callback.message.chat.id, callback.message.id)
         marked = self.chat_manager.is_text_marked(callback.message.text)
         await self.bot.edit_message_reply_markup(
             chat_id=callback.message.chat.id,
@@ -156,7 +163,7 @@ class CallbackManager:
         """Process the reaction callback."""
         sender_anon_id, message_id = callback.data.split('-')
         try:
-            sender_user_id = get_user_id(sender_anon_id)
+            sender_user_id = await get_user_id(sender_anon_id)
         except AttributeError:
             await self.bot.answer_callback_query(
                 callback.id,
@@ -177,7 +184,7 @@ class CallbackManager:
         """Process the reaction action callback."""
         reaction, sender_anon_id, message_id = callback.data.split('-')
         try:
-            sender_user_id = get_user_id(sender_anon_id)
+            sender_user_id = await get_user_id(sender_anon_id)
         except AttributeError:
             await self.bot.answer_callback_query(
                 callback.id,
@@ -206,7 +213,7 @@ class CallbackManager:
         reaction = emojies.get(reaction, reaction)
         # Check if the user has already reacted to the message
         existing_reaction = await self.chat_manager.get_reaction(sender_user_id, message_id)
-        if existing_reaction and existing_reaction != 'هیج ریاکشنی ندادی':
+        if existing_reaction and existing_reaction != 'هیچ ریاکشنی ندادی':
             # If the reaction is the same as the existing one, dont do anything
             try:
                 # Update the reaction but do not send a notification
@@ -241,7 +248,6 @@ class CallbackManager:
             chat_id=sender_user_id,
             reply_to_message_id=int(message_id),
             text=get_response('texting.reaction.recipient'),
-            parse_mode='Markdown'
         )
 
         await self.bot.edit_message_reply_markup(
@@ -255,7 +261,7 @@ class CallbackManager:
         """Process the seen callback."""
         sender_anon_id, message_id = callback.data.split('-')
         try:
-            sender_id = get_user_id(sender_anon_id)
+            sender_id = await get_user_id(sender_anon_id)
         except AttributeError:
             await self.bot.answer_callback_query(
                 callback.id,
@@ -265,7 +271,7 @@ class CallbackManager:
         if await self._check_bot_status(callback, sender_id):
             return
 
-        await self.chat_manager.mark_message_seen(callback.from_user.id, int(message_id))
+        await self.chat_manager.mark_message_seen(callback.from_user.id, int(callback.message.id))
         await self.bot.send_message(
             chat_id=sender_id,
             reply_to_message_id=message_id,
@@ -300,8 +306,6 @@ class CallbackManager:
     async def _process_block_action_cancel(self, callback: CallbackQuery):
         """Process the block cancellation callback."""
         sender_id, message_id = callback.data.split('-')
-        if not await self.blocker.validate_block_action(callback, sender_id):
-            return
         await self.blocker.cancel_block(callback, message_id, sender_id)
 
     async def _process_unblock_action(self, callback: CallbackQuery):
@@ -337,11 +341,16 @@ class CallbackManager:
 
     async def _process_delete_message_callback(self, callback: CallbackQuery):
         """Process the delete message callback"""
-        recipient_message_id, recipient_anon_id = callback.data.split('-')
-        await self.bot.delete_message(get_user_id(recipient_anon_id), int(recipient_message_id))
-        await self.bot.edit_message_text(get_response('texting.tools.delete.deleted'),
-                                         callback.message.chat.id,
-                                         callback.message.id, parse_mode='Markdown')
+        recipient_message_id, recipient_anon_id, sent_message_id, sent_announce_id = callback.data.split('-')
+
+        await self.bot.delete_message(await get_user_id(recipient_anon_id), int(recipient_message_id))
+        await self.bot.delete_message(callback.message.chat.id, int(sent_announce_id))
+        await self.bot.delete_message(callback.message.chat.id, callback.message.id)
+        await self.bot.send_message(
+            callback.message.chat.id,
+            get_response('texting.tools.delete.didnt_send'),
+            reply_to_message_id=sent_message_id,
+            reply_markup=self.keyboard.main_buttons(),)
 
     async def _process_change_nickname(self, callback: CallbackQuery):
         """Process the change nickname callback."""
@@ -376,8 +385,9 @@ class CallbackManager:
     async def _process_mark_message(self, callback: CallbackQuery):
         """Process the mark message callback."""
         sender_anon_id, message_id = callback.data.split('-')
-        seen = self.chat_manager.has_seen_message(user_id=callback.message.chat.id,
+        seen = await self.chat_manager.has_seen_message(user_id=callback.message.chat.id,
                                                   message_id=callback.message.id)
+        print(callback.message.id)
 
         original_text, is_caption = self._get_message_text_or_caption(callback)
         if not original_text:
@@ -402,8 +412,8 @@ class CallbackManager:
     async def _process_return_to_recipient_option_buttons(self, callback: CallbackQuery):
         """Process the return to recipient option buttons callback."""
         sender_anon_id, message_id = callback.data.split('-')
-        seen = self.chat_manager.has_seen_message(user_id=callback.message.chat.id,
-                                                  message_id=message_id)
+        seen = await self.chat_manager.has_seen_message(user_id=callback.message.chat.id,
+                                                  message_id=callback.message.id)
         marked = '📍 #نشان' in (callback.message.text or callback.message.caption or '')
 
         await self.bot.edit_message_reply_markup(
