@@ -71,11 +71,6 @@ class ChatHandler:
         user_chat = await self.user_manager.fetch_user()
         open_chat = await self.chat_manager.get_open_chat(msg.from_user.id)
 
-        # this condition happens when someone is in awaiting nickname state,
-        #  and set their replying state to True or open a chat.
-        # if open_chat or user_chat.get('replying') and user_chat.get('awaiting_nickname'):
-        #     await close_metadata(msg.chat.id, 'awaiting_nickname')
-
         if await self.user_manager.get_flag_state("replying"):
             await self._handle_reply(msg, user_chat)
             return

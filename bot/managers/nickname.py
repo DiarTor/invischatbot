@@ -38,12 +38,11 @@ class NicknameManager:
         is_valid, validation_message = validator.validate_nickname(nickname)
         if is_valid:
             # Proceed to store the user data if the nickname is valid
-            await self.user_manager.update_profile(**{"nickname:": nickname})
+            await self.user_manager.update_profile(**{"nickname": nickname})
             await self.user_manager.toggle_flag("awaiting_nickname", False)
             await self.bot.send_message(
                 msg.chat.id,
                 get_response('nickname.nickname_was_set', nickname=nickname),
-                parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
 
