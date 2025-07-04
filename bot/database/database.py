@@ -45,7 +45,7 @@ async def init_bot_config(bot: AsyncIOMotorCollection):
         "statistics": {
             "total_messages": 0
         },
-        "version": "1.0.0",
+        "version": 1.0,
     },
     {
         "_id": "bot_bans",
