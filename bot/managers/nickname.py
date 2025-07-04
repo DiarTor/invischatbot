@@ -3,31 +3,34 @@ import random
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.database.database import users_collection
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
-from bot.common.chat_utils import close_chats
-from bot.common.database_utils import update_user_fields
 from bot.common.validators import NicknameValidator
-
+from bot.common.data import UserDataManager
 
 class NicknameManager:
+    """Manager for handling user nicknames in the bot."""
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
+        self.user_manager = UserDataManager()
 
     async def set_nickname(self, msg: Message):
         """Set a Nickname for the user."""
-        user_data = users_collection.find_one_and_update({'user_id': msg.chat.id},
-                                                         {'$set': {'awaiting_nickname': True}})
+        await self.user_manager.bind_user(msg.from_user.id)
+        await self.user_manager.toggle_flag('awaiting_nickname', True)
+        current_nickname = await self.user_manager.fetch_user().get('profile',
+                                                             {}).get('nickname', None)
         current_first_name = msg.from_user.first_name
-        # await close_chats(msg.chat.id, True)
         await self.bot.send_message(msg.chat.id,
-                                    get_response('nickname.ask_nickname', current_nickname=user_data['nickname'], current_firstname=current_first_name),
-                                    parse_mode='Markdown', reply_markup=KeyboardMarkupGenerator().cancel_buttons())
+                                    get_response('nickname.ask_nickname',
+                                            current_nickname=current_nickname,
+                                            current_firstname=current_first_name),
+                                            parse_mode='Markdown',
+                                            reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def save_nickname(self, msg: Message):
         """Save the user's nickname after they provide it."""
-        user_id = msg.from_user.id
+        await self.user_manager.bind_user(msg.from_user.id)
         nickname = msg.text.strip()
 
         # Validate the nickname
@@ -35,12 +38,11 @@ class NicknameManager:
         is_valid, validation_message = validator.validate_nickname(nickname)
         if is_valid:
             # Proceed to store the user data if the nickname is valid
-            await update_user_fields(user_id, "nickname", nickname)
-            await update_user_fields(user_id, "awaiting_nickname", False)
+            await self.user_manager.update_profile(**{"nickname": nickname})
+            await self.user_manager.toggle_flag("awaiting_nickname", False)
             await self.bot.send_message(
                 msg.chat.id,
                 get_response('nickname.nickname_was_set', nickname=nickname),
-                parse_mode='Markdown',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
 
@@ -51,16 +53,20 @@ class NicknameManager:
                 f"{validation_message}",
             )
 
-    @staticmethod
-    def get_set_nickname_response(msg: Message):
+    async def get_set_nickname_response(self, msg: Message):
         """return set nickname response"""
-        user_data = users_collection.find_one_and_update({'user_id': msg.chat.id},
-                                                         {'$set': {'awaiting_nickname': True}})
+        await self.user_manager.bind_user(msg.chat.id)
+        await self.user_manager.toggle_flag('awaiting_nickname', True)
+        user_data = await self.user_manager.fetch_user()
+        current_nickname = user_data.get('profile',{}).get('nickname', None)
         current_first_name = msg.chat.first_name
-        return get_response('nickname.ask_nickname', current_nickname=user_data['nickname'], current_firstname=current_first_name)
+        return get_response('nickname.ask_nickname',
+                            current_nickname=current_nickname,
+                            current_firstname=current_first_name)
 
     @staticmethod
     def generate_random_nickname():
+        """Generate a random nickname from a predefined list."""
         # List of random English names
         random_names = [
             "John", "Alice", "Bob", "Charlie", "Daisy", "Eve", "Frank",

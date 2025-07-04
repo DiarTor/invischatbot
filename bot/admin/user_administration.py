@@ -7,9 +7,9 @@ from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.common.database_utils import get_admins, is_admin, update_ban_list, update_user_fields
-from bot.database.database import users_collection
-from bot.common.date import convert_timestamp_to_date
+from bot.common.data import UserDataManager, BotDataManager, get_user_id
+from bot.database.database import mongo
+from bot.common.utils import convert_timestamp_to_date
 from bot.languages.response import get_response
 
 class UserAdministration:
@@ -18,6 +18,8 @@ class UserAdministration:
     """
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
+        self.user_manager = UserDataManager(mongo.users_collection)
+        self.bot_manager = BotDataManager(mongo.bot_collection)
 
     async def get_user_info(self, msg: Message):
         """
@@ -25,17 +27,19 @@ class UserAdministration:
         :param msg: Message object containing the command and user_anon_id.
         """
         user_id = msg.from_user.id
-        if not is_admin(user_id):
+        if not await self.bot_manager.is_admin(user_id):
             return
         parts = msg.text.split()
         if not len(parts) == 2:
             await self.bot.send_message(user_id, get_response('admin.errors.info.wrong_format'))
 
         user_anon_id = parts[1]
-        user_info = users_collection.find_one({"id": user_anon_id})
+        await self.user_manager.bind_user(get_user_id(user_anon_id))
+        user_info = await self.user_manager.fetch_user()
         if not user_info:
             # If user_anon_id is not found, check if it's a user_id
-            user_info = users_collection.find_one({"user_id": int(user_anon_id)})
+            self.user_manager.bind_user(int(user_anon_id))
+            user_info = await self.user_manager.fetch_user()
         if not user_info:
             await self.bot.send_message(user_id, get_response('admin.errors.info.not_found'))
             return
@@ -61,7 +65,7 @@ class UserAdministration:
             "banned_by": user_info.get('banned_by'),
             "banned_at": user_info.get('banned_at'),
             "is_bot_off": user_info.get('is_bot_off'),
-            "is_admin": is_admin(user_info['user_id']),
+            "is_admin": self.bot_manager.is_admin(user_info['user_id']),
         }
 
         await self.bot.send_message(user_id, get_response('admin.user.info', **user_data)
@@ -74,7 +78,7 @@ class UserAdministration:
         """
 
         user_id = msg.from_user.id
-        if not is_admin(user_id):
+        if not await self.bot_manager.is_admin(user_id):
             await self.bot.send_message(user_id, get_response('errors.no_active_chat'))
             return
         parts = msg.text.split()
@@ -84,7 +88,8 @@ class UserAdministration:
             return
 
         user_anon_id = parts[1]
-        user_info = users_collection.find_one({"id": user_anon_id})
+        self.user_manager.bind_user(get_user_id(user_anon_id))
+        user_info = self.user_manager.fetch_user()
         if not user_info:
             await self.bot.send_message(user_id,
                                         get_response('admin.errors.ban.not_found'))
@@ -92,13 +97,13 @@ class UserAdministration:
             await self.bot.send_message(user_id,
                                         get_response('admin.errors.ban.already_banned'))
             return
-        if is_admin(user_info['user_id']):
+        if self.bot_manager.is_admin(user_info['user_id']):
             await self.bot.send_message(user_id, get_response('admin.errors.ban.admin_ban'))
             return
-        await update_user_fields(user_info['user_id'], {"is_banned": True,
-                                                    "banned_by": user_id,
-                                                   "banned_at": datetime.timestamp(datetime.now())})
-        await update_ban_list(user_info['user_id'], 'ban')
+        await self.user_manager.update_fields({"is_banned": True,
+                                                "banned_by": user_id,
+                                                "banned_at": datetime.timestamp(datetime.now())})
+        await self.bot_manager.update_ban_list(user_info['user_id'], 'ban')
         response_info = {
             'user_id': user_info['user_id'],
             'anon_id': user_anon_id,
@@ -110,7 +115,7 @@ class UserAdministration:
             'banned_at': convert_timestamp_to_date(datetime.timestamp(datetime.now()), 'datetime'),
         }
 
-        for admin in await get_admins():
+        for admin in await self.bot_manager.get_admins():
             await self.bot.send_message(
                 admin,
                 get_response('admin.user.ban.success', **response_info),
@@ -125,7 +130,7 @@ class UserAdministration:
         :param msg: Message object containing the command and user_anon_id.
         """
         admin_user_id = msg.from_user.id
-        if not is_admin(admin_user_id):
+        if not await self.bot_manager.is_admin(admin_user_id):
             await self.bot.send_message(admin_user_id,
                                         get_response('errors.no_active_chat'))
             return
@@ -135,7 +140,8 @@ class UserAdministration:
                                         get_response('admin.errors.unban.wrong_format'))
 
         user_anon_id = parts[1]
-        user_info = users_collection.find_one({"id": user_anon_id})
+        await self.user_manager.bind_user(get_user_id(user_anon_id))
+        user_info = self.user_manager.fetch_user()
         if not user_info:
             await self.bot.send_message(admin_user_id, get_response('admin.errors.unban.not_found'))
             return
@@ -143,9 +149,9 @@ class UserAdministration:
             await self.bot.send_message(admin_user_id,
                                         get_response('admin.errors.unban.not_banned'))
             return
-        await update_user_fields(user_info['user_id'], {"is_banned": False, "banned_by": None,
+        await self.user_manager.update_fields({"is_banned": False, "banned_by": None,
                                                    "banned_at": None})
-        await update_ban_list(user_info['user_id'], 'unban')
+        await self.bot_manager.update_ban_list(user_info['user_id'], 'unban')
         response_info = {
             'user_id': user_info['user_id'],
             'anon_id': user_anon_id,
@@ -158,7 +164,7 @@ class UserAdministration:
                                                     'datetime'),
         }
 
-        for admin in await get_admins():
+        for admin in await self.bot_manager.get_admins():
             await self.bot.send_message(
                 admin,
                 get_response('admin.user.unban.success', **response_info),

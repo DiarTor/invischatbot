@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
-from bot.database.database import users_collection, bot_collection
+from bot.database.database import mongo
 from bot.languages.response import get_response
 
 
@@ -63,11 +63,11 @@ class BotAdministration:
         start_year = datetime(now.year, 1, 1).timestamp()  # First day of the current year
 
         # Query the MongoDB collection to count users in each timeframe
-        all_time = users_collection.count_documents({})
-        today_count = users_collection.count_documents({"joined_at": {"$gte": start_today}})
-        week_count = users_collection.count_documents({"joined_at": {"$gte": start_week}})
-        month_count = users_collection.count_documents({"joined_at": {"$gte": start_month}})
-        year_count = users_collection.count_documents({"joined_at": {"$gte": start_year}})
+        all_time = mongo.users_collection.count_documents({})
+        today_count = mongo.users_collection.count_documents({"joined_at": {"$gte": start_today}})
+        week_count = mongo.users_collection.count_documents({"joined_at": {"$gte": start_week}})
+        month_count = mongo.users_collection.count_documents({"joined_at": {"$gte": start_month}})
+        year_count = mongo.users_collection.count_documents({"joined_at": {"$gte": start_year}})
 
         return {
             'all_time': all_time,
@@ -104,7 +104,7 @@ class BotAdministration:
         }
 
         # Retrieve all user documents
-        user_documents = users_collection.find()
+        user_documents = mongo.users_collection.find()
 
         # Loop through each user document and count chats based on 'chat_created_at' timestamp
         for user_doc in user_documents:
@@ -126,11 +126,11 @@ class BotAdministration:
 
     @staticmethod
     def get_total_messages():
-        return bot_collection.find_one({"_id": "bot_config"}).get('total_messages', None)
+        return mongo.bot_collection.find_one({"_id": "bot_config"}).get('total_messages', None)
 
     async def get_ban_list(self, msg: Message):
         # Get the ban list from the database
-        ban_list = bot_collection.find_one({"_id": "ban_list"}).get('banned_users', [])
+        ban_list = mongo.bot_collection.find_one({"_id": "ban_list"}).get('banned_users', [])
         # Prepare the response message
         if len(ban_list) == 0:
             await self.bot.send_message(msg.chat.id, get_response("admin.ban_list.empty"))
