@@ -45,12 +45,24 @@ bot.register_callback_query_handler(callback_manager.handle_callback, func=lambd
 bot.register_inline_handler(callback_manager.handle_inline_query, func=lambda call: True)
 
 async def main():
-    """Main function to initialize the bot and start polling/webhooking."""
+    """Main function to initialize the bot and start polling."""
     await init_bot_config(mongo.bot_collection)
 
     logger.info("🤖 Starting bot...")
-    await bot.polling(none_stop=True)
-    logger.info("🛑 Bot stopped.")
+
+    try:
+        await bot.polling(none_stop=True)
+    finally:
+        logger.info("🛑 Bot stopped.")
+
+        # Properly close the bot (cleans up aiohttp session)
+        await bot.close_session()
+        logger.info("✅ Bot session closed.")
+
+        # Close Mongo
+        await mongo.close()
+        logger.info("✅ MongoDB connection closed.")
+
 
 
 if __name__ == '__main__':
