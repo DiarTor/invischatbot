@@ -8,7 +8,6 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.common.data import UserDataManager, BotDataManager, get_user_id
-from bot.database.database import mongo
 from bot.common.utils import convert_timestamp_to_date
 from bot.languages.response import get_response
 
