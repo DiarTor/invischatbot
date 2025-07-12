@@ -24,7 +24,7 @@ class Admin:
         Main admin panel
         :param msg: Message object
         """
-        if not self.bot_manager.is_admin(msg.from_user.id):
+        if not await self.bot_manager.is_admin(msg.from_user.id):
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
             return
         await self.bot.send_message(msg.chat.id, get_response('admin.panel',
@@ -63,7 +63,7 @@ class Admin:
         Help command for admin
         :param msg: Message object
         """
-        if not self.bot_manager.is_admin(msg.from_user.id):
+        if not await self.bot_manager.is_admin(msg.from_user.id):
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
             return
         await self.bot.send_message(msg.chat.id, get_response('admin.help'), parse_mode='Markdown')

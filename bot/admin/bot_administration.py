@@ -14,7 +14,7 @@ class BotAdministration:
         self.max_message_length = 4096
 
     async def get_chats_stats(self, msg: Message):
-        chat_counts = self.get_chat_counts()
+        chat_counts = await self.get_chat_counts()
         # Prepare formatted response data
         stats_data = {
             "chat_today": chat_counts["today"],
@@ -22,7 +22,7 @@ class BotAdministration:
             "chat_month": chat_counts["this_month"],
             "chat_year": chat_counts["this_year"],
             "chat_all_time": chat_counts["all_time"],
-            "total_messages": self.get_total_messages(),
+            "total_messages": await self.get_total_messages(),
             "stats_date": datetime.now(ZoneInfo("Asia/Tehran")).strftime("%Y/%d/%m - %H:%M:%S"),
         }
 
@@ -34,7 +34,7 @@ class BotAdministration:
         )
 
     async def get_users_stats(self, msg: Message):
-        user_counts = self.get_users_count()
+        user_counts = await self.get_users_count()
         stats_data = {
             "today": user_counts["today"],
             "week": user_counts["this_week"],
@@ -51,7 +51,7 @@ class BotAdministration:
         )
 
     @staticmethod
-    def get_users_count():
+    async def get_users_count():
         # Get the current datetime and convert to UNIX timestamp
         now = datetime.now()
 
@@ -63,11 +63,11 @@ class BotAdministration:
         start_year = datetime(now.year, 1, 1).timestamp()  # First day of the current year
 
         # Query the MongoDB collection to count users in each timeframe
-        all_time = mongo.users_collection.count_documents({})
-        today_count = mongo.users_collection.count_documents({"joined_at": {"$gte": start_today}})
-        week_count = mongo.users_collection.count_documents({"joined_at": {"$gte": start_week}})
-        month_count = mongo.users_collection.count_documents({"joined_at": {"$gte": start_month}})
-        year_count = mongo.users_collection.count_documents({"joined_at": {"$gte": start_year}})
+        all_time = await mongo.users_collection.count_documents({})
+        today_count = await mongo.users_collection.count_documents({"joined_at": {"$gte": start_today}})
+        week_count = await mongo.users_collection.count_documents({"joined_at": {"$gte": start_week}})
+        month_count = await mongo.users_collection.count_documents({"joined_at": {"$gte": start_month}})
+        year_count = await mongo.users_collection.count_documents({"joined_at": {"$gte": start_year}})
 
         return {
             'all_time': all_time,
@@ -78,7 +78,7 @@ class BotAdministration:
         }
 
     @staticmethod
-    def get_chat_counts():
+    async def get_chat_counts():
         # Current datetime
         now = datetime.now()
 
@@ -104,11 +104,11 @@ class BotAdministration:
         }
 
         # Retrieve all user documents
-        user_documents = mongo.users_collection.find()
+        user_documents = await mongo.users_collection.find().to_list()
 
         # Loop through each user document and count chats based on 'chat_created_at' timestamp
         for user_doc in user_documents:
-            for chat in user_doc.get("chats", []):
+            for chat in user_doc.get("chatting", []).get("chats", []):
                 chat_created_at = chat.get("chat_created_at")
                 if chat_created_at is not None:
                     # Increment counts based on time periods
@@ -125,12 +125,14 @@ class BotAdministration:
         return counts
 
     @staticmethod
-    def get_total_messages():
-        return mongo.bot_collection.find_one({"_id": "bot_config"}).get('total_messages', None)
+    async def get_total_messages():
+        bot_config = await mongo.bot_collection.find_one({"_id": "bot_config"})
+        return bot_config.get("statistics", {}).get("total_messages", 0) if bot_config else 0
 
     async def get_ban_list(self, msg: Message):
         # Get the ban list from the database
-        ban_list = mongo.bot_collection.find_one({"_id": "ban_list"}).get('banned_users', [])
+        bot_config = await mongo.bot_collection.find_one({"_id": "bot_bans"})
+        ban_list = bot_config.get("banned_user_ids", [])
         # Prepare the response message
         if len(ban_list) == 0:
             await self.bot.send_message(msg.chat.id, get_response("admin.ban_list.empty"))

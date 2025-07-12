@@ -277,10 +277,10 @@ class BotDataManager:
         return result.modified_count > 0
 
     async def update_total_messages(self, count: int):
-        """Increment the total message count in bot config."""
+        """Increment the total message count inside the statistics field."""
         await self.collection.update_one(
             {"_id": "bot_config"},
-            {"$inc": {"total_messages": count}},
+            {"$inc": {"statistics.total_messages": count}},
             upsert=True
         )
 

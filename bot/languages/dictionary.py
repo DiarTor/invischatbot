@@ -566,7 +566,7 @@ translations = {
                 'ban': {
                     "wrong_format": dedent("""
                 ❌ Wrong Format
-                ^ Correct Format: /ban <anon_id>
+                ^ Correct Format: /ban anon_id or user_id
                 """),
                     "not_found": dedent("""
                 ❌ No User Found, Make Sure The Anonymous Id Is Correct.
@@ -581,7 +581,7 @@ translations = {
                 'unban': {
                     "wrong_format": dedent("""
                 ❌ Wrong Format
-                ^ Correct Format: /unban <anon_id>
+                ^ Correct Format: /unban anon_id or user_id
                 """),
                     "not_found": dedent("""
                 ❌ No User Found, Make Sure The Anonymous Id Is Correct.
@@ -593,7 +593,7 @@ translations = {
                 'info': {
                     "wrong_format": dedent("""
                 ❌ Wrong Format
-                ^ Correct Format: /info <anon_id or user_id>
+                ^ Correct Format: /info anon_id or user_id
                 """),
                     "not_found": dedent("""
                 ❌ No User Found, Make Sure The Anonymous Id or User Id Is Correct.
