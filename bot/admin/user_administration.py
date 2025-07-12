@@ -18,8 +18,8 @@ class UserAdministration:
     """
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
-        self.user_manager = UserDataManager(mongo.users_collection)
-        self.bot_manager = BotDataManager(mongo.bot_collection)
+        self.user_manager = UserDataManager()
+        self.bot_manager = BotDataManager()
 
     async def get_user_info(self, msg: Message):
         """
@@ -32,25 +32,30 @@ class UserAdministration:
         parts = msg.text.split()
         if not len(parts) == 2:
             await self.bot.send_message(user_id, get_response('admin.errors.info.wrong_format'))
+            return
 
         user_anon_id = parts[1]
-        await self.user_manager.bind_user(get_user_id(user_anon_id))
+        await self.user_manager.bind_user(await get_user_id(user_anon_id))
         user_info = await self.user_manager.fetch_user()
         if not user_info:
             # If user_anon_id is not found, check if it's a user_id
-            self.user_manager.bind_user(int(user_anon_id))
+            await self.user_manager.bind_user(int(user_anon_id))
             user_info = await self.user_manager.fetch_user()
         if not user_info:
             await self.bot.send_message(user_id, get_response('admin.errors.info.not_found'))
             return
-        joined_at = convert_timestamp_to_date(user_info['joined_at'])
-        chats_count = self._get_chats_count(user_info['chats'])
-        blocks_count = self._get_blocks_count(user_info['blocklist'])
+        joined_at = convert_timestamp_to_date(user_info.get('metadata', {}).get('joined_at', None), 'datetime')
+        chats_count = self._get_chats_count(user_info.get('chatting', {}).get('chats', None))
+        blocks_count = self._get_blocks_count(user_info.get('chatting', {}).get('blocklist', None))
 
-        username = user_info['username']
-        first_name = user_info['first_name']
-        last_name = user_info['last_name']
-
+        username = user_info.get('profile', {}).get('username', None)
+        first_name = user_info.get('profile', {}).get('first_name', None)
+        last_name = user_info.get('profile', {}).get('last_name', None)
+        nickname = user_info.get('profile', {}).get('nickname', None)
+        is_banned = user_info.get('ban_info', {}).get('is_banned', False)
+        banned_by = user_info.get('ban_info', {}).get('banned_by', None)
+        banned_at = convert_timestamp_to_date(user_info.get('ban_info', {}).get('banned_at', None), 'datetime') if user_info.get('ban_info', {}).get('banned_at', None) else None
+        is_bot_off = user_info.get('flags', {}).get('is_bot_off', False)
         user_data = {
             "user_id": user_info.get('user_id'),
             "joined_at": joined_at,
@@ -59,13 +64,13 @@ class UserAdministration:
             "username": username,
             "first_name": first_name,
             "last_name": last_name,
-            "nickname": user_info['nickname'],
-            "anon_id": user_info.get('id'),
-            "is_banned": user_info.get('is_banned'),
-            "banned_by": user_info.get('banned_by'),
-            "banned_at": user_info.get('banned_at'),
-            "is_bot_off": user_info.get('is_bot_off'),
-            "is_admin": self.bot_manager.is_admin(user_info['user_id']),
+            "nickname": nickname,
+            "anon_id": user_info.get('anon_id'),
+            "is_banned": is_banned,
+            "banned_by": banned_by,
+            "banned_at": banned_at,
+            "is_bot_off": is_bot_off,
+            "is_admin": await self.bot_manager.is_admin(user_info['user_id']),
         }
 
         await self.bot.send_message(user_id, get_response('admin.user.info', **user_data)
@@ -88,30 +93,44 @@ class UserAdministration:
             return
 
         user_anon_id = parts[1]
-        self.user_manager.bind_user(get_user_id(user_anon_id))
-        user_info = self.user_manager.fetch_user()
+        await self.user_manager.bind_user(await get_user_id(user_anon_id))
+        user_info = await self.user_manager.fetch_user()
+
+        if not user_info:
+            # If user_anon_id is not found, check if it's a user_id
+            await self.user_manager.bind_user(int(user_anon_id))
+            user_info = await self.user_manager.fetch_user()
+
         if not user_info:
             await self.bot.send_message(user_id,
                                         get_response('admin.errors.ban.not_found'))
-        if user_info.get('is_banned'):
+        if user_info.get('ban_info', {}).get('is_banned', False):
             await self.bot.send_message(user_id,
                                         get_response('admin.errors.ban.already_banned'))
             return
-        if self.bot_manager.is_admin(user_info['user_id']):
+        if await self.bot_manager.is_admin(user_info['user_id']):
             await self.bot.send_message(user_id, get_response('admin.errors.ban.admin_ban'))
             return
-        await self.user_manager.update_fields({"is_banned": True,
-                                                "banned_by": user_id,
-                                                "banned_at": datetime.timestamp(datetime.now())})
+        await self.user_manager.update_fields({"ban_info.is_banned": True,
+                                                "ban_info.banned_by": user_id,
+                                                "ban_info.banned_at": datetime.timestamp(datetime.now())})
         await self.bot_manager.update_ban_list(user_info['user_id'], 'ban')
+
+        username = user_info.get('profile', {}).get('username', None)
+        first_name = user_info.get('profile', {}).get('first_name', None)
+        last_name = user_info.get('profile', {}).get('last_name', None)
+        nickname = user_info.get('profile', {}).get('nickname', None)
+        joined_at = convert_timestamp_to_date(user_info.get('metadata', {}).get('joined_at', None), 'datetime')
+        if user_anon_id.isdigit():
+            user_anon_id = user_info.get('anon_id')
         response_info = {
             'user_id': user_info['user_id'],
             'anon_id': user_anon_id,
-            'first_name': user_info['first_name'],
-            'last_name': user_info['last_name'],
-            'username': user_info['username'],
-            'nickname': user_info['nickname'],
-            'joined_at': convert_timestamp_to_date(user_info['joined_at'], ),
+            'first_name': first_name,
+            'last_name': last_name,
+            'username': username,
+            'nickname': nickname,
+            'joined_at': joined_at,
             'banned_at': convert_timestamp_to_date(datetime.timestamp(datetime.now()), 'datetime'),
         }
 
@@ -140,28 +159,42 @@ class UserAdministration:
                                         get_response('admin.errors.unban.wrong_format'))
 
         user_anon_id = parts[1]
-        await self.user_manager.bind_user(get_user_id(user_anon_id))
-        user_info = self.user_manager.fetch_user()
+        await self.user_manager.bind_user(await get_user_id(user_anon_id))
+        user_info = await self.user_manager.fetch_user()
+
+        if not user_info:
+            # If user_anon_id is not found, check if it's a user_id
+            await self.user_manager.bind_user(int(user_anon_id))
+            user_info = await self.user_manager.fetch_user()
+
         if not user_info:
             await self.bot.send_message(admin_user_id, get_response('admin.errors.unban.not_found'))
             return
-        if not user_info.get('is_banned'):
+        if not user_info.get('ban_info', {}).get('is_banned', False):
             await self.bot.send_message(admin_user_id,
                                         get_response('admin.errors.unban.not_banned'))
             return
-        await self.user_manager.update_fields({"is_banned": False, "banned_by": None,
-                                                   "banned_at": None})
+        await self.user_manager.update_fields({"ban_info.is_banned": False,
+                                                "ban_info.banned_by": None,
+                                                "ban_info.banned_at": None})
         await self.bot_manager.update_ban_list(user_info['user_id'], 'unban')
+
+        username = user_info.get('profile', {}).get('username', None)
+        first_name = user_info.get('profile', {}).get('first_name', None)
+        last_name = user_info.get('profile', {}).get('last_name', None)
+        nickname = user_info.get('profile', {}).get('nickname', None)
+        joined_at = convert_timestamp_to_date(user_info.get('metadata', {}).get('joined_at', None), 'datetime')
+        if user_anon_id.isdigit():
+            user_anon_id = user_info.get('anon_id')
         response_info = {
             'user_id': user_info['user_id'],
             'anon_id': user_anon_id,
-            'first_name': user_info['first_name'],
-            'last_name': user_info['last_name'],
-            'username': user_info['username'],
-            'nickname': user_info['nickname'],
-            'joined_at': convert_timestamp_to_date(user_info['joined_at'], ),
-            'unbanned_at': convert_timestamp_to_date(datetime.timestamp(datetime.now()), 
-                                                    'datetime'),
+            'first_name': first_name,
+            'last_name': last_name,
+            'username': username,
+            'nickname': nickname,
+            'joined_at': joined_at,
+            'unbanned_at': convert_timestamp_to_date(datetime.timestamp(datetime.now()), 'datetime'),
         }
 
         for admin in await self.bot_manager.get_admins():

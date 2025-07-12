@@ -8,8 +8,8 @@ from decouple import config
 from telebot.async_telebot import AsyncTeleBot
 from bot.database.database import mongo, init_bot_config
 from bot.common.utils import logger
-# from bot.admin.adminstration import Admin
-# from bot.admin.user_administration import UserAdministration
+from bot.admin.adminstration import Admin
+from bot.admin.user_administration import UserAdministration
 from bot.managers.callback import CallbackManager
 from bot.managers.chat import ChatHandler
 from bot.managers.start import StartBot
@@ -22,18 +22,18 @@ chat_handler = ChatHandler(bot)
 callback_manager = CallbackManager(bot)
 
 # Admin Commands Classes
-# administration_handler = Admin(bot)
-# user_administration_handler = UserAdministration(bot)
+administration_handler = Admin(bot)
+user_administration_handler = UserAdministration(bot)
 
 # Bot Commands
 bot.register_message_handler(start_bot.start, commands=['start'])
 
 # Admin Commands
-# bot.register_message_handler(administration_handler.ahelp, commands=['ahelp'])
-# bot.register_message_handler(administration_handler.main, commands=['admin'])
-# bot.register_message_handler(user_administration_handler.get_user_info, commands=['info'])
-# bot.register_message_handler(user_administration_handler.ban_user, commands=['ban'])
-# bot.register_message_handler(user_administration_handler.unban_user, commands=['unban'])
+bot.register_message_handler(administration_handler.ahelp, commands=['ahelp'])
+bot.register_message_handler(administration_handler.main, commands=['admin'])
+bot.register_message_handler(user_administration_handler.get_user_info, commands=['info'])
+bot.register_message_handler(user_administration_handler.ban_user, commands=['ban'])
+bot.register_message_handler(user_administration_handler.unban_user, commands=['unban'])
 
 # Content Type Handlers
 bot.register_message_handler(chat_handler.anonymous_chat,

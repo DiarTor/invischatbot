@@ -78,8 +78,12 @@ class CallbackManager:
         # Find and execute the corresponding handler
         handler = self.callback_handlers.get(action)
         if handler:
-            callback.data = callback_data.split('-', 1)[-1]  # Remove action from data
-            await handler(callback)
+            if action in ['admin']:
+                # For admin actions, we pass the callback directly to the handler
+                await handler(callback)
+            else:
+                callback.data = callback_data.split('-', 1)[-1]  # Remove action from data
+                await handler(callback)
         else:
             await self.bot.answer_callback_query(callback.id,
                                                 get_response('errors.unknown_action'),
