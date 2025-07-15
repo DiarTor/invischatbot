@@ -1,4 +1,4 @@
-from telebot.types import InlineKeyboardButton, KeyboardButton
+from telebot.types import InlineKeyboardButton
 
 from bot.common.keyboard import KeyboardMarkupGenerator
 
