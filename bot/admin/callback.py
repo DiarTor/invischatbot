@@ -1,6 +1,7 @@
 from telebot.types import CallbackQuery
 
 from bot.admin.bot_administration import BotAdministration
+from bot.admin.adminstration import Admin
 
 
 class AdminCallbackHandler:
@@ -17,3 +18,7 @@ class AdminCallbackHandler:
             await BotAdministration(self.bot).get_users_stats(callback.message)
         elif 'ban_list' in callback_data:
             await BotAdministration(self.bot).get_ban_list(callback.message)
+        elif 'broadcast' in callback_data:
+            await Admin(self.bot).activate_broadcast(callback.message)
+        elif 'cancel' in callback_data:
+            await Admin(self.bot).cancel_broadcast(callback.message)

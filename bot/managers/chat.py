@@ -17,7 +17,7 @@ from bot.managers.link import LinkManager
 from bot.managers.nickname import NicknameManager
 from bot.managers.start import StartBot
 from bot.managers.support import SupportManager
-
+from bot.admin.adminstration import Admin
 
 class ChatHandler:
     """Handles anonymous chat functionalities including media processing and user interactions."""
@@ -39,6 +39,10 @@ class ChatHandler:
         user_version = user_data.get('metadata', {}).get('version', 1.0)
         if user_version != await self.bot_manager.get_bot_version():
             await self._handle_version_mismatch(msg)
+            return
+
+        if await self.bot_manager.is_admin(msg.chat.id) and user_data.get('admin', {}).get('broadcast', False):
+            await Admin(self.bot).broadcast(msg)
             return
 
         if await self.user_manager.is_banned():

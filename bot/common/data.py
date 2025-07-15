@@ -316,6 +316,10 @@ class BotDataManager:
         """Retrieve the current bot version from config."""
         bot_config = await self.collection.find_one({"_id": "bot_config"})
         return bot_config.get("version", 1.0) if bot_config else 1.0
+    async def get_all_user_ids(self):
+        """Fetch all user IDs from the users collection."""
+        cursor = mongo.users_collection.find({}, {"user_id": 1, "_id": 0})
+        return [doc["user_id"] async for doc in cursor if "user_id" in doc]
 class ChatDataManager:
     """Handles all chat-related data including reactions and chat states"""
     def __init__(self):
