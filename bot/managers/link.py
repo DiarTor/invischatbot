@@ -50,6 +50,16 @@ class LinkManager:
     async def send_without_link(self, msg: Message):
         """Send a message without the anonymous link."""
         await self.user_manager.bind_user(msg.from_user.id)
+
+        # Check if the user's bot status is off
+        if await self.user_manager.is_bot_disabled():
+            await self.bot.send_message(
+                msg.chat.id,
+                get_response('account.bot_status.self.off'),
+                parse_mode='Markdown'
+            )
+            return
+
         await self.chat_manager.close_chats(msg.from_user.id, True)
         await self.user_manager.toggle_flag("send_without_link", True)
         await self.bot.send_message(

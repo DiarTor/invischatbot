@@ -86,6 +86,16 @@ class StartBot:
                     await Admin(self.bot).announce_new_user(user_id)
                     await self.user_manager.toggle_flag('first_time', False)
 
+            # Check if the user's bot status is off
+            if await self.user_manager.is_bot_disabled():
+                await self.bot.send_message(
+                    msg.chat.id,
+                    get_response('account.bot_status.self.off'),
+                    reply_markup=KeyboardMarkupGenerator().main_buttons(),
+                    parse_mode='Markdown'
+                )
+                return
+
             # Retrieve target user data
             target_user_data = await find_one(mongo.users_collection, {'anon_id': target_anon_id})
             if not target_user_data:
@@ -106,15 +116,7 @@ class StartBot:
                 )
                 return
 
-            # Check if the user's bot status is off
-            if await self.user_manager.is_bot_disabled():
-                await self.bot.send_message(
-                    msg.chat.id,
-                    get_response('account.bot_status.self.off'),
-                    reply_markup=KeyboardMarkupGenerator().main_buttons(),
-                    parse_mode='Markdown'
-                )
-                return
+            
 
             # Check if the target user's bot status is off
             if target_user_data.get('flags', {}).get('is_bot_off', None):

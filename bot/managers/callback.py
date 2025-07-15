@@ -266,6 +266,7 @@ class CallbackManager:
         sender_anon_id, message_id = callback.data.split('-')
         try:
             sender_id = await get_user_id(sender_anon_id)
+            print(sender_id)
         except AttributeError:
             await self.bot.answer_callback_query(
                 callback.id,
@@ -291,8 +292,13 @@ class CallbackManager:
     async def _process_block_action(self, callback: CallbackQuery):
         """Process the block action callback."""
         sender_id, message_id = callback.data.split('-')
-
-        if not await self.blocker.validate_block_action(callback, sender_id):
+        try:
+            if not await self.blocker.validate_block_action(callback, sender_id):
+                return
+        except AttributeError:
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('errors.user_not_found'), show_alert=True)
             return
         await self.bot.edit_message_reply_markup(
                 chat_id=callback.message.chat.id,
@@ -391,7 +397,6 @@ class CallbackManager:
         sender_anon_id, message_id = callback.data.split('-')
         seen = await self.chat_manager.has_seen_message(user_id=callback.message.chat.id,
                                                   message_id=callback.message.id)
-        print(callback.message.id)
 
         original_text, is_caption = self._get_message_text_or_caption(callback)
         if not original_text:
