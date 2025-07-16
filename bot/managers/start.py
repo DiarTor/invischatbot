@@ -120,7 +120,7 @@ class StartBot:
                 )
                 return
 
-            
+
 
             # Check if the target user's bot status is off
             if target_user_data.get('flags', {}).get('is_bot_off', None):
