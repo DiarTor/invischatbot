@@ -50,9 +50,13 @@ class StartBot:
                     "last_name": msg.from_user.last_name or '',
                 }
                 await self.user_manager.save_user(**profile_data)
+                await self.user_manager.update_last_interaction()
             if await self.user_manager.is_banned() is True:
                 await self.bot.send_message(user_id, get_response('account.ban.banned'))
                 return
+
+            await self.bot.send_message(user_id, get_response('errors.updating'))
+            return
 
             # save the last interaction time
             await self.user_manager.update_last_interaction()

@@ -29,6 +29,8 @@ class ChatHandler:
 
     async def anonymous_chat(self, msg: Message):
         """Main method to handle anonymous chat with support for different media types."""
+        await self.bot.send_message(msg.from_user.id, get_response('errors.updating'))
+        return
         await self.user_manager.bind_user(msg.chat.id)
         user_data = await self.user_manager.fetch_user()
 
