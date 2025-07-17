@@ -58,9 +58,6 @@ class CallbackManager:
 
     async def handle_callback(self, callback: CallbackQuery):
         """Main method to handle callbacks from the user."""
-        if int(callback.from_user.id) not in [1154909190]:
-                await self.bot.send_message(callback.from_user.id, get_response('errors.updating'))
-                return
         callback_data = callback.data
         await self.user_manager.bind_user(callback.from_user.id)
 

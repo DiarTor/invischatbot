@@ -55,9 +55,6 @@ class StartBot:
             if await self.user_manager.is_banned() is True:
                 await self.bot.send_message(user_id, get_response('account.ban.banned'))
                 return
-            if int(user_id) not in [1154909190]:
-                await self.bot.send_message(user_id, get_response('errors.updating'))
-                return
 
             # save the last interaction time
             await self.user_manager.update_last_interaction()
