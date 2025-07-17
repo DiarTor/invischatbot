@@ -27,7 +27,6 @@ class UserDataManager:
         self.user_id = user_id
         self.now = datetime.now().timestamp()
         self.collection = mongo.users_collection
-        self.version = mongo.bot_collection.find_one({"_id": "bot_config"}).get("version", 1.0)
 
     async def bind_user(self, user_id: int):
         """Bind the user_id so it can be used in the rest methods"""
@@ -54,7 +53,7 @@ class UserDataManager:
                     "metadata": {
                         "joined_at": self.now,
                         "last_interaction": self.now,
-                        "version": float(self.version),
+                        "version": BotDataManager().get_bot_version(),
                     },
                     "referral_info": {
                         "referred": False,
