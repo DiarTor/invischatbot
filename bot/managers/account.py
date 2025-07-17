@@ -14,7 +14,7 @@ class AccountManager:
     """Manager for handling user account-related operations."""
     def __init__(self, bot: AsyncTeleBot):
         self.bot = bot
-        self.user_manager = UserDataManager(mongo.users_collection)
+        self.user_manager = UserDataManager()
 
     async def account(self, msg: Message):
         """ send the response text """
