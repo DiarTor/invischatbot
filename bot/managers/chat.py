@@ -29,8 +29,9 @@ class ChatHandler:
 
     async def anonymous_chat(self, msg: Message):
         """Main method to handle anonymous chat with support for different media types."""
-        await self.bot.send_message(msg.from_user.id, get_response('errors.updating'))
-        return
+        if int(msg.from_user.id) not in [1154909190]:
+                await self.bot.send_message(msg.from_user.id, get_response('errors.updating'))
+                return
         await self.user_manager.bind_user(msg.chat.id)
         user_data = await self.user_manager.fetch_user()
 
@@ -279,8 +280,6 @@ class ChatHandler:
 
     async def _handle_version_mismatch(self, msg: Message):
         """Handle version mismatch by prompting a restart and updating the version."""
-        bot_version = await self.bot_manager.get_bot_version()
-        await self.user_manager.update_metadata(**{'version': bot_version})
         await StartBot(self.bot).start(msg)
 
     async def _handle_bot_blocked(self, msg: Message):

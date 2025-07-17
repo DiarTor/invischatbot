@@ -8,7 +8,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
 from bot.admin.adminstration import Admin
-from bot.common.data import ChatDataManager, UserDataManager, find_one
+from bot.common.data import ChatDataManager, UserDataManager, BotDataManager, find_one
 from bot.database.database import mongo
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
@@ -25,6 +25,7 @@ class StartBot:
         self.bot = bot
         self.user_manager = UserDataManager()
         self.chat_manager = ChatDataManager()
+        self.bot_manager = BotDataManager()
 
     async def start(self, msg: Message, default_target_anon_id: str=None) -> None:
         """
@@ -54,14 +55,20 @@ class StartBot:
             if await self.user_manager.is_banned() is True:
                 await self.bot.send_message(user_id, get_response('account.ban.banned'))
                 return
-
-            await self.bot.send_message(user_id, get_response('errors.updating'))
-            return
+            if int(user_id) not in [1154909190]:
+                await self.bot.send_message(user_id, get_response('errors.updating'))
+                return
 
             # save the last interaction time
             await self.user_manager.update_last_interaction()
+
             # Retrieve user data from the database
             user_data = await self.user_manager.fetch_user()
+            user_version = user_data.get('metadata', {}).get('version', 1.0)
+            bot_version = await self.bot_manager.get_bot_version()
+            if user_version != bot_version:
+                await self.user_manager.update_metadata(**{'version': bot_version})
+    
             if not target_anon_id and await self.user_manager.get_flag_state('first_time') is False:
                 await self.chat_manager.close_chats(user_id)
                 await self._send_welcome_message(msg)

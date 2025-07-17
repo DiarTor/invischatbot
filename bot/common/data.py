@@ -27,7 +27,7 @@ class UserDataManager:
         self.user_id = user_id
         self.now = datetime.now().timestamp()
         self.collection = mongo.users_collection
-        self.version = config('VERSION', default=1.0, cast=float)
+        self.version = mongo.bot_collection.find_one({"_id": "bot_config"}).get("version", 1.0)
 
     async def bind_user(self, user_id: int):
         """Bind the user_id so it can be used in the rest methods"""
@@ -54,7 +54,7 @@ class UserDataManager:
                     "metadata": {
                         "joined_at": self.now,
                         "last_interaction": self.now,
-                        "version": float(config('VERSION', default=1.0)),
+                        "version": float(self.version),
                     },
                     "referral_info": {
                         "referred": False,
@@ -316,6 +316,7 @@ class BotDataManager:
         """Retrieve the current bot version from config."""
         bot_config = await self.collection.find_one({"_id": "bot_config"})
         return bot_config.get("version", 1.0) if bot_config else 1.0
+
     async def get_all_user_ids(self):
         """Fetch all user IDs from the users collection."""
         cursor = mongo.users_collection.find({}, {"user_id": 1, "_id": 0})
