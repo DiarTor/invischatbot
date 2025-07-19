@@ -465,6 +465,8 @@ class ChatDataManager:
     @staticmethod
     def is_text_marked(text: str) -> bool:
         """Check if text contains marking indicator"""
+        if not text:
+            return False
         return '📍 #نشان' in text
 
     @staticmethod

@@ -155,7 +155,7 @@ class CallbackManager:
             return
 
         seen = await self.chat_manager.has_seen_message(callback.message.chat.id, callback.message.id)
-        marked = self.chat_manager.is_text_marked(callback.message.text)
+        marked = self.chat_manager.is_text_marked(callback.message.text or callback.message.caption)
         await self.bot.edit_message_reply_markup(
             chat_id=callback.message.chat.id,
             message_id=callback.message.id,
@@ -266,7 +266,6 @@ class CallbackManager:
         sender_anon_id, message_id = callback.data.split('-')
         try:
             sender_id = await get_user_id(sender_anon_id)
-            print(sender_id)
         except AttributeError:
             await self.bot.answer_callback_query(
                 callback.id,
@@ -400,7 +399,7 @@ class CallbackManager:
 
         original_text, is_caption = self._get_message_text_or_caption(callback)
         if not original_text:
-            await self.bot.answer_callback_query(callback.id, "Cannot mark this message.")
+            await self.bot.answer_callback_query(callback.id, "نمیتونم اینو نشون بزنم.")
             return
 
         new_text, marked = self._toggle_mark(original_text)
