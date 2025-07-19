@@ -13,8 +13,7 @@ async def delete_message(bot: AsyncTeleBot, chat_id: int, message_id: int, secon
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
     except Exception as e:
-        print(f"Failed to delete message {message_id}: {e}")
-
+        logging.warning(f"❌ Error deleting message {message_id} in chat {chat_id}: {e}")
 async def check_and_update_user(bot: AsyncTeleBot, user):
     try:
         profile = user.get("profile", {})
