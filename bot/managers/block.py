@@ -149,6 +149,10 @@ class BlockUserManager:
             await self.bot.answer_callback_query(callback.id,
                                                  get_response('blocking.already_blocked'))
             return False
+        if blocked_anon_id == 'support':
+            await self.bot.answer_callback_query(callback.id,
+                                                 get_response('blocking.support'))
+            return False
         return True
 
     @staticmethod
