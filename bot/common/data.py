@@ -53,7 +53,7 @@ class UserDataManager:
                     "metadata": {
                         "joined_at": self.now,
                         "last_interaction": self.now,
-                        "version": BotDataManager().get_bot_version(),
+                        "version": await BotDataManager().get_bot_version(),
                     },
                     "referral_info": {
                         "referred": False,
