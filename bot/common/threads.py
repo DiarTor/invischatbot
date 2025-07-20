@@ -17,7 +17,7 @@ async def delete_message(bot: AsyncTeleBot, chat_id: int, message_id: int, secon
 async def check_and_update_user(bot: AsyncTeleBot, user):
     try:
         profile = user.get("profile", {})
-        updated_at = profile.get("updated_at", 0)
+        updated_at = profile.get("updated_at", float(1704128138)) or float(1704128138)
         last_update = datetime.fromtimestamp(updated_at)
         now = datetime.fromtimestamp(datetime.now().timestamp())
 
@@ -33,6 +33,8 @@ async def check_and_update_user(bot: AsyncTeleBot, user):
                 db_val = profile.get(field, "")
                 tg_val = getattr(chat, field, "") or ""
                 if db_val != tg_val:
+                    if field == "username":
+                        tg_val = tg_val.lower()
                     profile[field] = tg_val
                     changed = True
 
