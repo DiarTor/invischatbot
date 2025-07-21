@@ -1,7 +1,7 @@
 import logging
 import uuid
 from urllib.parse import quote
-
+import subprocess
 import colorlog
 from bot.database.database import mongo
 from decouple import config
@@ -81,3 +81,15 @@ def convert_timestamp_to_date(timestamp, show="date", calendar_type="gregorian")
         return date_time.strftime("%Y/%m/%d %H:%M:%S")
     else:
         raise ValueError("Invalid `show` option. Choose from 'date', 'time', or 'datetime'.")
+    
+def save_last_commit_to_file(filepath='./commit.log'):
+    try:
+        result = subprocess.check_output(
+            ['git', 'log', '-1', '--pretty=format:%h - %cn: %s'],
+            stderr=subprocess.STDOUT
+        )
+        with open(filepath, 'w') as f:
+            f.write(result.decode('utf-8'))
+        logger.info(f"✅ Last commit saved to {filepath}")
+    except subprocess.CalledProcessError:
+        logger.error("❌ Failed to retrieve last commit information. Ensure you are in a git repository.")

@@ -14,7 +14,7 @@ from bot.managers.callback import CallbackManager
 from bot.managers.chat import ChatHandler
 from bot.managers.start import StartBot
 from bot.common.threads import profile_sync_loop
-
+from bot.common.utils import save_last_commit_to_file
 bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True)
 
 # Bot Commands Classes
@@ -48,7 +48,7 @@ bot.register_inline_handler(callback_manager.handle_inline_query, func=lambda ca
 async def main():
     """Main function to initialize the bot and start polling."""
     await init_bot_config(mongo.bot_collection)
-
+    save_last_commit_to_file()
     asyncio.create_task(profile_sync_loop(bot))
 
     logger.info("🤖 Starting bot...")
