@@ -65,4 +65,6 @@ class SupportManager:
     async def about(self, msg:Message):
         commit_info = get_last_commit()
         tag_info = get_latest_tag()
-        await self.bot.send_message(msg.from_user.id, get_response('support.about', last_commit=commit_info, last_tag=tag_info), parse_mode='MarkDown',)
+        await self.bot.send_message(msg.from_user.id, get_response('support.about', last_commit=commit_info, last_tag=tag_info),
+                                     parse_mode='MarkDown',
+                                     disable_web_page_preview=True)
