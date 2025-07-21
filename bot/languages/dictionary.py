@@ -324,7 +324,17 @@ translations = {
             ❗️ دقت کنید که بعضی اشخاص هستند که دوست دارند شمارو اذیت کنند و قصد جدی ندارند، لطفا اونهارو دست بالا نگیرید تا آرامشتون حفظ بشه.
             """),
                 'how_to_connect_to_speceific_user': dedent("""test4"""),
-            }
+            },
+            'about':  dedent("""
+        *🤖 درباره ربات invisChat | اینویزچت*
+
+        📅 *تاریخ راه‌اندازی:* نوامبر ۲۰۲۴  
+        🛠️ *نسخه ربات:* {last_tag}  
+        ✅ *آخرین کامیت:* `{last_commit}`  
+
+        📝 *آپدیت‌ها:* [مشاهده آپدیت‌ها](https://github.com/DiarTor/invischatbot/releases)  
+        🔗 *لینک گیت‌هاب:* [مشاهده ریپازیتوری](https://github.com/DiarTor/invischatbot)
+        """)
         },
         'account': {
             'show': dedent("""

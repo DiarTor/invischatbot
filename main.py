@@ -14,13 +14,14 @@ from bot.managers.callback import CallbackManager
 from bot.managers.chat import ChatHandler
 from bot.managers.start import StartBot
 from bot.common.threads import profile_sync_loop
-from bot.common.utils import save_last_commit_to_file
+from bot.managers.support import SupportManager
 bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True)
 
 # Bot Commands Classes
 start_bot = StartBot(bot)
 chat_handler = ChatHandler(bot)
 callback_manager = CallbackManager(bot)
+support_manager = SupportManager(bot)
 
 # Admin Commands Classes
 administration_handler = Admin(bot)
@@ -28,6 +29,7 @@ user_administration_handler = UserAdministration(bot)
 
 # Bot Commands
 bot.register_message_handler(start_bot.start, commands=['start'])
+bot.register_message_handler(support_manager.about, commands=['about'])
 
 # Admin Commands
 bot.register_message_handler(administration_handler.ahelp, commands=['ahelp'])
@@ -48,7 +50,6 @@ bot.register_inline_handler(callback_manager.handle_inline_query, func=lambda ca
 async def main():
     """Main function to initialize the bot and start polling."""
     await init_bot_config(mongo.bot_collection)
-    save_last_commit_to_file()
     asyncio.create_task(profile_sync_loop(bot))
 
     logger.info("🤖 Starting bot...")

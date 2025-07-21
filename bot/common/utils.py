@@ -82,14 +82,24 @@ def convert_timestamp_to_date(timestamp, show="date", calendar_type="gregorian")
     else:
         raise ValueError("Invalid `show` option. Choose from 'date', 'time', or 'datetime'.")
     
-def save_last_commit_to_file(filepath='./commit.log'):
+
+def get_last_commit():
     try:
         result = subprocess.check_output(
-            ['git', 'log', '-1', '--pretty=format:%h - %cn: %s'],
+            ['git', 'log', '-1', '--pretty=format:%h'],
             stderr=subprocess.STDOUT
         )
-        with open(filepath, 'w') as f:
-            f.write(result.decode('utf-8'))
-        logger.info(f"✅ Last commit saved to {filepath}")
-    except subprocess.CalledProcessError:
-        logger.error("❌ Failed to retrieve last commit information. Ensure you are in a git repository.")
+        return result.decode('utf-8')
+    except Exception:
+        return "Commit info not available (Git not installed on server)."
+
+
+def get_latest_tag():
+    try:
+        result = subprocess.check_output(
+            ['git', 'describe', '--tags', '--abbrev=0'],
+            stderr=subprocess.STDOUT
+        )
+        return result.decode('utf-8').strip()
+    except Exception:
+        return "No tags found."
