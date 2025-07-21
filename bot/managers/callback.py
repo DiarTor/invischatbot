@@ -359,7 +359,8 @@ class CallbackManager:
             callback.message.chat.id,
             get_response('texting.tools.delete.didnt_send'),
             reply_to_message_id=sent_message_id,
-            reply_markup=self.keyboard.main_buttons(),)
+            reply_markup=self.keyboard.main_buttons(),
+            parse_mode='HTML')
 
     async def _process_change_nickname(self, callback: CallbackQuery):
         """Process the change nickname callback."""

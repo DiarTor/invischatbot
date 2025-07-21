@@ -13,12 +13,12 @@ translations = {
     'fa': {
         'greeting': {
             'welcome': dedent("""
-        سلام <a href="tg://settings"><b>{first_name}</b></a> عزیز 🌹، به <b>invisChat</b> خوش اومدی 🙌
+        سلام <a href="tg://settings"><b>{first_name}</b></a> عزیز 🌹، به <b>اینویزچت</b> خوش اومدی 🙌
 
         شما میتونی با استفاده از دکمه های پایین از ربات استفاده کنی. 😉
     """),
             'first_time': dedent("""
-سلام <a href="tg://settings"><b>{nickname}</b></a> عزیز 🌹، به <b>invisChat</b> خوش اومدی 🙌
+سلام <a href="tg://settings"><b>{nickname}</b></a> عزیز 🌹، به <b>اینویزچت</b> خوش اومدی 🙌
 
 🤗 این اولین باره که ربات رو استارت میکنی، به همین دلیل نام مستعارت بصورت پیشرفض <b>{nickname}</b> تنظیم شده.
 

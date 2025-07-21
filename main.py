@@ -15,7 +15,7 @@ from bot.managers.chat import ChatHandler
 from bot.managers.start import StartBot
 from bot.common.threads import profile_sync_loop
 
-bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True, parse_mode='HTML')
+bot = AsyncTeleBot(token=config('BOT_TOKEN', cast=str), colorful_logs=True)
 
 # Bot Commands Classes
 start_bot = StartBot(bot)

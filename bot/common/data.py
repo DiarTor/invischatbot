@@ -524,7 +524,7 @@ async def update_one(collection, query: dict, update: dict) -> bool:
 async def get_user_id(user_anon_id: str) -> int:
     """Retrieve user ID from anonymous ID."""
     user = await find_one(mongo.users_collection, {'anon_id': user_anon_id})  # Await the result
-    return user.get('user_id', '')
+    return user.get('user_id') if user else None
 
 async def get_anon_id_by_username(username: str) -> Optional[str]:
     """Retrieve anonymous ID of a user by their username."""

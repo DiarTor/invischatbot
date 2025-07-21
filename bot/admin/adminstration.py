@@ -1,14 +1,15 @@
 """
 This file contains the main adminstration class and its methods.
-"""
 from telebot.async_telebot import AsyncTeleBot
+"""
 
 from telebot.types import Message
-from telebot.apihelper import ApiTelegramException
+from telebot.asyncio_helper import ApiTelegramException
 from bot.admin.keyboard import Keyboard
 from bot.common.data import BotDataManager, UserDataManager
 from bot.common.utils import convert_timestamp_to_date
 from bot.languages.response import get_response
+from telebot.async_telebot import AsyncTeleBot
 
 class Admin:
     """
@@ -109,7 +110,9 @@ class Admin:
         for user_id in users_ids:
             try:
                 if content == 'text':
-                    await send_method(user_id, msg.text)
+                    print(msg.entities)
+                    await send_method(user_id, msg.text, entities=msg.entities)
+
 
                 elif file_attr:
                     # Get the file_id dynamically
@@ -119,7 +122,7 @@ class Admin:
                         file_id = getattr(msg, file_attr).file_id
 
                     if has_caption:
-                        await send_method(user_id, file_id, caption=caption)
+                        await send_method(user_id, file_id, caption=caption, caption_entities=msg.caption_entities)
                     else:
                         await send_method(user_id, file_id)
 
@@ -136,4 +139,5 @@ class Admin:
     async def cancel_broadcast(self, msg: Message):
         await self.user_manager.bind_user(msg.chat.id)
         await self.user_manager.update_fields({'admin.broadcast': False})
+        await self.bot.delete_message(msg.chat.id, msg.message_id)
         await self.bot.send_message(msg.chat.id, get_response('admin.broadcast.cancel'))

@@ -1,7 +1,7 @@
 """Handles anonymous chat functionalities including media processing and user interactions."""
 import asyncio
 
-from telebot.apihelper import ApiTelegramException
+from telebot.asyncio_helper import ApiTelegramException
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
 
@@ -187,7 +187,7 @@ class ChatHandler:
                                                     )
             asyncio.create_task(delete_message(self.bot, msg.chat.id, tools_message.id, 3))
         except ApiTelegramException:
-            self._handle_bot_blocked(msg)
+            await self._handle_bot_blocked(msg)
 
     async def _handle_reply(self, msg: Message, user_chat):
         """Handle replies to a message."""
@@ -281,5 +281,5 @@ class ChatHandler:
 
     async def _handle_bot_blocked(self, msg: Message):
         await self.chat_manager.close_chats(msg.chat.id, True)
-        self.bot.send_message(msg.chat.id, get_response('errors.bot_blocked'),
+        await self.bot.send_message(msg.chat.id, get_response('errors.bot_blocked'),
                               reply_markup=KeyboardMarkupGenerator().main_buttons())
