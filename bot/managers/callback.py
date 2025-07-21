@@ -252,6 +252,7 @@ class CallbackManager:
             chat_id=sender_user_id,
             reply_to_message_id=int(message_id),
             text=get_response('texting.reaction.recipient'),
+            parse_mode='HTML'
         )
 
         await self.bot.edit_message_reply_markup(
