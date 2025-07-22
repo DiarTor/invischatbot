@@ -236,8 +236,21 @@ class CallbackManager:
             )
                 await self.chat_manager.add_reaction(sender_user_id, message_id, emoji=reaction)
             except Exception:
-                await self.bot.answer_callback_query(callback.id,
-                                                    get_response('errors.same_reaction'))
+                #remove the reaction from the message if the reaction is the same as the existing one
+                await self.bot.set_message_reaction(
+                    chat_id=int(sender_user_id),
+                    message_id=int(message_id),
+                    reaction=[],
+                    is_big=False
+                )
+                await self.chat_manager.remove_reaction(sender_user_id, message_id)
+                await self.bot.edit_message_reply_markup(
+                    callback.message.chat.id,
+                    message_id=callback.message.id,
+                    reply_markup=self.keyboard.reaction_buttons(sender_anon_id,
+                                                                message_id,
+                                                                toggled_emoji='هیچ ریاکشنی ندادی')
+                )
             return
 
         # Update the reaction and send a notification
@@ -248,12 +261,12 @@ class CallbackManager:
             reaction=[ReactionTypeEmoji(emoji=reaction)],
             is_big=False
         )
-        await self.bot.send_message(
-            chat_id=sender_user_id,
-            reply_to_message_id=int(message_id),
-            text=get_response('texting.reaction.recipient'),
-            parse_mode='HTML'
-        )
+        # await self.bot.send_message(
+        #     chat_id=sender_user_id,
+        #     reply_to_message_id=int(message_id),
+        #     text=get_response('texting.reaction.recipient'),
+        #     parse_mode='HTML'
+        # )
 
         await self.bot.edit_message_reply_markup(
             callback.message.chat.id,

@@ -451,6 +451,13 @@ class ChatDataManager:
             {"$set": {f"chatting.reactions.{message_id}": emoji}}
         )
 
+    async def remove_reaction(self, user_id: int, message_id: int) -> None:
+        """Remove a user's reaction to a message"""
+        await self.user_collection.update_one(
+            {"user_id": user_id},
+            {"$unset": {f"chatting.reactions.{message_id}": ""}}
+        )
+
     async def get_reaction(self, user_id: int, message_id: int,
                         default_response: str = 'هیچ ریاکشنی ندادی') -> str:
         """Retrieve a user's reaction to a specific message"""
