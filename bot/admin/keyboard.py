@@ -23,7 +23,16 @@ class Keyboard(KeyboardMarkupGenerator):
 
     def broadcast_buttons(self):
         buttons = [
-            InlineKeyboardButton('⬅️ انصراف', callback_data='admin-cancel')
+            [
+            InlineKeyboardButton('✅ ارسال', callback_data='admin-confirm_broadcast'),
+            InlineKeyboardButton('❌ لغو', callback_data='admin-cancel_broadcast')
+            ]
+        ]
+
+        return self._create_list_inline_keyboard(buttons)
+    def cancel_broadcast_button(self):
+        buttons = [
+            InlineKeyboardButton('❌ لغو', callback_data='admin-cancel_broadcast')
         ]
 
         return self._create_inline_keyboard(buttons)

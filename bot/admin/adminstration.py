@@ -79,9 +79,50 @@ class Admin:
         if not await self.bot_manager.is_admin(msg.chat.id):
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
             return
-        await self.bot.send_message(msg.chat.id, get_response('admin.broadcast.send'), reply_markup= self.keyboard.broadcast_buttons())
+        await self.bot.send_message(msg.chat.id, get_response('admin.broadcast.send'), reply_markup= self.keyboard.cancel_broadcast_button())
         # Here you would implement the logic to send a broadcast message to all users.
         await self.user_manager.update_fields({'admin.broadcast': True})
+    
+    async def confirm_broadcast(self, msg: Message):
+        """
+        Confirm broadcast message
+        :param msg: Message object
+        """
+        user_id = msg.from_user.id
+        caption = msg.caption or ''
+        content = msg.content_type
+
+        content_map = {
+            'text': (self.bot.send_message, None, False),
+            'photo': (self.bot.send_photo, 'photo', True),
+            'video': (self.bot.send_video, 'video', True),
+            'audio': (self.bot.send_audio, 'audio', True),
+            'voice': (self.bot.send_voice, 'voice', True),
+            'document': (self.bot.send_document, 'document', True),
+            'sticker': (self.bot.send_sticker, 'sticker', False),
+            'animation': (self.bot.send_animation, 'animation', True),
+        }
+        if content not in content_map:
+            # fallback for unknown types
+            return
+        send_method, file_attr, has_caption = content_map[content]
+        if content == 'text':
+                await send_method(user_id, msg.text, entities=msg.entities, reply_markup=self.keyboard.broadcast_buttons())
+        elif file_attr:
+                if content == 'photo':
+                    file_id = getattr(msg, file_attr)[-1].file_id
+                else:
+                    file_id = getattr(msg, file_attr).file_id
+
+                if has_caption:
+                    await send_method(user_id, file_id, caption=caption, caption_entities=msg.caption_entities, reply_markup=self.keyboard.broadcast_buttons())
+                else:
+                    await send_method(user_id, file_id)
+
+        else:
+            await send_method(user_id, "Unsupported content.")
+        await self.user_manager.bind_user(user_id)
+        await self.user_manager.update_fields({'admin.broadcast': False})
 
     async def broadcast(self, msg: Message):
         users_ids = await self.bot_manager.get_all_user_ids()
@@ -110,7 +151,6 @@ class Admin:
         for user_id in users_ids:
             try:
                 if content == 'text':
-                    print(msg.entities)
                     await send_method(user_id, msg.text, entities=msg.entities)
 
 
@@ -132,8 +172,6 @@ class Admin:
             except ApiTelegramException:
                 users_count -= 1
                 continue
-        await self.user_manager.bind_user(msg.chat.id)
-        await self.user_manager.update_fields({'admin.broadcast': False})
         await self.bot.send_message(msg.chat.id, get_response('admin.broadcast.sent', users_count=users_count))
 
     async def cancel_broadcast(self, msg: Message):

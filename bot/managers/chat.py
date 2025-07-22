@@ -42,7 +42,7 @@ class ChatHandler:
             return
 
         if await self.bot_manager.is_admin(msg.chat.id) and user_data.get('admin', {}).get('broadcast', False):
-            await Admin(self.bot).broadcast(msg)
+            await Admin(self.bot).confirm_broadcast(msg)
             return
 
         if await self.user_manager.is_banned():
