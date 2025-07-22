@@ -1,4 +1,5 @@
 """Callback handler for processing user interactions with the bot."""
+from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery, InputTextMessageContent,\
       InlineQueryResultArticle, InlineQuery
@@ -448,6 +449,24 @@ class CallbackManager:
 
     async def _process_revoke_link(self, callback: CallbackQuery):
         """Process the change link callback."""
+        if await self.user_manager.is_bot_disabled(callback.from_user.id):
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('account.bot_status.self.off'),
+                show_alert=True
+            )
+            return
+
+        # Check if revoked within the last 7 days
+        last_revoke = await self.user_manager.get_metadata('last_revoke', 0)
+        if last_revoke > 0 and (datetime.now().timestamp() - last_revoke) < 604800:
+            await self.bot.answer_callback_query(
+                callback.id,
+                get_response('link.revoke_link.limit_exceeded'),
+                show_alert=True
+            )
+            return
+
         await self.bot.send_message(callback.message.chat.id,
                                    get_response('link.revoke_link.confirm'),
                                    reply_markup=self.keyboard.regenarate_link_buttons(),

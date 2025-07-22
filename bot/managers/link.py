@@ -1,7 +1,7 @@
 """Manager for handling anonymous links and user connections."""
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import Message
-
+from datetime import datetime
 from decouple import config
 from bot.common.data import ChatDataManager, UserDataManager
 from bot.common.data import get_user_anon_id, get_anon_id_by_username
@@ -46,6 +46,7 @@ class LinkManager:
             reply_markup=self.keyboard.share_link_buttons(
                 get_response('link.share_link'), new_link)
         )
+        await self.user_manager.update_metadata(**{'last_revoke': datetime.now().timestamp()})
 
     async def send_without_link(self, msg: Message):
         """Send a message without the anonymous link."""

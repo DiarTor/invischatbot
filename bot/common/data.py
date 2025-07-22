@@ -145,6 +145,7 @@ class UserDataManager:
         allowed_fields = {
             "last_interaction": datetime,
             "version": (float, int),
+            "last_revoke": datetime,
         }
 
         valid_updates = {}
@@ -176,6 +177,13 @@ class UserDataManager:
         except pymongo.errors.PyMongoError as e:
             logger.error("Failed to update metadata for user %s: %s", self.user_id, e)
             return False
+
+    async def get_metadata(self, field: str, default=None) -> Any:
+        """Retrieve a specific metadata field for the user."""
+        user = await self.fetch_user()
+        if not user:
+            return default
+        return user.get("metadata", {}).get(field, default)
 
     async def fetch_user(self) -> Optional[Dict[str, Any]]:
         """Retrieves full user document"""
