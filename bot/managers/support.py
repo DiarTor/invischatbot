@@ -4,7 +4,7 @@ from telebot.types import Message
 from telegram import CallbackQuery
 from bot.languages.response import get_response
 from bot.managers.start import StartBot
-from bot.common.utils import get_last_commit, get_latest_tag
+from bot.common.utils import get_latest_tag
 from bot.common.keyboard import KeyboardMarkupGenerator
 class SupportManager:
     """Manager for handling support-related commands and interactions."""
@@ -63,8 +63,7 @@ class SupportManager:
             return
 
     async def about(self, msg:Message):
-        commit_info = get_last_commit()
         tag_info = get_latest_tag()
-        await self.bot.send_message(msg.from_user.id, get_response('support.about', last_commit=commit_info, last_tag=tag_info),
+        await self.bot.send_message(msg.from_user.id, get_response('support.about', last_tag=tag_info),
                                      parse_mode='MarkDown',
                                      disable_web_page_preview=True)
