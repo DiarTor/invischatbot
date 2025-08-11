@@ -66,7 +66,7 @@ class UserDataManager:
                             "reply_target_message_id": '',
                             "reply_target_user_id": 0,
                         },
-                        "blocklist": [],
+                        "blocklist": {},
                         "reactions": {},
                         "seen_messages": [],
                     },

@@ -61,7 +61,7 @@ class BlockUserManager:
                                         get_response('blocking.already_blocked'))
             return
 
-        await self.user_manager.update_fields({"$addToSet":{"chatting.blocklist": blocked_user_id}})
+        await self.user_manager.update_fields({"$addToSet":{f"chatting.blocklist.{blocked_user_id}": ''}})
         await self.bot.edit_message_reply_markup(blocker_id, callback.message.id,
                                                  reply_markup=self.keyboard.blocked_buttons())
 
