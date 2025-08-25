@@ -43,7 +43,8 @@ class NicknameManager:
             await self.bot.send_message(
                 msg.chat.id,
                 get_response('nickname.nickname_was_set', nickname=nickname),
-                reply_markup=KeyboardMarkupGenerator().main_buttons()
+                reply_markup=KeyboardMarkupGenerator().main_buttons(),
+                parse_mode='HTML'
             )
 
         else:
