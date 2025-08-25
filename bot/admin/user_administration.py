@@ -36,7 +36,7 @@ class UserAdministration:
         user_anon_id = parts[1]
         await self.user_manager.bind_user(await get_user_id(user_anon_id))
         user_info = await self.user_manager.fetch_user()
-        if not user_info:
+        if not user_info and user_anon_id.isdigit():
             # If user_anon_id is not found, check if it's a user_id
             await self.user_manager.bind_user(int(user_anon_id))
             user_info = await self.user_manager.fetch_user()

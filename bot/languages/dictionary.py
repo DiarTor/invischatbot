@@ -333,13 +333,8 @@ translations = {
         *🤖 درباره ربات invisChat | اینویزچت*
                              
         📅 *تاریخ راه‌اندازی:* نوامبر 2024
-        🧑‍💻 *کانال سازنده:* [Diardev](t.me/Diardev)
-        
+        🧑‍💻 *کانال ربات:* [invisChat Channel](t.me/invisChatChannel)
         🛠️ *نسخه ربات:* {last_tag}
-        ✅ *آخرین کامیت:* `{last_commit}`  
-                             
-        📝 *آپدیت‌ها:* [مشاهده آپدیت‌ها](https://github.com/DiarTor/invischatbot/releases)  
-        🔗 *لینک گیت‌هاب:* [مشاهده ریپازیتوری](https://github.com/DiarTor/invischatbot)
         """)
         },
         'account': {
