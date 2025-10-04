@@ -87,6 +87,10 @@ class ChatHandler:
             await LinkManager(self.bot).connect_without_link(msg)
             return
 
+        if await self.user_manager.get_flag_state("awaiting_block_note"):
+            await BlockUserManager(self.bot).save_block_note(msg)
+            return
+
         if not open_chat:
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
             return
@@ -267,6 +271,14 @@ class ChatHandler:
             await self.user_manager.toggle_flag("send_without_link", False)
             await self.bot.send_message(
                 msg.chat.id, get_response('link.connect_without_link.cancel'), parse_mode='HTML',
+                reply_markup=KeyboardMarkupGenerator().main_buttons()
+            )
+
+        elif await self.user_manager.get_flag_state('awaiting_block_note'):
+            await self.user_manager.toggle_flag("awaiting_block_note", False)
+            await self.user_manager.update_fields({'$unset': {'chatting.block_note_for': ""}})
+            await self.bot.send_message(
+                msg.chat.id, get_response('blocking.add_note_cancelled'), parse_mode='HTML',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
 

@@ -193,9 +193,29 @@ class KeyboardMarkupGenerator:
         ]
         return self._create_list_inline_keyboard(buttons)
 
-    def blocked_buttons(self):
-        buttons = [InlineKeyboardButton('✅ کاربر بلاک شد.', callback_data='placeholder')]
-        return self._create_inline_keyboard(buttons)
+    def blocked_buttons(self, sender_id: str, note_added: bool = False):
+        """
+        Blocked InlineButtons
+        :param sender_id: anonymous id
+        :param note_added: whether a note already exists
+        """
+        # First row: confirmation
+        buttons = [
+            [InlineKeyboardButton('🔓 آنبلاک', callback_data=f'unblock-{sender_id}'),
+            InlineKeyboardButton('✅ بلاک شد.', callback_data='placeholder'),]
+        ]
+
+        # Second row: conditional note button + unblock
+        note_button_text = '📖 مشاهده یادداشت' if note_added else '📝 اضافه کردن یادداشت'
+        note_callback = f'read_note-{sender_id}' if note_added else f'add_note-{sender_id}'
+
+        buttons.append([
+            InlineKeyboardButton(note_button_text, callback_data=note_callback),
+            
+        ])
+
+        return self._create_list_inline_keyboard(buttons)
+
 
     def blocklist_buttons(self, blocker_id: str, blocked_list: list):
         """ Block List InlineButtons
@@ -215,7 +235,8 @@ class KeyboardMarkupGenerator:
                 InlineKeyboardButton(f"میخوای {blocked_id} رو آنبلاک کنی؟", callback_data='placeholder')
             ],
             [InlineKeyboardButton('بله 👍', callback_data=f'unblock_confirm-{blocker_id}-{blocked_id}'),
-             InlineKeyboardButton('خیر 👎', callback_data=f'unblock_cancel-{blocker_id}-placeholder')]]
+             InlineKeyboardButton('خیر 👎', callback_data=f'unblock_cancel-{blocker_id}-placeholder')],
+            [InlineKeyboardButton('📝 مشاهده کردن یادداشت', callback_data=f'read_note-{blocked_id}'),]]
         return self._create_list_inline_keyboard(buttons)
 
     def share_link_buttons(self, share_text: str, link: str = None):

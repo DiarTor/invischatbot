@@ -36,6 +36,8 @@ class CallbackManager:
             'block': self._process_block_action,
             'block_cancel': self._process_block_action_cancel,
             'block_confirm': self._process_block_action_confirm,
+            'add_note': self._process_add_note_request,
+            'read_note': self._process_read_note_request,
             'mark': self._process_mark_message,
             'unblock': self._process_unblock_action,
             'unblock_cancel': self._process_unblock_action_cancel,
@@ -332,12 +334,39 @@ class CallbackManager:
         sender_id, message_id = callback.data.split('-')
         await self.blocker.cancel_block(callback, message_id, sender_id)
 
+    async def _process_add_note_request(self, callback: CallbackQuery):
+        """Process the add note callback."""
+        blocked_id = callback.data.split('-')[0]
+        if not await self.blocker.is_user_blocked(blocked_id, callback.from_user.id):
+            await self.bot.answer_callback_query(callback.id,
+                                                 get_response('blocking.not_in_blocklist'),
+                                                 show_alert=True)
+            return
+        await self.blocker.add_note_request(callback, blocked_id)
+
+    async def _process_read_note_request(self, callback: CallbackQuery):
+        """Process the read note callback."""
+        blocked_id = callback.data.split('-')[0]
+        if not await self.blocker.is_user_blocked(blocked_id, callback.from_user.id):
+            await self.bot.answer_callback_query(callback.id,
+                                                 get_response('blocking.not_in_blocklist'),
+                                                 show_alert=True)
+            return
+        note = await self.blocker.get_block_note(callback, blocked_id)
+        if note:
+            await self.bot.answer_callback_query(callback.id,
+                                                 get_response('blocking.read_note', note=note),
+                                                 show_alert=True)
+        else:
+            await self.bot.answer_callback_query(callback.id,
+                                                 get_response('blocking.no_note'),
+                                                 show_alert=True)
+
     async def _process_unblock_action(self, callback: CallbackQuery):
         """Process the unblock callback."""
         blocker_id, blocked_id = callback.data.split('-')
         if await self._check_bot_status(callback, callback.from_user.id):
             return
-
         await self.bot.edit_message_reply_markup(
                 chat_id=callback.message.chat.id,
                 message_id=callback.message.id,

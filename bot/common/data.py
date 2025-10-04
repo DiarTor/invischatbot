@@ -115,27 +115,54 @@ class UserDataManager:
         """
         Sets or toggles boolean flags.
         Returns True if changes were made.
+
+        - If value=True → set this flag True, all others False.
+        - If value=False → set only this flag False.
+        - If value=None → toggle this flag (xor), and if result=True, reset others.
         """
+
         valid_flags = {
             "awaiting_nickname", 
             "send_without_link",
             "is_bot_off",
             "first_time",
-            "replying"
+            "replying",
+            "awaiting_block_note",
         }
 
         if flag_name not in valid_flags:
             return False
 
-        update = {"$set" if value is not None else "$bit": {
-            f"flags.{flag_name}": value if value is not None else {"xor": 1}
-        }}
+        # Case 1: explicitly set to True
+        if value is True:
+            # Build an update where all flags are false except the chosen one
+            update = {
+                "$set": {f"flags.{f}": (f == flag_name) for f in valid_flags}
+            }
+
+        # Case 2: explicitly set to False
+        elif value is False:
+            update = {"$set": {f"flags.{flag_name}": False}}
+
+        # Case 3: toggle
+        else:
+            # First, fetch current state
+            doc = await self.collection.find_one({"user_id": self.user_id}, {"flags": 1})
+            current = doc.get("flags", {}).get(flag_name, False)
+
+            if current:  # if currently True → set it False
+                update = {"$set": {f"flags.{flag_name}": False}}
+            else:  # if currently False → set it True and reset others
+                update = {
+                    "$set": {f"flags.{f}": (f == flag_name) for f in valid_flags}
+                }
 
         result = await self.collection.update_one(
             {"user_id": self.user_id},
             update
         )
         return result.modified_count > 0
+
 
     async def update_metadata(self, **updates) -> bool:
         """
