@@ -36,6 +36,7 @@ class CallbackManager:
             'block': self._process_block_action,
             'block_cancel': self._process_block_action_cancel,
             'block_confirm': self._process_block_action_confirm,
+            'unblock_shortcut': self._process_unblock_shortcut_action,
             'add_note': self._process_add_note_request,
             'read_note': self._process_read_note_request,
             'mark': self._process_mark_message,
@@ -328,15 +329,25 @@ class CallbackManager:
 
     async def _process_block_action_confirm(self, callback: CallbackQuery):
         """Process the block confirmation callback."""
-        sender_id, _ = callback.data.split('-')
+        sender_id, message_id = callback.data.split('-')
         if not await self.blocker.validate_block_action(callback, sender_id):
             return
-        await self.blocker.block_user(callback.message.chat.id, sender_id, callback)
+        await self.blocker.block_user(callback.message.chat.id, sender_id, callback, message_id)
 
     async def _process_block_action_cancel(self, callback: CallbackQuery):
         """Process the block cancellation callback."""
         sender_id, message_id = callback.data.split('-')
         await self.blocker.cancel_block(callback, message_id, sender_id)
+
+    async def _process_unblock_shortcut_action(self, callback: CallbackQuery):
+        """Process the unblock shortcut action callback."""
+        blocked_id, message_id = callback.data.split('-')
+        if not await self.blocker.is_user_blocked(blocked_id, callback.message.chat.id):
+            await self.bot.answer_callback_query(callback.id,
+                                                 get_response('blocking.not_in_blocklist'),
+                                                 show_alert=True)
+            return
+        await self.blocker.unblock_shortcut(callback, blocked_id, message_id)
 
     async def _process_add_note_request(self, callback: CallbackQuery):
         """Process the add note callback."""
@@ -408,6 +419,8 @@ class CallbackManager:
     async def _process_unblock_action(self, callback: CallbackQuery):
         """Process the unblock callback."""
         blocker_id, blocked_id = callback.data.split('-')
+        blocker_id = await get_user_anon_id(callback.message.chat.id) if blocker_id == 'test' else blocker_id
+        print(blocker_id)
         if await self._check_bot_status(callback, callback.from_user.id):
             return
         await self.bot.edit_message_reply_markup(

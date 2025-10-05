@@ -59,7 +59,7 @@ class BlockUserManager:
 
 
 
-    async def block_user(self, blocker_id: int, blocked_id: str, callback: CallbackQuery):
+    async def block_user(self, blocker_id: int, blocked_id: str, callback: CallbackQuery, message_id: int = None):
         """ Block user
         :param blocker_id: Blocker User ID
         :param blocked_id: Blocked anonymous ID
@@ -78,7 +78,7 @@ class BlockUserManager:
             "timestamp": datetime.now().timestamp()
         }}})
         await self.bot.edit_message_reply_markup(blocker_id, callback.message.id,
-                                                 reply_markup=self.keyboard.blocked_buttons(blocked_id,))
+                                                 reply_markup=self.keyboard.blocked_buttons(blocked_id,message_id=message_id))
 
     async def cancel_block(self, callback: CallbackQuery, reply_message_id, sender_id):
         """ Cancel blocking operation
@@ -109,13 +109,6 @@ class BlockUserManager:
 
         # Get numeric user_id of blocked user
         blocked_user_id = await get_user_id(blocked_id)
-        if blocked_user_id is None:
-            await self.bot.answer_callback_query(
-                callback.id,
-                "کاربر پیدا نشد.",  # User not found
-                show_alert=True
-            )
-            return
 
         # Bind current user
         await self.user_manager.bind_user(chat_id)
@@ -162,11 +155,33 @@ class BlockUserManager:
                                                  bot_message_id,
                                                  reply_markup=keyboard)
 
+    async def unblock_shortcut(self, callback: CallbackQuery, blocked_id: str, message_id: int):
+        """ Unblock user using shortcut button
+        :param callback: Callback query
+        :param blocked_id: Blocked anonymous ID
+        diffrent from unblock_user in that it does not return the blocklist instead it returns the recipient menu.
+        """
+        chat_id = callback.message.chat.id
+        await self.user_manager.bind_user(chat_id)
+        blocked_user_id = await get_user_id(blocked_id)
+        await self.user_manager.update_fields({
+            "$unset": {f"chatting.blocklist.{blocked_user_id}": ""}
+        })
+        await self.bot.answer_callback_query(
+            callback.id,
+            get_response("blocking.unblock_confirm", anon_id=blocked_id),
+            show_alert=True
+        )
+        await self.bot.edit_message_reply_markup(chat_id, callback.message.id,
+                                                 reply_markup=self.keyboard.recipient_buttons(
+                                                     blocked_id,
+                                                     message_id,))
+
     async def unblock_all_users(self, callback: CallbackQuery):
         """ Unblock all users """
         chat_id = callback.message.chat.id
         await self.user_manager.bind_user(chat_id)
-        await self.user_manager.update_fields({"$unset": {"chatting.blocklist": {}}})
+        await self.user_manager.update_fields({"$set": {"chatting.blocklist": {}}})
         await self.bot.edit_message_text(
             chat_id=chat_id,
             message_id=callback.message.id,

@@ -193,7 +193,7 @@ class KeyboardMarkupGenerator:
         ]
         return self._create_list_inline_keyboard(buttons)
 
-    def blocked_buttons(self, sender_id: str, note_added: bool = False):
+    def blocked_buttons(self, sender_id: str, note_added: bool = False, message_id: int = None):
         """
         Blocked InlineButtons
         :param sender_id: anonymous id
@@ -201,7 +201,7 @@ class KeyboardMarkupGenerator:
         """
         # First row: confirmation
         buttons = [
-            [InlineKeyboardButton('🔓 آنبلاک', callback_data=f'unblock-{sender_id}'),
+            [InlineKeyboardButton('🔓 آنبلاک', callback_data=f'unblock_shortcut-{sender_id}-{message_id}'),
             InlineKeyboardButton('✅ بلاک شد.', callback_data='placeholder'),]
         ]
 
