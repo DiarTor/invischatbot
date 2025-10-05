@@ -423,7 +423,6 @@ class CallbackManager:
         """Process the unblock callback."""
         blocker_id, blocked_id = callback.data.split('-')
         blocker_id = await get_user_anon_id(callback.message.chat.id) if blocker_id == 'test' else blocker_id
-        print(blocker_id)
         if await self._check_bot_status(callback, callback.from_user.id):
             return
         await self.bot.edit_message_reply_markup(

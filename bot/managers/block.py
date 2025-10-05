@@ -210,7 +210,8 @@ class BlockUserManager:
         :param msg: Message containing the note
         """
         await self.user_manager.bind_user(msg.from_user.id)
-        await self.validate_note(msg)
+        if not await self.validate_note(msg):
+            return
         note = msg.text.strip()
         user_data = await self.user_manager.fetch_user()
         blocked_id = user_data.get('chatting', {}).get('block_note_for')
