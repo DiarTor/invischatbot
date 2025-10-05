@@ -29,7 +29,7 @@ user_administration_handler = UserAdministration(bot)
 
 # Bot Commands
 bot.register_message_handler(start_bot.start, commands=['start'])
-bot.register_message_handler(support_manager.about, commands=['about'])
+# bot.register_message_handler(support_manager.about, commands=['about'])
 
 # Admin Commands
 bot.register_message_handler(administration_handler.ahelp, commands=['ahelp'])
