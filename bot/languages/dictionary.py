@@ -188,6 +188,9 @@ translations = {
                 'recipient': dedent("""
             طرف مقابل به این پیام <b>ریاکشن</b> نشان داد. ✍️
             """),
+            'how_to_remove': dedent("""
+            ارسال شد. برای حذف ریاکشن، روی همون ایموجی بزن.
+            """)
             },
             'seen': {
                 'sent': dedent("""

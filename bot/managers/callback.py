@@ -226,7 +226,6 @@ class CallbackManager:
         # Check if the user has already reacted to the message
         existing_reaction = await self.chat_manager.get_reaction(sender_user_id, message_id)
         if existing_reaction and existing_reaction != 'هیچ ریاکشنی ندادی':
-            # If the reaction is the same as the existing one, dont do anything
             try:
                 # Update the reaction but do not send a notification
                 await self.bot.edit_message_reply_markup(
@@ -243,6 +242,8 @@ class CallbackManager:
                 is_big=False
             )
                 await self.chat_manager.add_reaction(sender_user_id, message_id, emoji=reaction)
+                await self.bot.answer_callback_query(callback.id,
+                                                     get_response('texting.reaction.how_to_remove'))
             except Exception:
                 #remove the reaction from the message if the reaction is the same as the existing one
                 await self.bot.set_message_reaction(
@@ -282,7 +283,9 @@ class CallbackManager:
             reply_markup=self.keyboard.reaction_buttons(sender_anon_id, message_id,
                                                         toggled_emoji=reaction)
         )
-
+        await self.bot.answer_callback_query(callback.id,
+                                                     get_response('texting.reaction.how_to_remove',))
+                                                     
     async def _process_seen_callback(self, callback: CallbackQuery):
         """Process the seen callback."""
         sender_anon_id, message_id = callback.data.split('-')
