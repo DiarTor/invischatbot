@@ -43,6 +43,9 @@ class CallbackManager:
             'unblock': self._process_unblock_action,
             'unblock_cancel': self._process_unblock_action_cancel,
             'unblock_confirm': self._process_unblock_action_confirm,
+            'unblock_all': self._process_unblock_all_request,
+            'unblock_all_cancel': self._process_unblock_all_request_cancel,
+            'unblock_all_confirm': self._process_unblock_all_request_confirm,
             'return_to_recipient_buttons': self._process_return_to_recipient_buttons,
             'return_to_recipient_option_buttons': self._process_return_to_recipient_option_buttons,
             'change_nickname': self._process_change_nickname,
@@ -364,6 +367,7 @@ class CallbackManager:
                                                  show_alert=True)
 
     async def _process_blocklist_page(self, callback: CallbackQuery):
+        """Process the blocklist pagination callback."""
         blocker_id, page_str = callback.data.split("-")
         page = int(page_str)
 
@@ -430,6 +434,38 @@ class CallbackManager:
 
         blocker_anon_id = await get_user_anon_id(callback.from_user.id)
         await self.blocker.unblock_user(callback, blocker_anon_id, blocked_id)
+
+    async def _process_unblock_all_request(self, callback: CallbackQuery):
+        """Process the unblock all request callback."""
+        if await self._check_bot_status(callback, callback.from_user.id):
+            return
+
+        await self.bot.edit_message_reply_markup(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.id,
+                reply_markup=self.keyboard.unblock_all_confirmation_buttons()
+            )
+
+    async def _process_unblock_all_request_cancel(self, callback: CallbackQuery):
+        """Process the unblock all cancel callback."""
+        if await self._check_bot_status(callback, callback.from_user.id):
+            return
+
+        await self.bot.edit_message_reply_markup(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.id,
+                reply_markup=self.keyboard.blocklist_buttons(
+                    blocker_id=await get_user_anon_id(callback.from_user.id),
+                    blocked_list=[anon_id async for anon_id in self.blocker.get_blocked_users_anon_ids()]
+                )
+            )
+
+    async def _process_unblock_all_request_confirm(self, callback: CallbackQuery):
+        """Process the unblock all confirm callback."""
+        if await self._check_bot_status(callback, callback.from_user.id):
+            return
+
+        await self.blocker.unblock_all_users(callback)
 
     async def _process_delete_message_callback(self, callback: CallbackQuery):
         """Process the delete message callback"""

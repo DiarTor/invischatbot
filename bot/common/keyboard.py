@@ -264,13 +264,13 @@ class KeyboardMarkupGenerator:
 
         # Always add Unblock All button
         buttons.append([
-            InlineKeyboardButton('😇 آنبلاک کردن همه', callback_data=f'unblock_all-{blocker_id}')
+            InlineKeyboardButton('😇 آنبلاک کردن همه', callback_data=f'unblock_all')
         ])
 
         return self._create_list_inline_keyboard(buttons)
 
 
-    def unblock_all_confirmation_buttons(self, blocker_id: str):
+    def unblock_all_confirmation_buttons(self):
         buttons = [
             [
                 InlineKeyboardButton("میخوای همه رو آنبلاک کنی؟", callback_data='placeholder')

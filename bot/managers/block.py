@@ -162,6 +162,18 @@ class BlockUserManager:
                                                  bot_message_id,
                                                  reply_markup=keyboard)
 
+    async def unblock_all_users(self, callback: CallbackQuery):
+        """ Unblock all users """
+        chat_id = callback.message.chat.id
+        await self.user_manager.bind_user(chat_id)
+        await self.user_manager.update_fields({"$unset": {"chatting.blocklist": {}}})
+        await self.bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=callback.message.id,
+            text=get_response("blocking.unblock_all_confirm"),
+            parse_mode="HTML",
+        )
+
     async def add_note_request(self, callback: CallbackQuery, blocked_id: str):
         """ Add note to blocked user
         :param callback: Callback query
