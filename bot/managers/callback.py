@@ -15,7 +15,7 @@ from bot.languages.response import get_response
 from bot.common.utils import generate_anon_link
 from bot.admin.callback import AdminCallbackHandler
 from bot.common.data import UserDataManager, ChatDataManager
-from bot.common.data import get_user_id, get_user_anon_id
+from bot.common.data import get_user_id, get_user_anon_id, find_one, mongo
 
 class CallbackManager:
     """CallbackHandler is a class responsible for handling various callback queries &
@@ -39,6 +39,7 @@ class CallbackManager:
             'add_note': self._process_add_note_request,
             'read_note': self._process_read_note_request,
             'mark': self._process_mark_message,
+            'blocklist_page': self._process_blocklist_page,
             'unblock': self._process_unblock_action,
             'unblock_cancel': self._process_unblock_action_cancel,
             'unblock_confirm': self._process_unblock_action_confirm,
@@ -361,6 +362,44 @@ class CallbackManager:
             await self.bot.answer_callback_query(callback.id,
                                                  get_response('blocking.no_note'),
                                                  show_alert=True)
+
+    async def _process_blocklist_page(self, callback: CallbackQuery):
+        blocker_id, page_str = callback.data.split("-")
+        page = int(page_str)
+
+        chat_id = callback.message.chat.id
+
+        # Bind the user who pressed the button
+        await self.user_manager.bind_user(chat_id)
+
+        # Fetch fresh blocklist from DB
+        user_data = await self.user_manager.fetch_user()
+        blocklist = user_data.get("chatting", {}).get("blocklist", {})
+
+        if not blocklist:
+            await self.bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback.message.message_id,
+                text=get_response("blocking.blocklist_empty")
+            )
+            return
+
+        # Convert blocked user_ids → anon_ids
+        blocklist_anon_ids = [anon_id async for anon_id in self.get_blocked_users_anon_ids()]
+
+        # Regenerate keyboard for requested page
+        await self.bot.edit_message_reply_markup(
+            chat_id=chat_id,
+            message_id=callback.message.message_id,
+            reply_markup=self.keyboard.blocklist_buttons(
+                blocker_id=blocker_id,
+                blocked_list=blocklist_anon_ids,
+                page=page
+            )
+        )
+
+        # Always answer callback query to remove "loading..." spinner
+        await self.bot.answer_callback_query(callback.id)
 
     async def _process_unblock_action(self, callback: CallbackQuery):
         """Process the unblock callback."""

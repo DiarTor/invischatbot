@@ -25,7 +25,7 @@ class BlockUserManager:
         user_id = msg.chat.id
         await self.user_manager.bind_user(user_id=user_id)
 
-        # Get current user's blocklist
+        # Get current user's blocklist (dict of {user_id: {note, timestamp}})
         user_data = await self.user_manager.fetch_user()
         blocklist = user_data.get("chatting", {}).get("blocklist", {})
 
@@ -40,25 +40,23 @@ class BlockUserManager:
         blocked_user_ids = list(blocklist.keys())
 
         # Convert blocked user_ids → anon_ids
-        blocklist_anon_ids = []
-        for blocked_uid in blocked_user_ids:
-            blocked_user = await find_one(mongo.users_collection, {"user_id": int(blocked_uid)})
-            if blocked_user and "anon_id" in blocked_user:
-                blocklist_anon_ids.append(blocked_user["anon_id"])
+        blocklist_anon_ids = [anon_id async for anon_id in self.get_blocked_users_anon_ids()]
 
         # Get current user's anon_id
         user_anon_id = await self.user_manager.get_anon_id()
 
-        # Send message with inline keyboard
+        # Send message with inline keyboard (start from first page)
         await self.bot.send_message(
             chat_id=user_id,
             text=get_response("blocking.blocklist"),
-            parse_mode="MarkDown",
+            parse_mode="Markdown",
             reply_markup=self.keyboard.blocklist_buttons(
                 blocker_id=user_anon_id,
-                blocked_list=blocklist_anon_ids
+                blocked_list=blocklist_anon_ids,
+                page=0  # 👈 start at first page
             )
         )
+
 
 
     async def block_user(self, blocker_id: int, blocked_id: str, callback: CallbackQuery):

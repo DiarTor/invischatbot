@@ -217,16 +217,67 @@ class KeyboardMarkupGenerator:
         return self._create_list_inline_keyboard(buttons)
 
 
-    def blocklist_buttons(self, blocker_id: str, blocked_list: list):
-        """ Block List InlineButtons
-        :param blocker_id: blocker anonymous id
-        :param blocked_list: the list of blocked anonymous ids
+    def blocklist_buttons(self, blocker_id: str, blocked_list: list, page: int = 0, per_page: int = 8):
         """
+        Block List InlineButtons with pagination.
+        
+        :param blocker_id: blocker anonymous id
+        :param blocked_list: list of blocked anonymous ids
+        :param page: current page index (0-based)
+        :param per_page: number of blocked users per page
+        """
+        buttons = []
+
+        # Pagination calculation
+        total = len(blocked_list)
+        start = page * per_page
+        end = start + per_page
+        page_items = blocked_list[start:end]
+
+        # Build user buttons (2 columns)
+        row = []
+        for i, blocked_id in enumerate(page_items, start=1):
+            row.append(
+                InlineKeyboardButton(
+                    text=str(blocked_id),
+                    callback_data=f'unblock-{blocker_id}-{blocked_id}'
+                )
+            )
+            if i % 2 == 0:  # 2 columns
+                buttons.append(row)
+                row = []
+        if row:  # append last row if not empty
+            buttons.append(row)
+
+        # Navigation buttons
+        nav_buttons = []
+        if page > 0:
+            nav_buttons.append(
+                InlineKeyboardButton("قبلی ⬅️", callback_data=f"blocklist_page-{blocker_id}-{page-1}")
+            )
+        if end < total:
+            nav_buttons.append(
+                InlineKeyboardButton("➡️ بعدی", callback_data=f"blocklist_page-{blocker_id}-{page+1}")
+            )
+        if nav_buttons:
+            buttons.append(nav_buttons)
+
+        # Always add Unblock All button
+        buttons.append([
+            InlineKeyboardButton('😇 آنبلاک کردن همه', callback_data=f'unblock_all-{blocker_id}')
+        ])
+
+        return self._create_list_inline_keyboard(buttons)
+
+
+    def unblock_all_confirmation_buttons(self, blocker_id: str):
         buttons = [
-            [InlineKeyboardButton(text=str(blocked_id),
-                                  callback_data=f'unblock-{blocker_id}-{blocked_id}'), ]
-            for blocked_id in blocked_list
-        ]
+            [
+                InlineKeyboardButton("میخوای همه رو آنبلاک کنی؟", callback_data='placeholder')
+            ],
+            [InlineKeyboardButton('بله 👍', callback_data=f'unblock_all_confirm'),
+             InlineKeyboardButton('خیر 👎', callback_data=f'unblock_all_cancel')],
+            ]
         return self._create_list_inline_keyboard(buttons)
 
     def unblock_confirmation_buttons(self, blocker_id: str, blocked_id: str):
