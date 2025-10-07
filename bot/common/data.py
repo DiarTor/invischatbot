@@ -91,7 +91,7 @@ class UserDataManager:
         """
         valid_fields = {
             "username", 
-            "first_name", "last_name", "nickname", "bio"
+            "first_name", "last_name", "nickname", "bio", 'likes'
         }
 
         updates = {
@@ -312,6 +312,7 @@ class UserDataManager:
             "first_name": data.get("first_name", ""),
             "last_name": data.get("last_name", ""),
             "bio": data.get("bio", ''),
+            "likes": data.get("likes", 0),
             "updated_at": data.get("updated_at", self.now)
         }
 class BotDataManager:

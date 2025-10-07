@@ -50,6 +50,7 @@ class StartBot:
                     "first_name": msg.from_user.first_name or '',
                     "last_name": msg.from_user.last_name or '',
                     "bio": '',
+                    "likes": 0,
                 }
                 await self.user_manager.save_user(**profile_data)
                 await self.user_manager.update_last_interaction()
@@ -167,22 +168,25 @@ class StartBot:
         if has_existing_chat:
             nickname = target_user_data.get('profile', {}).get('nickname', 'N/A')
             bio = target_user_data.get('profile', {}).get('bio', 'درحال حاضر طرف بیوگرافی ندارد!')
+            likes = target_user_data.get('profile', {}).get('likes', 0)
             await self._reopen_chat(user_id, target_user_id, nickname, bio)
         else:
             nickname = target_user_data.get('profile', {}).get('nickname', 'N/A')
             bio = target_user_data.get('profile', {}).get('bio', 'درحال حاضر طرف بیوگرافی ندارد!')
             await self._create_new_chat(user_id, target_user_id, nickname, bio)
 
-    async def _reopen_chat(self, user_id: int, target_user_id: int, target_user_nickname: str, bio: str):
+    async def _reopen_chat(self, user_id: int, target_user_id: int, target_user_nickname: str, bio: str, likes: int = 0):
         await self.chat_manager.reopen_chat(user_id, target_user_id)
 
         if await self.user_manager.get_anon_id() == 'support':
             response = 'texting.sending.support'
         else:
             response = 'texting.sending.text.send'
+        connecting = await self.bot.send_message(user_id, get_response('⏳ درحال وصل شدن...'), reply_markup=KeyboardMarkupGenerator().cancel_buttons()),
+        await self.bot.delete_message(user_id, connecting.message_id)
         await self.bot.send_message(user_id, get_response(response, nickname=target_user_nickname, bio=bio),
                                     parse_mode='HTML',
-                                    reply_markup=KeyboardMarkupGenerator().cancel_buttons())
+                                    reply_markup=KeyboardMarkupGenerator().connected_buttons(likes=likes))
 
     async def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str, bio: str):
         target_user_anon_id = await self.user_manager.get_anon_id()

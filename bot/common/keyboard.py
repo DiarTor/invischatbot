@@ -86,9 +86,9 @@ class KeyboardMarkupGenerator:
 
         return self._create_list_inline_keyboard(buttons)
 
-    def show_account_buttons(self):
+    def connected_buttons(self, likes: int = 0):
         buttons = [
-            InlineKeyboardButton('👤 حساب کاربری', callback_data='show_account')
+            InlineKeyboardButton(f"❤️ {likes}", callback_data='like_user'),
         ]
         return self._create_inline_keyboard(buttons)
 
