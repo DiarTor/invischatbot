@@ -268,7 +268,7 @@ class ChatHandler:
         elif await self.user_manager.get_flag_state('awaiting_nickname'):
             await self.user_manager.toggle_flag("awaiting_nickname", False)
             await self.bot.send_message(msg.from_user.id, get_response('nickname.cancelled'),
-                                        parse_mode='Markdown',
+                                        parse_mode='HTML',
                                         reply_markup=KeyboardMarkupGenerator().main_buttons())
 
         elif await self.user_manager.get_flag_state('send_without_link'):

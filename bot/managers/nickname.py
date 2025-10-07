@@ -16,16 +16,16 @@ class NicknameManager:
 
     async def set_nickname(self, msg: Message):
         """Set a Nickname for the user."""
-        await self.user_manager.bind_user(msg.from_user.id)
+        await self.user_manager.bind_user(msg.chat.id)
         await self.user_manager.toggle_flag('awaiting_nickname', True)
-        current_nickname = await self.user_manager.fetch_user().get('profile',
-                                                             {}).get('nickname', None)
+        user_data = await self.user_manager.fetch_user()
+        current_nickname = user_data.get('profile', {}).get('nickname', None)
         current_first_name = msg.from_user.first_name
         await self.bot.send_message(msg.chat.id,
                                     get_response('nickname.ask_nickname',
                                             current_nickname=current_nickname,
                                             current_firstname=current_first_name),
-                                            parse_mode='Markdown',
+                                            parse_mode='HTML',
                                             reply_markup=KeyboardMarkupGenerator().cancel_buttons())
 
     async def save_nickname(self, msg: Message):
@@ -46,7 +46,6 @@ class NicknameManager:
                 reply_markup=KeyboardMarkupGenerator().main_buttons(),
                 parse_mode='HTML'
             )
-
         else:
             # Notify the user about the invalid nickname
             await self.bot.send_message(

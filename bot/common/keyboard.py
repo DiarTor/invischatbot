@@ -86,6 +86,12 @@ class KeyboardMarkupGenerator:
 
         return self._create_list_inline_keyboard(buttons)
 
+    def show_account_buttons(self):
+        buttons = [
+            InlineKeyboardButton('👤 حساب کاربری', callback_data='show_account')
+        ]
+        return self._create_inline_keyboard(buttons)
+
     def change_nickname_buttons(self):
         buttons = [
             InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data='change-nickname')

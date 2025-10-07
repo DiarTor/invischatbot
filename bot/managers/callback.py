@@ -501,14 +501,7 @@ class CallbackManager:
     async def _process_change_nickname(self, callback: CallbackQuery):
         """Process the change nickname callback."""
         await self.chat_manager.close_chats(callback.message.chat.id, True)
-        response = await NicknameManager(self.bot).get_set_nickname_response(callback.message)
-        await self.bot.edit_message_text(
-            response,
-            callback.message.chat.id,
-            callback.message.id,
-            parse_mode='MarkDown',
-            reply_markup=self.keyboard.cancel_changing_nickname()
-        )
+        await NicknameManager(self.bot).set_nickname(callback.message)
 
     async def _process_change_bio(self, callback: CallbackQuery):
         """Process the change bio callback."""
