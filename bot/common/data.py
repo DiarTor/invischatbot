@@ -311,6 +311,7 @@ class UserDataManager:
             "username": data.get("username", ""),
             "first_name": data.get("first_name", ""),
             "last_name": data.get("last_name", ""),
+            "bio": data.get("bio", ''),
             "updated_at": data.get("updated_at", self.now)
         }
 class BotDataManager:

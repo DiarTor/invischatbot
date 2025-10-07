@@ -49,6 +49,7 @@ class StartBot:
                     "username": username,
                     "first_name": msg.from_user.first_name or '',
                     "last_name": msg.from_user.last_name or '',
+                    "bio": '',
                 }
                 await self.user_manager.save_user(**profile_data)
                 await self.user_manager.update_last_interaction()
