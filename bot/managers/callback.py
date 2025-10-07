@@ -50,6 +50,7 @@ class CallbackManager:
             'return_to_recipient_buttons': self._process_return_to_recipient_buttons,
             'return_to_recipient_option_buttons': self._process_return_to_recipient_option_buttons,
             'change_nickname': self._process_change_nickname,
+            'change_bio': self._process_change_bio,
             'change_bot_status': self._process_change_bot_status,
             'cancel': self._process_cancel,
             'admin': self._process_admin_callback,
@@ -354,6 +355,7 @@ class CallbackManager:
 
     async def _process_add_note_request(self, callback: CallbackQuery):
         """Process the add note callback."""
+        await self.chat_manager.close_chats(callback.message.chat.id)
         blocked_id = callback.data.split('-')[0]
         if not await self.blocker.is_user_blocked(blocked_id, callback.from_user.id):
             await self.bot.answer_callback_query(callback.id,
@@ -508,6 +510,11 @@ class CallbackManager:
             reply_markup=self.keyboard.cancel_changing_nickname()
         )
 
+    async def _process_change_bio(self, callback: CallbackQuery):
+        """Process the change bio callback."""
+        await self.chat_manager.close_chats(callback.message.chat.id, True)
+        await AccountManager.change_bio_request(self, callback)
+
     async def _process_cancel(self, callback: CallbackQuery):
         """Process the cancel callback."""
         task = callback.data
@@ -518,7 +525,7 @@ class CallbackManager:
                 await AccountManager(self.bot).get_account_response(callback.message),
                 callback.from_user.id,
                 callback.message.id,
-                parse_mode='Markdown',
+                parse_mode='HTML',
                 reply_markup=self.keyboard.account_buttons()
             )
 

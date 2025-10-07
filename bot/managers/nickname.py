@@ -5,7 +5,7 @@ from telebot.types import Message
 
 from bot.common.keyboard import KeyboardMarkupGenerator
 from bot.languages.response import get_response
-from bot.common.validators import NicknameValidator
+from bot.common.validators import AccountValidator
 from bot.common.data import UserDataManager
 
 class NicknameManager:
@@ -34,7 +34,7 @@ class NicknameManager:
         nickname = msg.text.strip()
 
         # Validate the nickname
-        validator = NicknameValidator()
+        validator = AccountValidator()
         is_valid, validation_message = validator.validate_nickname(nickname)
         if is_valid:
             # Proceed to store the user data if the nickname is valid

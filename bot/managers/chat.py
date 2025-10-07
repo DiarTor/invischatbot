@@ -91,6 +91,10 @@ class ChatHandler:
             await BlockUserManager(self.bot).save_block_note(msg)
             return
 
+        if await self.user_manager.get_flag_state("awaiting_bio"):
+            await AccountManager(self.bot).save_bio(msg)
+            return
+
         if not open_chat:
             await self.bot.send_message(msg.chat.id, get_response('errors.no_active_chat'))
             return
@@ -279,6 +283,13 @@ class ChatHandler:
             await self.user_manager.update_fields({'$unset': {'chatting.block_note_for': ""}})
             await self.bot.send_message(
                 msg.chat.id, get_response('blocking.add_note_cancelled'), parse_mode='HTML',
+                reply_markup=KeyboardMarkupGenerator().main_buttons()
+            )
+
+        elif await self.user_manager.get_flag_state('awaiting_bio'):
+            await self.user_manager.toggle_flag("awaiting_bio", False)
+            await self.bot.send_message(
+                msg.chat.id, get_response('account.bio.cancelled'), parse_mode='HTML',
                 reply_markup=KeyboardMarkupGenerator().main_buttons()
             )
 

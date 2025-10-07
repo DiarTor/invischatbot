@@ -91,7 +91,7 @@ class UserDataManager:
         """
         valid_fields = {
             "username", 
-            "first_name", "last_name", "nickname"
+            "first_name", "last_name", "nickname", "bio"
         }
 
         updates = {
@@ -128,6 +128,7 @@ class UserDataManager:
             "first_time",
             "replying",
             "awaiting_block_note",
+            "awaiting_bio",
         }
 
         if flag_name not in valid_flags:
@@ -251,15 +252,32 @@ class UserDataManager:
         return result.modified_count > 0
 
     async def close_metadata(self, field: str = None):
-        """Clear metadata flags for the user. Can target a single field or all."""
+        """Clear metadata flags selectively — only reset True ones."""
+        user_data = await self.fetch_user()
+        flags = user_data.get("flags", {})
+
+        # If a single field is provided
         if field:
-            await self.update_fields(f"flags.{field}", False)
-        else:
-            await self.update_fields({
-                "flags.awaiting_nickname": False,
-                "flags.send_without_link": False,
-                "flags.replying": False,
-            })
+            if flags.get(field):  # only update if it's currently True
+                await self.update_fields({f"flags.{field}": False})
+            return
+
+        # Multiple flags — build dict of only those that are True
+        to_reset = {
+            f"flags.{key}": False
+            for key, value in flags.items()
+            if key in {
+                "awaiting_nickname",
+                "send_without_link",
+                "replying",
+                "awaiting_block_note",
+                "awaiting_bio",
+            } and value
+        }
+
+        if to_reset:
+            await self.update_fields(to_reset)
+
 
     async def is_bot_disabled(self, user_id: int = None) -> bool:
         """

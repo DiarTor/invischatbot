@@ -72,13 +72,15 @@ class KeyboardMarkupGenerator:
         return self._create_inline_keyboard(buttons)
 
     def account_buttons(self, is_bot_off=False):
-        bot_status = 'خاموش😴' if is_bot_off else 'روشن 😁'
+        bot_status = 'خاموش 😴' if is_bot_off else 'روشن 😁'
+
         buttons = [
             [
-                InlineKeyboardButton('♻️ تغییر نام نمایشی', callback_data='change_nickname'),
+                InlineKeyboardButton('🏷️ تغییر نام نمایشی', callback_data='change_nickname'),
+                InlineKeyboardButton('💬 تغییر بیوگرافی', callback_data='change_bio'),
             ],
             [
-                InlineKeyboardButton(f'وضعیت ربات: {bot_status}', callback_data='change_bot_status')
+                InlineKeyboardButton(f'وضعیت ربات: {bot_status}', callback_data='change_bot_status'),
             ]
         ]
 

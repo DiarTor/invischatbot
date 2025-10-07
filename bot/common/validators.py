@@ -1,7 +1,6 @@
 import re
 
-
-class NicknameValidator:
+class AccountValidator:
     def __init__(self):
         # Define restricted or inappropriate words
         self.restricted_words = [
@@ -14,12 +13,6 @@ class NicknameValidator:
             "ادمین", "مدیر", "پشتیبانی", "راهنما", "سیستم", "ربات", "سرور", "سرپرست", "اپراتور",
             "کارشناس", "توسعه‌دهنده", "مالک",
 
-            # Inappropriate Language and Offensive Terms (English)
-            "curse", "hate", "abuse", "insult",  # Add more offensive terms as needed
-
-            # Inappropriate Language and Offensive Terms (Persian)
-            "توهین", "لعنت", "فحش", "نفرت",  # Add more Persian offensive terms as needed
-
             # VIP and Exclusive Terms (English)
             "vip", "premium", "elite", "pro", "verified", "gold", "platinum", "official", "certified",
             "guest", "exclusive",
@@ -27,40 +20,9 @@ class NicknameValidator:
             # VIP and Exclusive Terms (Persian)
             "ویژه", "طلایی", "برنزی", "نقره‌ای", "رسمی", "تأیید‌شده", "مهمان",
 
-            # System Functions and Commands (English)
-            "root", "sudo", "cmd", "bash", "script", "admin", "server", "system", "console", "database",
-            "query", "sql", "mysql", "mongodb", "redis", "log", "debug", "error", "shutdown",
-            "reboot", "kill", "block", "kick", "ban", "delete", "remove", "api", "config",
-            "cron", "task",
-
-            # System Functions and Commands (Persian)
-            "سیستم", "سرور", "پایگاه داده", "دیتابیس", "کنسول", "اشکال زدایی", "حذف", "بانک",
-            "بستن", "اجرای", "بازنشانی", "مسدود", "پاک کردن",
-
-            # Religious and Political Terms (English)
-            "god", "allah", "prophet", "angel", "buddha", "jesus", "leader", "president", "minister",
-            "politics", "vote", "party", "leftwing", "rightwing", "republic", "democrat",
-            "congress", "government", "parliament", "senate", "king", "queen", "dictator",
-            "czar", "sultan",
-
-            # Religious and Political Terms (Persian)
-            "خدا", "الله", "پیامبر", "مسیح", "مومن", "سیاسی", "رهبر", "رئیس‌جمهور", "وزیر",
-            "حکومت", "نماینده", "انتخابات", "مجلس", "سنا", "پادشاه", "وزارت",
-
-            # Sensitive Health-Related and Harmful Terms (English)
-            "drugs", "alcohol", "smoke", "cigarette", "marijuana", "cocaine", "violence",
-            "death", "kill", "suicide", "mental", "depression", "harm",
-
-            # Sensitive Health-Related and Harmful Terms (Persian)
-            "اعتیاد", "مواد مخدر", "سیگار", "مرگ", "خودکشی", "کشتن", "آزار", "روحی", "افسردگی",
-
-            # Restricted Place Names and Titles (English)
-            "president", "congress", "senator", "police", "army", "military", "navy", "airforce",
-            "us", "uk", "canada", "eu", "america", "embassy", "official", "ambassador",
-
-            # Restricted Place Names and Titles (Persian)
-            "پلیس", "ارتش", "نیروی دریایی", "نیروی هوایی", "سفارت", "رئیس", "نماینده", "وزارت",
-            "کشور", "استان", "شهر"
+            # lniks and inappropriate content
+            "http", "https", "www", ".com", ".net", ".org", ".io", ".xyz", ".me", "@",
+            "درحال حاضر بیوگرافی ندارید!"
         ]
 
     def validate_nickname(self, nickname: str) -> bool| str:
@@ -81,7 +43,17 @@ class NicknameValidator:
 
         return True, "✅ نام مستعار معتبر است."
 
+    def validate_bio(self, bio: str) -> bool| str:
+        if len(bio) > 200:
+            return False, "⛔️ بیوگرافی نباید بیشتر از ۲۰۰ کاراکتر باشد."
 
+        if any(word in bio.lower() for word in self.restricted_words):
+            return False, "❌ بیوگرافی شامل کلمات محدودشده است."
+
+        if re.search(r'http://|https://|www\.|\.com|\.net|\.org|\.io|\.xyz|\.me|@', bio.lower()):
+            return False, "🚫 بیوگرافی نباید شامل لینک یا آدرس‌های وب باشد."
+
+        return True, "✅ بیوگرافی معتبر است."
 class MessageValidator:
     """
     A class for validating and formatting messages to prevent formatting errors.
@@ -117,3 +89,4 @@ class MessageValidator:
         else:
             # Return plain text if no parsing is required
             return text
+
