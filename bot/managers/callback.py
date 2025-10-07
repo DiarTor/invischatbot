@@ -502,11 +502,13 @@ class CallbackManager:
         """Process the change nickname callback."""
         await self.chat_manager.close_chats(callback.message.chat.id, True)
         await NicknameManager(self.bot).set_nickname(callback.message)
+        await self.bot.delete_message(callback.message.chat.id, callback.message.id)
 
     async def _process_change_bio(self, callback: CallbackQuery):
         """Process the change bio callback."""
         await self.chat_manager.close_chats(callback.message.chat.id, True)
         await AccountManager.change_bio_request(self, callback)
+        await self.bot.delete_message(callback.message.chat.id, callback.message.id)
 
     async def _process_cancel(self, callback: CallbackQuery):
         """Process the cancel callback."""
