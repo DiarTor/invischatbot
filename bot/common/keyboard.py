@@ -86,7 +86,14 @@ class KeyboardMarkupGenerator:
 
         return self._create_list_inline_keyboard(buttons)
 
-    def connected_buttons(self, likes: int = 0):
+    def connected_buttons(self, likes: int = 0, is_liked: bool=False):
+        """
+        The buttons that will be shown to the sender when they want to send a message to someone via their link.
+        these buttons will be shown under the recipient profile when the sender clicked on their link.
+        Args:
+            likes (int): The number of the recipient likes recivied.
+            is_liked(bool): is this profile liked by the user? (sender).
+        """
         buttons = [
             InlineKeyboardButton(f"❤️ {likes}", callback_data='like_user'),
         ]
