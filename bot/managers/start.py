@@ -185,8 +185,7 @@ class StartBot:
         connecting = await self.bot.send_message(user_id, get_response('⏳ درحال وصل شدن...'), reply_markup=KeyboardMarkupGenerator().cancel_buttons()),
         await self.bot.delete_message(user_id, connecting.message_id)
         await self.bot.send_message(user_id, get_response(response, nickname=target_user_nickname, bio=bio),
-                                    parse_mode='HTML',
-                                    reply_markup=KeyboardMarkupGenerator().connected_buttons(likes=likes))
+                                    parse_mode='HTML',)
 
     async def _create_new_chat(self, user_id: int, target_user_id: int, target_user_nickname: str, bio: str):
         target_user_anon_id = await self.user_manager.get_anon_id()

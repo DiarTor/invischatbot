@@ -20,7 +20,7 @@ class NicknameManager:
         await self.user_manager.toggle_flag('awaiting_nickname', True)
         user_data = await self.user_manager.fetch_user()
         current_nickname = user_data.get('profile', {}).get('nickname', None)
-        current_first_name = msg.from_user.first_name
+        current_first_name = msg.chat.first_name
         await self.bot.send_message(msg.chat.id,
                                     get_response('nickname.ask_nickname',
                                             current_nickname=current_nickname,
