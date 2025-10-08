@@ -66,11 +66,6 @@ class KeyboardMarkupGenerator:
 
         return self._create_reply_keyboard(buttons)
 
-    def cancel_changing_nickname(self):
-        buttons = [InlineKeyboardButton('⬅️ بازگشت', callback_data='cancel-changing_nickname')]
-
-        return self._create_inline_keyboard(buttons)
-
     def account_buttons(self, is_bot_off=False):
         bot_status = 'خاموش 😴' if is_bot_off else 'روشن 😁'
 
