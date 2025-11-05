@@ -68,4 +68,8 @@ This repository contains the bot logic, database helpers, language dictionaries,
 
 **License**
 
-This project does not include an explicit license file in the repository. If you want to make the project open source, add a `LICENSE` file (for example, MIT) to clarify reuse terms.
+This project is licensed under the GNU General Public License version 3 (GPL-3.0). See the included `LICENSE` file at the repository root for the full license text.
+
+Short summary: GPL-3.0 is a strong copyleft license — you are free to run, study, share, and modify the software, but if you distribute modified versions they must also be licensed under GPL-3.0 and accompanied by source code. For the complete license terms see: https://www.gnu.org/licenses/gpl-3.0.en.html
+
+Copyright (c) 2025 DiarTor
