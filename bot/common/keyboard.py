@@ -102,10 +102,13 @@ class KeyboardMarkupGenerator:
         """
         buttons = [
                 [
-                    InlineKeyboardButton('🎈 بیشتر...',
-                                          callback_data=f'recipient_option-{sender_id}-{message_id}'),
+                    InlineKeyboardButton('👍 ریاکشن', callback_data=f'reactions-{sender_id}-{message_id}'),
                     InlineKeyboardButton('↪️ پاسخ',
                                           callback_data=f'reply-{sender_id}-{message_id}'),
+                ],
+                [
+                    InlineKeyboardButton('🎈 بیشتر...',
+                                          callback_data=f'recipient_option-{sender_id}-{message_id}'),
                 ]
         ]
         return self._create_list_inline_keyboard(buttons)
@@ -128,7 +131,6 @@ class KeyboardMarkupGenerator:
             [
                 # InlineKeyboardButton('گزارش ⚠️', callback_data='report'),
                 InlineKeyboardButton('بلاک 🚫', callback_data=f'block-{sender_id}-{message_id}'),
-                InlineKeyboardButton('👍 ریاکشن ها', callback_data=f'reactions-{sender_id}-{message_id}')
             ],
             [
                 InlineKeyboardButton('↩️ بازگشت', callback_data=f'return_to_recipient_buttons-{sender_id}-{message_id}'),
@@ -166,7 +168,7 @@ class KeyboardMarkupGenerator:
                 InlineKeyboardButton('🌚', callback_data=f'reaction-moon-{sender_id}-{message_id}'),
             ],
             [
-                InlineKeyboardButton('↩️ بازگشت', callback_data=f'return_to_recipient_option_buttons-{sender_id}-{message_id}')
+                InlineKeyboardButton('↩️ بازگشت', callback_data=f'return_to_recipient_buttons-{sender_id}-{message_id}')
             ]
         ]
         buttons += [[InlineKeyboardButton(f'ریاکشن فعلی: {toggled_emoji}', callback_data='placeholder')]]

@@ -54,6 +54,14 @@ class AccountManager:
                 f"{validation_message}",
             )
             return
+        if new_bio == 'حذف':
+            await self.user_manager.bind_user(msg.from_user.id)
+            await self.user_manager.update_profile(**{"bio": ""})
+            await self.user_manager.toggle_flag('awaiting_bio', False)
+            await self.bot.send_message(msg.chat.id,
+                                        get_response('account.bio.deleted'),
+                                        parse_mode='HTML',
+                                        reply_markup=KeyboardMarkupGenerator().main_buttons())
         else:
             await self.user_manager.bind_user(msg.from_user.id)
             await self.user_manager.update_profile(**{"bio": new_bio})
