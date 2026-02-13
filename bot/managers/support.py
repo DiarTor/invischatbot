@@ -1,7 +1,6 @@
 """SupportManager handles support-related commands and interactions in the bot."""
 from telebot.async_telebot import AsyncTeleBot
-from telebot.types import Message
-from telegram import CallbackQuery
+from telebot.types import Message, CallbackQuery
 from bot.languages.response import get_response
 from bot.managers.start import StartBot
 from bot.common.utils import get_latest_tag

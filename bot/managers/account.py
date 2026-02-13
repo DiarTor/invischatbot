@@ -1,7 +1,6 @@
 """Manager for handling user account-related operations."""
 from telebot.async_telebot import AsyncTeleBot
-from telebot.types import Message
-from telegram import CallbackQuery
+from telebot.types import Message, CallbackQuery
 
 from bot.common.data import UserDataManager, find_one
 from bot.database.database import mongo

@@ -2,8 +2,7 @@
 from datetime import datetime
 from telebot.async_telebot import AsyncTeleBot
 from telebot.types import CallbackQuery, InputTextMessageContent,\
-      InlineQueryResultArticle, InlineQuery
-from telegram import ReactionTypeEmoji
+      InlineQueryResultArticle, InlineQuery, ReactionTypeEmoji
 from bot.callbacks.guide import GuideCallbackHandler
 from bot.managers.account import AccountManager
 from bot.managers.block import BlockUserManager

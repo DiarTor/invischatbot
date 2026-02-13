@@ -1,6 +1,5 @@
 from telebot.types import ReplyKeyboardMarkup, InlineKeyboardMarkup,\
-      InlineKeyboardButton, KeyboardButton
-from telegram import CopyTextButton
+      InlineKeyboardButton, KeyboardButton, CopyTextButton
 
 
 class KeyboardMarkupGenerator:
@@ -72,7 +71,7 @@ class KeyboardMarkupGenerator:
         buttons = [
             [
                 InlineKeyboardButton('🏷️ تغییر نام نمایشی', callback_data='change_nickname'),
-                InlineKeyboardButton('💬 تغییر بیوگرافی', callback_data='change_bio'),
+                InlineKeyboardButton('💬 تغییر بیوگرافی', callback_data='change_bio',),
             ],
             [
                 InlineKeyboardButton(f'وضعیت ربات: {bot_status}', callback_data='change_bot_status'),
